@@ -44,7 +44,8 @@
   #screen-progress                                       { --acc: #C084FC; }
   #screen-cycle                                          { --acc: #F472B6; }
   #screen-fasting                                        { --acc: #2DD4BF; }
-  #screen-review, #screen-monthly-review                 { --acc: #C084FC; }
+  #screen-review, #screen-monthly-review, #screen-review-history { --acc: #C084FC; }
+  #screen-health-sync                                    { --acc: #F87171; }
   #onboarding                                            { --acc: #E8C547; }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -398,7 +399,7 @@
     <div class="input-group"><label class="input-label">Daily protein target (g)</label><input id="ob-protein" type="number" placeholder="e.g. 120" /></div>
     <div class="input-group"><label class="input-label">Daily carb target (g)</label><input id="ob-carbs" type="number" placeholder="e.g. 150" /></div>
     <div class="input-group"><label class="input-label">Daily fat target (g)</label><input id="ob-fat" type="number" placeholder="e.g. 55" /></div>
-    <div class="input-group"><label class="input-label">Daily water target (glasses)</label><input id="ob-water" type="number" placeholder="e.g. 8" /></div>
+    <div class="input-group"><label class="input-label">Daily water target (ml)</label><input id="ob-water" type="number" placeholder="e.g. 2000" /></div>
     <button class="btn btn-primary" onclick="completeOnboard()">Start my journey 🚀</button>
   </div>
 </div>
@@ -576,7 +577,10 @@
 
   <!-- NUTRITION -->
   <div class="screen" id="screen-nutrition">
-    <div class="header"><h1>Nutrition</h1></div>
+    <div class="header">
+      <h1>Nutrition</h1>
+      <button class="isq" style="width:34px;height:34px;font-size:18px" onclick="openModal('modal-food')">+</button>
+    </div>
     <div class="tabs" style="margin:12px 16px 0">
       <div class="tab active" onclick="switchTab(this,'nt-diary')">Diary</div>
       <div class="tab" onclick="switchTab(this,'nt-meals')">Meals</div>
@@ -648,7 +652,10 @@
 
   <!-- WORKOUT -->
   <div class="screen" id="screen-workout">
-    <div class="header"><h1>Workout</h1></div>
+    <div class="header">
+      <h1>Workout</h1>
+      <button class="isq" style="width:34px;height:34px;font-size:16px" onclick="openModal('modal-add-exercise')">+</button>
+    </div>
     <div class="tabs" style="margin:12px 16px 0">
       <div class="tab active" onclick="switchTab(this,'wk-log')">Today</div>
       <div class="tab" onclick="switchTab(this,'wk-plans')">Plans</div>
@@ -700,7 +707,10 @@
 
   <!-- PROGRESS -->
   <div class="screen" id="screen-progress">
-    <div class="header"><h1>Progress</h1></div>
+    <div class="header">
+      <h1>Progress</h1>
+      <button class="isq" style="width:34px;height:34px;font-size:18px" onclick="openModal('modal-add-goal')">+</button>
+    </div>
     <div class="tabs" style="margin:12px 16px 0">
       <div class="tab active" onclick="switchTab(this,'pr-stats')">Stats</div>
       <div class="tab" onclick="switchTab(this,'pr-photos')">Photos</div>
@@ -833,9 +843,11 @@
       <!-- TRENDS -->
       <div id="pr-trends" class="hidden">
         <div class="tabs" style="margin-bottom:12px">
-          <div class="tab active" onclick="switchTrendPeriod('week')">Week</div>
-          <div class="tab" onclick="switchTrendPeriod('month')">Month</div>
-          <div class="tab" onclick="switchTrendPeriod('year')">Year</div>
+          <div class="tab active" onclick="switchTrendPeriod(7,this)">7d</div>
+          <div class="tab" onclick="switchTrendPeriod(30,this)">1m</div>
+          <div class="tab" onclick="switchTrendPeriod(90,this)">3m</div>
+          <div class="tab" onclick="switchTrendPeriod(180,this)">6m</div>
+          <div class="tab" onclick="switchTrendPeriod(365,this)">Annual</div>
         </div>
         <div class="card">
           <div class="card-title">Calories</div>
@@ -846,7 +858,19 @@
           <div id="trend-weight-chart" class="chart-wrap"></div>
         </div>
         <div class="card">
-          <div class="card-title">Key Stats</div>
+          <div class="card-title">Water</div>
+          <div id="trend-water-chart" class="chart-wrap"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Activity Calendar</div>
+          <div id="trend-activity-cal" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:4px"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+            <span class="pill" style="background:rgba(240,124,58,0.2);color:#F07C3A;font-size:10px">● Workout</span>
+            <span class="pill" style="background:rgba(45,212,191,0.2);color:#2DD4BF;font-size:10px">● Fast</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Summary</div>
           <div id="trend-stats-list"></div>
         </div>
       </div>
@@ -881,23 +905,23 @@
         </div>
       </div>
 
-      <div class="card" style="cursor:pointer" onclick="navigate('review')">
+      <div class="card" style="cursor:pointer" onclick="navigate('review-history')">
         <div class="row">
           <span style="font-size:28px">📊</span>
           <div style="flex:1">
-            <div style="font-weight:600">Weekly Review</div>
-            <div style="font-size:12px;color:var(--txt2)">Check in on your week</div>
+            <div style="font-weight:600">Reviews</div>
+            <div style="font-size:12px;color:var(--txt2)">Weekly &amp; monthly check-ins</div>
           </div>
           <span style="color:var(--txt3)">›</span>
         </div>
       </div>
 
-      <div class="card" style="cursor:pointer" onclick="navigate('monthly-review')">
+      <div class="card" style="cursor:pointer" onclick="navigate('health-sync')">
         <div class="row">
-          <span style="font-size:28px">📅</span>
+          <span style="font-size:28px">❤️</span>
           <div style="flex:1">
-            <div style="font-weight:600">Monthly Review</div>
-            <div style="font-size:12px;color:var(--txt2)">Reflect on your month</div>
+            <div style="font-weight:600">Health Sync</div>
+            <div style="font-size:12px;color:var(--txt2)">Apple Health &amp; Shortcuts</div>
           </div>
           <span style="color:var(--txt3)">›</span>
         </div>
@@ -1008,7 +1032,7 @@
   <div class="screen" id="screen-review">
     <div class="header">
       <button onclick="goBack()" style="background:none;border:none;color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;padding:4px 8px;">‹</button>
-      <h1 style="color:#C084FC">Weekly Review</h1>
+      <h1>Weekly Review</h1>
       <div style="font-size:13px;color:var(--txt2)" id="review-step-counter">1 / 6</div>
     </div>
     <div class="scroll-content">
@@ -1150,7 +1174,8 @@
         <div class="card-title">Profile</div>
         <div class="input-group"><label class="input-label">Name</label><input type="text" id="s-name"/></div>
         <div class="input-group"><label class="input-label">Height (cm)</label><input type="number" id="s-height"/></div>
-        <button class="btn btn-secondary" onclick="saveSettings()">Save</button>
+        <div class="input-group"><label class="input-label">Date of birth</label><input type="date" id="s-dob"/></div>
+        <button class="btn btn-secondary" onclick="saveSettings()">Save Profile</button>
       </div>
       <div class="card">
         <div class="card-title">Daily Targets</div>
@@ -1171,6 +1196,35 @@
         <div id="macro-calc-hint" style="font-size:11px;color:var(--txt2);margin-bottom:12px;padding:8px;background:var(--s2);border-radius:8px"></div>
         <div class="input-group"><label class="input-label">Water target (ml)</label><input type="number" id="s-water" placeholder="e.g. 2000"/></div>
         <button class="btn btn-primary" onclick="saveTargets()">Save Targets</button>
+        <div style="margin-top:16px;border-top:1px solid var(--s3);padding-top:16px">
+          <div class="card-title" style="margin-bottom:10px">Goal</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="input-group" style="margin-bottom:0"><label class="input-label">Goal weight (kg)</label><input type="number" id="s-goal-weight" step="0.1"/></div>
+            <div class="input-group" style="margin-bottom:0"><label class="input-label">Target date</label><input type="date" id="s-goal-date"/></div>
+          </div>
+          <button class="btn btn-secondary" style="margin-top:12px" onclick="saveGoalSettings()">Save Goal</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Review Schedule</div>
+        <div class="input-group">
+          <label class="input-label">Weekly review day</label>
+          <select id="s-review-day">
+            <option value="Sunday">Sunday</option>
+            <option value="Monday">Monday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Weekly review time</label>
+          <input type="time" id="s-review-time" value="20:00"/>
+        </div>
+        <div style="margin-top:4px;display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="navigate('review')">Start Weekly Review</button>
+          <button class="btn btn-secondary btn-sm" onclick="navigate('monthly-review')">Monthly Review</button>
+        </div>
+        <button class="btn btn-primary" style="margin-top:12px" onclick="saveReviewSchedule()">Save Schedule</button>
       </div>
       <div class="card">
         <div class="card-title">Reminders</div>
@@ -1201,7 +1255,7 @@
   <div class="screen" id="screen-fasting">
     <div class="header">
       <button onclick="goBack()" style="background:none;border:none;color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;padding:4px 8px;">‹</button>
-      <h1 style="color:#2DD4BF">Fasting</h1>
+      <h1>Fasting</h1>
       <div style="width:40px"></div>
     </div>
     <div class="scroll-content">
@@ -1318,7 +1372,7 @@
   <div class="screen" id="screen-plan-overview">
     <div class="header">
       <button onclick="navigate('home')" style="background:none;border:none;color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;padding:4px 8px;">‹</button>
-      <h1 style="color:var(--acc)">Plan Overview</h1>
+      <h1>Plan Overview</h1>
       <div style="display:flex;gap:4px;align-items:center">
         <button onclick="changePlanWeek(-1)" style="background:none;border:none;color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;padding:4px 6px;">‹</button>
         <button onclick="changePlanWeek(1)" style="background:none;border:none;color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;padding:4px 6px;">›</button>
@@ -1349,7 +1403,7 @@
   <div class="screen" id="screen-monthly-review">
     <div class="header">
       <button onclick="goBack()" style="background:none;border:none;color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;padding:4px 8px;">‹</button>
-      <h1 style="color:#C084FC">Monthly Review</h1>
+      <h1>Monthly Review</h1>
       <button onclick="completeMonthlyReview()" style="background:none;border:none;color:#C084FC;font-size:13px;font-weight:600;cursor:pointer;padding:4px 8px;">Save</button>
     </div>
     <div class="scroll-content">
@@ -1399,6 +1453,90 @@
       </div>
       <button class="btn btn-primary" style="background:#C084FC" onclick="completeMonthlyReview()">Save Monthly Review ✓</button>
       <div style="height:16px"></div>
+    </div>
+  </div>
+
+  <!-- HEALTH SYNC SCREEN -->
+  <div class="screen" id="screen-health-sync">
+    <div class="header">
+      <button onclick="goBack()" style="background:none;border:none;color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;padding:4px 8px;">‹</button>
+      <h1>Health Sync</h1>
+      <div style="width:32px"></div>
+    </div>
+    <div class="scroll-content">
+      <div class="alert-banner" style="background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#F87171">
+        ❤️ FitSoleil uses Apple Shortcuts to sync with Apple Health. Install each shortcut once, then run from the Shortcuts app.
+      </div>
+      <div class="card">
+        <div class="card-title">Log Weight → Health</div>
+        <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">Sends your logged weight from FitSoleil to Apple Health.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-secondary btn-sm">Install Shortcut</button>
+          <button class="btn btn-sm" style="background:#F87171;color:#0F0F13">Run Now</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Log Water → Health</div>
+        <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">Sends your daily water intake to Apple Health.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-secondary btn-sm">Install Shortcut</button>
+          <button class="btn btn-sm" style="background:#F87171;color:#0F0F13">Run Now</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Log Cycle → Health</div>
+        <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">Syncs your cycle log to Apple Health Cycle Tracking.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-secondary btn-sm">Install Shortcut</button>
+          <button class="btn btn-sm" style="background:#F87171;color:#0F0F13">Run Now</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Import Weight from Health</div>
+        <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">Pulls weight data from Apple Health into FitSoleil's weight log.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-secondary btn-sm">Install Shortcut</button>
+          <button class="btn btn-sm" style="background:#F87171;color:#0F0F13">Run Now</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Sync Status</div>
+        <div class="toggle-row">
+          <span style="font-size:13px">Sync weight</span>
+          <label class="toggle-wrap"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <span style="font-size:13px">Sync water</span>
+          <label class="toggle-wrap"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <span style="font-size:13px">Sync cycle</span>
+          <label class="toggle-wrap"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW HISTORY SCREEN -->
+  <div class="screen" id="screen-review-history">
+    <div class="header">
+      <button onclick="goBack()" style="background:none;border:none;color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;padding:4px 8px;">‹</button>
+      <h1>Reviews</h1>
+      <div style="width:32px"></div>
+    </div>
+    <div class="scroll-content">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+        <button class="btn btn-secondary" onclick="navigate('review')">+ Weekly</button>
+        <button class="btn btn-secondary" onclick="navigate('monthly-review')">+ Monthly</button>
+      </div>
+      <div class="tabs" style="margin-bottom:16px">
+        <div class="tab active" onclick="filterReviews('all',this)">All</div>
+        <div class="tab" onclick="filterReviews('weekly',this)">Weekly</div>
+        <div class="tab" onclick="filterReviews('monthly',this)">Monthly</div>
+      </div>
+      <div id="review-history-list">
+        <div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No reviews yet</div>
+      </div>
     </div>
   </div>
 
@@ -1745,7 +1883,8 @@ const SECTION_ACCENTS = {
   home: '#E8C547', settings: '#E8C547', 'plan-overview': '#E8C547',
   nutrition: '#4ADE80', workout: '#F07C3A', progress: '#C084FC',
   cycle: '#F472B6', fasting: '#2DD4BF', review: '#C084FC',
-  'monthly-review': '#C084FC', more: '#9A98A0'
+  'monthly-review': '#C084FC', 'review-history': '#C084FC',
+  'health-sync': '#F87171', more: '#9A98A0'
 };
 
 function navigate(screen) {
@@ -1769,6 +1908,7 @@ function navigate(screen) {
   if (screen === 'fasting') initFasting();
   if (screen === 'plan-overview') { planOverviewWeekOffset = 0; renderPlanOverview(); }
   if (screen === 'monthly-review') initMonthlyReview();
+  if (screen === 'review-history') renderReviewHistory('all');
 }
 
 function goBack() {
@@ -2838,17 +2978,23 @@ function renderGoals() {
 // ============================================================
 // TRENDS
 // ============================================================
-function switchTrendPeriod(period) {
-  state.trendPeriod = period;
+function switchTrendPeriod(days, tabEl) {
+  state.trendPeriod = days;
+  if (tabEl) {
+    tabEl.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tabEl.classList.add('active');
+  }
   renderTrends();
 }
 
 function renderTrends() {
   const el = document.getElementById('trend-cals-chart');
   const wel = document.getElementById('trend-weight-chart');
+  const watel = document.getElementById('trend-water-chart');
+  const actEl = document.getElementById('trend-activity-cal');
   const sel = document.getElementById('trend-stats-list');
   if (!el) return;
-  const days = state.trendPeriod === 'week' ? 7 : state.trendPeriod === 'month' ? 30 : 365;
+  const days = typeof state.trendPeriod === 'number' ? state.trendPeriod : 7;
   const dates = [];
   for (let i = days-1; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
@@ -2856,34 +3002,43 @@ function renderTrends() {
   }
   const calVals = dates.map(d => calcTotals(state.logs[d]?.meals || []).calories);
   const wtVals = dates.map(d => {
-    const entry = state.weightLog.find(w => w.date === d);
+    const entry = (state.weightLog||[]).find(w => w.date === d);
     return entry ? entry.kg : null;
   });
+  const waterVals = dates.map(d => state.logs[d]?.water || 0);
 
   const renderBarChart = (container, vals, color) => {
     if (!container) return;
     const max = Math.max(...vals.filter(Boolean), 1);
-    container.innerHTML = vals.map((v,i) => `<div class="chart-bar ${i===vals.length-1?'active':''}" style="height:${v?Math.round((v/max)*100):2}%;background:${i===vals.length-1?color:'var(--s2)'}"></div>`).join('');
+    container.innerHTML = vals.map((v,i) => `<div class="chart-bar" style="height:${v?Math.round((v/max)*100):2}%;background:${i===vals.length-1?color:'var(--s2)'}"></div>`).join('');
   };
   renderBarChart(el, calVals, 'var(--acc)');
-  const wtFiltered = wtVals.filter(Boolean);
-  if (wel && wtFiltered.length) {
-    renderBarChart(wel, wtVals.map(v => v || 0), '#F07C3A');
+  renderBarChart(wel, wtVals.map(v => v||0), '#F07C3A');
+  renderBarChart(watel, waterVals, '#60A5FA');
+
+  if (actEl) {
+    actEl.innerHTML = dates.map(d => {
+      const hasWorkout = (state.workouts||[]).some(w => w.date === d);
+      const hasFast = (state.fastLog||[]).some(f => f.start?.startsWith(d));
+      const bg = hasWorkout ? 'rgba(240,124,58,0.7)' : hasFast ? 'rgba(45,212,191,0.7)' : 'var(--s2)';
+      return `<div style="aspect-ratio:1;border-radius:3px;background:${bg};min-height:12px"></div>`;
+    }).join('');
   }
 
-  const avgCals = calVals.filter(Boolean).reduce((s,v) => s+v, 0) / (calVals.filter(Boolean).length || 1);
+  const avgCals = calVals.filter(Boolean).reduce((s,v)=>s+v,0) / (calVals.filter(Boolean).length||1);
   const avgProtein = dates.map(d => calcTotals(state.logs[d]?.meals||[]).protein).reduce((s,v)=>s+v,0) / (dates.length||1);
-  const workoutCount = state.workouts.filter(w => dates.includes(w.date)).length;
-  const waterDays = dates.filter(d => (state.logs[d]?.water||0) >= (state.targets?.water||8)).length;
+  const workoutCount = (state.workouts||[]).filter(w => dates.includes(w.date)).length;
+  const waterTgt = state.targets?.water || 2000;
+  const waterGoalDays = dates.filter(d => (state.logs[d]?.water||0) >= waterTgt).length;
+  const periodLabel = days===7?'Last 7 days':days===30?'Last 30 days':days===90?'Last 3 months':days===180?'Last 6 months':'Last year';
 
-  const periodLabel = days === 7 ? 'Last 7 days' : days === 30 ? 'Last 30 days' : 'Last 365 days';
   if (sel) sel.innerHTML = `
-    <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Summary · ${periodLabel}</div>
     <div class="trend-stat"><span style="font-size:13px;color:var(--txt2)">Avg calories</span><span class="trend-val">${Math.round(avgCals)}</span></div>
     <div class="trend-stat"><span style="font-size:13px;color:var(--txt2)">Avg protein</span><span class="trend-val">${Math.round(avgProtein)}g</span></div>
     <div class="trend-stat"><span style="font-size:13px;color:var(--txt2)">Workouts completed</span><span class="trend-val">${workoutCount}</span></div>
-    <div class="trend-stat"><span style="font-size:13px;color:var(--txt2)">Water goal days</span><span class="trend-val">${waterDays} / ${days}</span></div>
+    <div class="trend-stat"><span style="font-size:13px;color:var(--txt2)">Water goal days</span><span class="trend-val">${waterGoalDays} / ${days}</span></div>
   `;
+  const titleEl = el.closest('.screen')?.querySelector('#trend-stats-list')?.previousElementSibling;
 }
 
 // ============================================================
@@ -3070,24 +3225,32 @@ function reviewBack() {
 
 function completeReview() {
   const focusItems = [...document.querySelectorAll('#rv-focus-options .btn-primary')].map(b => b.textContent.trim());
+  const wentWell = document.getElementById('rv-went-well')?.value || '';
   const review = {
     type: 'weekly',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString(),
+    data: {
+      wentWell,
+      wentBadly: document.getElementById('rv-went-badly')?.value || '',
+      nsv: document.getElementById('rv-nsv')?.value || '',
+      focus: focusItems.join(', '),
+      stats: [
+        document.getElementById('rv-workouts')?.textContent,
+        document.getElementById('rv-cals-avg')?.textContent,
+      ].filter(Boolean),
+    },
+    changes: focusItems,
     workoutFeel: reviewData['workout-feel'],
     weightFeel: reviewData['weight-feel'],
     nutritionFeel: reviewData['nutrition-feel'],
-    wentWell: document.getElementById('rv-went-well')?.value || '',
-    wentBadly: document.getElementById('rv-went-badly')?.value || '',
-    nsv: document.getElementById('rv-nsv')?.value || '',
-    focus: focusItems,
-    workoutsPlanned: +document.getElementById('rv-plan-workouts')?.value || 0,
-    note: document.getElementById('rv-plan-note')?.value || '',
   };
+  if (!state.reviews) state.reviews = [];
+  state.reviews.push(review);
   if (!state.weeklyReviews) state.weeklyReviews = [];
   state.weeklyReviews.push(review);
   saveState();
   showToast('Weekly review complete! 🌟');
-  navigate('more');
+  navigate('review-history');
 }
 
 // ============================================================
@@ -3096,11 +3259,16 @@ function completeReview() {
 function loadSettingsFields() {
   document.getElementById('s-name').value = state.profile?.name || '';
   document.getElementById('s-height').value = state.profile?.height || '';
+  if (document.getElementById('s-dob')) document.getElementById('s-dob').value = state.profile?.dob || '';
   document.getElementById('s-cals').value = state.targets?.calories || '';
   document.getElementById('s-protein').value = state.targets?.protein || '';
   document.getElementById('s-carbs').value = state.targets?.carbs || '';
   document.getElementById('s-fat').value = state.targets?.fat || '';
   document.getElementById('s-water').value = state.targets?.water || '';
+  if (document.getElementById('s-goal-weight')) document.getElementById('s-goal-weight').value = state.goalWeight || '';
+  if (document.getElementById('s-goal-date')) document.getElementById('s-goal-date').value = state.goalDate || '';
+  if (document.getElementById('s-review-day')) document.getElementById('s-review-day').value = state.reviewSchedule?.day || 'Sunday';
+  if (document.getElementById('s-review-time')) document.getElementById('s-review-time').value = state.reviewSchedule?.time || '20:00';
   document.getElementById('modal-weight-date').value = state.currentDate;
   const modeEl = document.getElementById('s-macro-mode');
   if (modeEl) { modeEl.value = state.macroMode || 'auto'; recalcMacros(); }
@@ -3109,9 +3277,10 @@ function loadSettingsFields() {
 function saveSettings() {
   state.profile.name = document.getElementById('s-name').value;
   state.profile.height = +document.getElementById('s-height').value;
+  if (document.getElementById('s-dob')?.value) state.profile.dob = document.getElementById('s-dob').value;
   saveState();
   updateGreeting();
-  showToast('Settings saved ✓');
+  showToast('Profile saved ✓');
 }
 
 function saveTargets() {
@@ -3164,6 +3333,63 @@ function updateMacroCalc() {
   const diff = total - cals;
   const colour = Math.abs(diff) < 50 ? 'var(--success)' : 'var(--danger)';
   hint.innerHTML = `Macros = <strong>${total} kcal</strong> · Target: ${cals} kcal · <span style="color:${colour}">${diff > 0 ? '+' : ''}${diff} kcal</span>`;
+}
+
+function saveGoalSettings() {
+  const gw = parseFloat(document.getElementById('s-goal-weight')?.value);
+  const gd = document.getElementById('s-goal-date')?.value;
+  if (gw) state.goalWeight = gw;
+  if (gd) state.goalDate = gd;
+  saveState();
+  renderDashboard();
+  showToast('Goal saved ✓');
+}
+
+function saveReviewSchedule() {
+  state.reviewSchedule = {
+    day: document.getElementById('s-review-day')?.value || 'Sunday',
+    time: document.getElementById('s-review-time')?.value || '20:00',
+  };
+  saveState();
+  showToast('Schedule saved ✓');
+}
+
+function renderReviewHistory(filter) {
+  const el = document.getElementById('review-history-list');
+  if (!el) return;
+  const reviews = (state.reviews || []).filter(r => !filter || filter === 'all' || r.type === filter);
+  if (!reviews.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No reviews yet — start one above</div>';
+    return;
+  }
+  el.innerHTML = reviews.slice().reverse().map(r => {
+    const isWeekly = r.type === 'weekly';
+    const borderColor = isWeekly ? '#E8C547' : '#C084FC';
+    const pillClass = isWeekly ? 'pill-weekly' : 'pill-monthly';
+    const pillLabel = isWeekly ? 'Weekly' : 'Monthly';
+    const d = new Date(r.date);
+    const dateStr = d.toLocaleDateString('en-NZ', {day:'numeric',month:'short',year:'numeric'});
+    const statPills = (r.data?.stats||[]).map(s => `<span class="pill pill-yellow" style="font-size:10px">${s}</span>`).join('');
+    const changes = r.changes?.length ? `<div style="margin-top:8px;padding:8px;background:rgba(232,197,71,0.08);border-radius:8px;border-left:3px solid #E8C547;font-size:11px;color:var(--txt2)">Applied: ${r.changes.join(', ')}</div>` : '';
+    return `<div class="card" style="border-left:3px solid ${borderColor};margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span class="pill ${pillClass}">${pillLabel}</span>
+        <span style="font-size:11px;color:var(--txt3)">${dateStr}</span>
+      </div>
+      ${statPills ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${statPills}</div>` : ''}
+      ${r.data?.wentWell ? `<div style="font-size:12px;color:var(--txt2);margin-bottom:4px">✓ ${r.data.wentWell}</div>` : ''}
+      ${r.data?.focus ? `<div style="font-size:12px;color:var(--txt2)">→ ${r.data.focus}</div>` : ''}
+      ${changes}
+    </div>`;
+  }).join('');
+}
+
+function filterReviews(filter, tabEl) {
+  if (tabEl) {
+    tabEl.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tabEl.classList.add('active');
+  }
+  renderReviewHistory(filter);
 }
 
 function saveReminders() {
@@ -3568,20 +3794,31 @@ function setMonthlyRating(val) {
 
 function completeMonthlyReview() {
   const changes = [...document.querySelectorAll('#mr-changes .btn-primary')].map(b=>b.textContent.trim());
+  const wentWell = document.getElementById('mr-went-well')?.value || '';
   const review = {
-    type:'monthly', date:new Date().toISOString().split('T')[0],
-    rating:monthlyRatingValue,
-    nutritionNotes:document.getElementById('mr-nutrition-notes')?.value||'',
-    wentWell:document.getElementById('mr-went-well')?.value||'',
-    wentBadly:document.getElementById('mr-went-badly')?.value||'',
-    nsv:document.getElementById('mr-nsv')?.value||'',
+    type: 'monthly',
+    date: new Date().toISOString(),
+    data: {
+      wentWell,
+      wentBadly: document.getElementById('mr-went-badly')?.value || '',
+      nsv: document.getElementById('mr-nsv')?.value || '',
+      focus: changes.join(', '),
+      stats: [
+        document.getElementById('mr-workouts')?.textContent,
+        document.getElementById('mr-avg-cals')?.textContent + ' kcal avg',
+      ].filter(Boolean),
+    },
     changes,
+    rating: monthlyRatingValue,
+    nutritionNotes: document.getElementById('mr-nutrition-notes')?.value || '',
   };
+  if (!state.reviews) state.reviews = [];
+  state.reviews.push(review);
   if (!state.weeklyReviews) state.weeklyReviews = [];
   state.weeklyReviews.push(review);
   saveState();
   showToast('Monthly review saved! ✨');
-  navigate('more');
+  navigate('review-history');
 }
 
 // ============================================================
