@@ -9,6 +9,7 @@
 <title>FitSoleil</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
+  @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css');
 
   :root {
     /* Surfaces */
@@ -98,7 +99,8 @@
     cursor: pointer; padding: 4px 2px;
     transition: all 0.2s;
   }
-  .nav-icon { font-size: 22px; line-height: 1; }
+  .nav-icon { font-size: 22px; line-height: 1; display:flex;align-items:center;justify-content:center; }
+  .nav-icon .ti { font-size: 22px; }
   .nav-label { font-size: 9px; font-weight: 500; color: var(--txt3); letter-spacing: 0.3px; text-transform: uppercase; }
   /* Nav uses --nav-acc (set by JS) so active tab always matches current section */
   .nav-item.active .nav-label { color: var(--nav-acc); }
@@ -372,6 +374,20 @@
   .exercise-tag { display: inline-flex; padding: 4px 10px; background: var(--s3); border-radius: 99px; font-size: 11px; margin: 2px; cursor: pointer; }
   .exercise-tag.selected { background: rgba(232,197,71,0.2); color: var(--acc); border: 1px solid var(--acc); }
 
+  /* Quick action tiles */
+  .quick-tile {
+    background: var(--s1); border: 0.5px solid var(--s2); border-radius: var(--r);
+    padding: 14px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+    transition: opacity 0.15s;
+  }
+  .quick-tile:active { opacity: 0.7; transform: scale(0.97); }
+  .quick-tile-icon {
+    width: 33px; height: 33px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .quick-tile-title { font-size: 13px; font-weight: 600; }
+  .quick-tile-sub { font-size: 11px; color: var(--txt3); margin-top: 1px; }
+
 </style>
 </head>
 <body>
@@ -412,11 +428,11 @@
     <div class="header">
       <div>
         <h1>FitSoleil</h1>
-        <div class="subtitle" id="greeting-sub">Good morning ✨</div>
+        <div class="subtitle" id="greeting-sub">Good morning</div>
       </div>
       <div class="header-right">
         <div class="streak-badge" id="streak-display">🔥 0 days</div>
-        <button class="isq" onclick="navigate('plan-overview')" style="font-size:17px">📅</button>
+        <button class="isq" onclick="navigate('plan-overview')" style="font-size:18px"><i class="ti ti-calendar-week"></i></button>
       </div>
     </div>
     <div class="scroll-content">
@@ -432,29 +448,29 @@
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div class="card-title" style="margin-bottom:0">Today's Plan</div>
-          <button class="isq" onclick="navigate('settings')" title="Edit targets" style="font-size:14px">⚙️</button>
+          <button class="isq" onclick="navigate('settings')" title="Edit targets" style="font-size:16px"><i class="ti ti-settings"></i></button>
         </div>
         <!-- Workout row -->
         <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--s2)">
-          <span style="font-size:20px;width:28px;text-align:center">💪</span>
+          <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="plan-workout-name">Rest day</div>
             <div style="font-size:11px;color:var(--txt3)" id="plan-workout-sub">Tap to start a workout</div>
           </div>
-          <button class="isq" onclick="navigate('workout')" title="Go to workout">▶</button>
+          <button class="isq" onclick="navigate('workout')" title="Go to workout" style="font-size:14px"><i class="ti ti-player-play"></i></button>
         </div>
         <!-- Meals row -->
         <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--s2)">
-          <span style="font-size:20px;width:28px;text-align:center">🍽️</span>
+          <div class="isq" style="--acc:#4ADE80;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-salad"></i></div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600"><span id="plan-cals-eaten">0</span><span style="font-weight:400;color:var(--txt3)"> / <span id="plan-cals-target">2000</span> kcal</span></div>
             <div class="progress-bar" style="margin-top:5px;height:3px"><div class="progress-fill" id="plan-cals-bar" style="background:var(--acc);width:0%"></div></div>
           </div>
-          <button class="isq" onclick="openModal('modal-food')" title="Log food" style="font-size:18px;font-weight:300">+</button>
+          <button class="isq" onclick="openModal('modal-food')" title="Log food" style="font-size:14px"><i class="ti ti-plus"></i></button>
         </div>
         <!-- Water row -->
         <div style="display:flex;align-items:center;gap:10px;padding:9px 0">
-          <span style="font-size:20px;width:28px;text-align:center">💧</span>
+          <div class="isq" style="--acc:#60A5FA;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-droplet"></i></div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600;color:var(--water)"><span id="plan-water-ml">0</span><span style="font-weight:400;color:var(--txt3)"> / <span id="plan-water-target">2000</span> ml</span></div>
             <div class="progress-bar" style="margin-top:5px;height:3px"><div class="progress-fill" id="plan-water-bar" style="background:var(--water);width:0%"></div></div>
@@ -464,22 +480,22 @@
 
       <!-- Quick tiles 2×2 -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-        <button class="btn btn-secondary" style="flex-direction:column;gap:6px;height:84px;border-radius:var(--r)" onclick="openModal('modal-weight')">
-          <span style="font-size:28px">⚖️</span>
-          <span style="font-size:11px;color:var(--txt2);font-weight:500">Log Weight</span>
-        </button>
-        <button class="btn btn-secondary" style="flex-direction:column;gap:6px;height:84px;border-radius:var(--r)" onclick="navigate('workout')">
-          <span style="font-size:28px">💪</span>
-          <span style="font-size:11px;color:var(--txt2);font-weight:500">Workout</span>
-        </button>
-        <button class="btn btn-secondary" style="flex-direction:column;gap:6px;height:84px;border-radius:var(--r)" onclick="openModal('modal-food')">
-          <span style="font-size:28px">🍽️</span>
-          <span style="font-size:11px;color:var(--txt2);font-weight:500">Log Food</span>
-        </button>
-        <button class="btn btn-secondary" style="flex-direction:column;gap:6px;height:84px;border-radius:var(--r)" onclick="navigate('progress');setTimeout(()=>switchTabById('pr-photos'),50)">
-          <span style="font-size:28px">📷</span>
-          <span style="font-size:11px;color:var(--txt2);font-weight:500">Progress Photo</span>
-        </button>
+        <div class="quick-tile" onclick="openModal('modal-weight')">
+          <div class="quick-tile-icon" style="background:rgba(232,197,71,0.15);color:#E8C547"><i class="ti ti-scale"></i></div>
+          <div><div class="quick-tile-title">Log Weight</div><div class="quick-tile-sub">kg</div></div>
+        </div>
+        <div class="quick-tile" onclick="navigate('workout')">
+          <div class="quick-tile-icon" style="background:rgba(240,124,58,0.15);color:#F07C3A"><i class="ti ti-barbell"></i></div>
+          <div><div class="quick-tile-title">Workout</div><div class="quick-tile-sub">Start session</div></div>
+        </div>
+        <div class="quick-tile" onclick="openModal('modal-food')">
+          <div class="quick-tile-icon" style="background:rgba(74,222,128,0.15);color:#4ADE80"><i class="ti ti-salad"></i></div>
+          <div><div class="quick-tile-title">Log Food</div><div class="quick-tile-sub">Add meal</div></div>
+        </div>
+        <div class="quick-tile" onclick="navigate('progress');setTimeout(()=>switchTabById('pr-photos'),50)">
+          <div class="quick-tile-icon" style="background:rgba(192,132,252,0.15);color:#C084FC"><i class="ti ti-camera"></i></div>
+          <div><div class="quick-tile-title">Progress Photo</div><div class="quick-tile-sub">4 angles</div></div>
+        </div>
       </div>
 
       <!-- Calories card -->
@@ -545,7 +561,7 @@
             <div style="font-size:11px;color:var(--txt3);margin-top:2px" id="home-fast-label">Tap to start a fast</div>
           </div>
           <button id="home-fast-btn" class="isq" onclick="navigate('fasting')"
-            style="--acc:#2DD4BF;width:38px;height:38px;font-size:16px">▶</button>
+            style="--acc:#2DD4BF;width:38px;height:38px;font-size:16px"><i class="ti ti-player-play"></i></button>
         </div>
       </div>
 
@@ -631,7 +647,7 @@
 
       <!-- MEAL PLAN TAB -->
       <div id="nt-mealplan" class="hidden">
-        <div class="alert-banner">📅 Plan your meals for the week — shopping list auto-generates.</div>
+        <div class="alert-banner"><i class="ti ti-calendar" style="flex-shrink:0"></i> Plan your meals for the week — shopping list auto-generates.</div>
         <div id="meal-plan-container" class="meal-plan-grid"></div>
       </div>
 
@@ -639,7 +655,7 @@
       <div id="nt-shopping" class="hidden">
         <div class="section-header">
           <div class="section-title">Shopping List</div>
-          <button class="btn btn-outline btn-sm" onclick="exportShoppingList()">Export 📋</button>
+          <button class="btn btn-outline btn-sm" onclick="exportShoppingList()"><i class="ti ti-clipboard-copy"></i> Export</button>
         </div>
         <div id="shopping-list-container" style="margin-top:8px">
           <div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">Generate from your meal plan</div>
@@ -775,25 +791,25 @@
             <div class="photo-grid">
               <div class="photo-slot" onclick="capturePhoto('front')">
                 <div id="photo-front-thumb">
-                  <div style="font-size:32px">📷</div>
+                  <i class="ti ti-camera" style="font-size:28px;color:var(--txt3)"></i>
                   <div class="photo-slot-label">Front</div>
                 </div>
               </div>
               <div class="photo-slot" onclick="capturePhoto('back')">
                 <div id="photo-back-thumb">
-                  <div style="font-size:32px">📷</div>
+                  <i class="ti ti-camera" style="font-size:28px;color:var(--txt3)"></i>
                   <div class="photo-slot-label">Back</div>
                 </div>
               </div>
               <div class="photo-slot" onclick="capturePhoto('left')">
                 <div id="photo-left-thumb">
-                  <div style="font-size:32px">📷</div>
+                  <i class="ti ti-camera" style="font-size:28px;color:var(--txt3)"></i>
                   <div class="photo-slot-label">Left side</div>
                 </div>
               </div>
               <div class="photo-slot" onclick="capturePhoto('right')">
                 <div id="photo-right-thumb">
-                  <div style="font-size:32px">📷</div>
+                  <i class="ti ti-camera" style="font-size:28px;color:var(--txt3)"></i>
                   <div class="photo-slot-label">Right side</div>
                 </div>
               </div>
@@ -885,56 +901,56 @@
 
       <div class="card" style="cursor:pointer" onclick="navigate('fasting')">
         <div class="row">
-          <span style="font-size:28px">⏱️</span>
+          <div class="quick-tile-icon" style="background:rgba(45,212,191,0.15);color:#2DD4BF;width:36px;height:36px;border-radius:10px;flex-shrink:0"><i class="ti ti-hourglass" style="font-size:20px"></i></div>
           <div style="flex:1">
             <div style="font-weight:600">Fasting</div>
             <div style="font-size:12px;color:var(--txt2)">Track intermittent fasting</div>
           </div>
-          <span style="color:var(--txt3)">›</span>
+          <i class="ti ti-chevron-right" style="color:var(--txt3)"></i>
         </div>
       </div>
 
       <div class="card" style="cursor:pointer" onclick="navigate('cycle')">
         <div class="row">
-          <span style="font-size:28px">🌙</span>
+          <div class="quick-tile-icon" style="background:rgba(244,114,182,0.15);color:#F472B6;width:36px;height:36px;border-radius:10px;flex-shrink:0"><i class="ti ti-moon" style="font-size:20px"></i></div>
           <div style="flex:1">
             <div style="font-weight:600">Cycle Tracker</div>
-            <div style="font-size:12px;color:var(--txt2)">Track & predict your cycle</div>
+            <div style="font-size:12px;color:var(--txt2)">Track &amp; predict your cycle</div>
           </div>
-          <span style="color:var(--txt3)">›</span>
+          <i class="ti ti-chevron-right" style="color:var(--txt3)"></i>
         </div>
       </div>
 
       <div class="card" style="cursor:pointer" onclick="navigate('review-history')">
         <div class="row">
-          <span style="font-size:28px">📊</span>
+          <div class="quick-tile-icon" style="background:rgba(192,132,252,0.15);color:#C084FC;width:36px;height:36px;border-radius:10px;flex-shrink:0"><i class="ti ti-clipboard-check" style="font-size:20px"></i></div>
           <div style="flex:1">
             <div style="font-weight:600">Reviews</div>
             <div style="font-size:12px;color:var(--txt2)">Weekly &amp; monthly check-ins</div>
           </div>
-          <span style="color:var(--txt3)">›</span>
+          <i class="ti ti-chevron-right" style="color:var(--txt3)"></i>
         </div>
       </div>
 
       <div class="card" style="cursor:pointer" onclick="navigate('health-sync')">
         <div class="row">
-          <span style="font-size:28px">❤️</span>
+          <div class="quick-tile-icon" style="background:rgba(248,113,113,0.15);color:#F87171;width:36px;height:36px;border-radius:10px;flex-shrink:0"><i class="ti ti-heart-rate-monitor" style="font-size:20px"></i></div>
           <div style="flex:1">
             <div style="font-weight:600">Health Sync</div>
             <div style="font-size:12px;color:var(--txt2)">Apple Health &amp; Shortcuts</div>
           </div>
-          <span style="color:var(--txt3)">›</span>
+          <i class="ti ti-chevron-right" style="color:var(--txt3)"></i>
         </div>
       </div>
 
       <div class="card" style="cursor:pointer" onclick="navigate('settings')">
         <div class="row">
-          <span style="font-size:28px">⚙️</span>
+          <div class="quick-tile-icon" style="background:rgba(232,197,71,0.15);color:#E8C547;width:36px;height:36px;border-radius:10px;flex-shrink:0"><i class="ti ti-settings" style="font-size:20px"></i></div>
           <div style="flex:1">
             <div style="font-weight:600">Settings</div>
             <div style="font-size:12px;color:var(--txt2)">Goals, reminders, account</div>
           </div>
-          <span style="color:var(--txt3)">›</span>
+          <i class="ti ti-chevron-right" style="color:var(--txt3)"></i>
         </div>
       </div>
 
@@ -1143,12 +1159,12 @@
         <div class="card">
           <div class="card-title">Focus for next week</div>
           <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px" id="rv-focus-options">
-            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">🏋️ More consistent workouts</button>
-            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">🥩 Hit protein target daily</button>
-            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">💧 Hit water goal daily</button>
-            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">⏱️ Stick to fasting window</button>
-            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">😴 Better sleep &amp; recovery</button>
-            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">📉 Track calories more carefully</button>
+            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-barbell" style="margin-right:8px"></i>More consistent workouts</button>
+            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-meat" style="margin-right:8px"></i>Hit protein target daily</button>
+            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-droplet" style="margin-right:8px"></i>Hit water goal daily</button>
+            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-hourglass" style="margin-right:8px"></i>Stick to fasting window</button>
+            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-moon" style="margin-right:8px"></i>Better sleep &amp; recovery</button>
+            <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-trending-down" style="margin-right:8px"></i>Track calories more carefully</button>
           </div>
           <div class="input-group"><label class="input-label">Workout days planned</label><input type="number" id="rv-plan-workouts" placeholder="e.g. 4" min="0" max="7"/></div>
           <div class="input-group"><label class="input-label">Note to self</label><textarea id="rv-plan-note" placeholder="Anything you want to remember..."></textarea></div>
@@ -1444,11 +1460,11 @@
       <div class="card">
         <div class="card-title">Changes for next month</div>
         <div style="display:flex;flex-direction:column;gap:8px" id="mr-changes">
-          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">📈 Increase workout frequency</button>
-          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">🥩 Raise protein target</button>
-          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">📉 Reduce calorie target</button>
-          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">⏱️ More consistent fasting</button>
-          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">💧 Improve hydration</button>
+          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-trending-up" style="margin-right:8px"></i>Increase workout frequency</button>
+          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-meat" style="margin-right:8px"></i>Raise protein target</button>
+          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-trending-down" style="margin-right:8px"></i>Reduce calorie target</button>
+          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-hourglass" style="margin-right:8px"></i>More consistent fasting</button>
+          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-droplet" style="margin-right:8px"></i>Improve hydration</button>
         </div>
       </div>
       <button class="btn btn-primary" style="background:#C084FC" onclick="completeMonthlyReview()">Save Monthly Review ✓</button>
@@ -1542,11 +1558,11 @@
 
   <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
-    <div class="nav-item active" onclick="navigate('home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
-    <div class="nav-item" onclick="navigate('nutrition')"><div class="nav-icon">🥗</div><div class="nav-label">Nutrition</div></div>
-    <div class="nav-item" onclick="navigate('workout')"><div class="nav-icon">💪</div><div class="nav-label">Workout</div></div>
-    <div class="nav-item" onclick="navigate('progress')"><div class="nav-icon">📈</div><div class="nav-label">Progress</div></div>
-    <div class="nav-item" onclick="navigate('more')"><div class="nav-icon">⋯</div><div class="nav-label">More</div></div>
+    <div class="nav-item active" onclick="navigate('home')"><div class="nav-icon"><i class="ti ti-home"></i></div><div class="nav-label">Home</div></div>
+    <div class="nav-item" onclick="navigate('nutrition')"><div class="nav-icon"><i class="ti ti-salad"></i></div><div class="nav-label">Food</div></div>
+    <div class="nav-item" onclick="navigate('workout')"><div class="nav-icon"><i class="ti ti-barbell"></i></div><div class="nav-label">Workout</div></div>
+    <div class="nav-item" onclick="navigate('progress')"><div class="nav-icon"><i class="ti ti-chart-line"></i></div><div class="nav-label">Progress</div></div>
+    <div class="nav-item" onclick="navigate('more')"><div class="nav-icon"><i class="ti ti-dots"></i></div><div class="nav-label">More</div></div>
   </nav>
 </div>
 
@@ -1585,7 +1601,7 @@
     <!-- BARCODE SCAN -->
     <div id="ft-scan" class="hidden">
       <div style="background:var(--s2);border-radius:var(--r-sm);aspect-ratio:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;cursor:pointer" onclick="startBarcodeScanner()">
-        <div style="font-size:48px">📷</div>
+        <i class="ti ti-camera" style="font-size:40px;color:var(--txt3)"></i>
         <div style="font-size:13px;color:var(--txt2)">Tap to scan barcode</div>
         <div style="font-size:11px;color:var(--txt3)">Uses Open Food Facts database</div>
       </div>
@@ -1862,7 +1878,7 @@ function completeOnboard() {
     protein: +document.getElementById('ob-protein').value || 120,
     carbs: +document.getElementById('ob-carbs').value || 150,
     fat: +document.getElementById('ob-fat').value || 60,
-    water: +document.getElementById('ob-water').value || 8,
+    water: +document.getElementById('ob-water').value || 2000,
   };
   state.goals_weight = +document.getElementById('ob-goal-weight').value || 0;
   const startWeight = +document.getElementById('ob-weight').value;
@@ -2055,7 +2071,7 @@ function renderWaterGrid() {
   for (let i = 0; i < bubbleCount; i++) {
     const b = document.createElement('div');
     b.className = 'water-bubble' + (i < filledBubbles ? ' filled' : '');
-    b.innerHTML = i < filledBubbles ? '💧' : '○';
+    b.innerHTML = i < filledBubbles ? '<i class="ti ti-droplet-filled" style="color:#60A5FA;font-size:18px"></i>' : '<i class="ti ti-droplet" style="color:var(--txt3);font-size:18px"></i>';
     b.onclick = () => toggleWater(i);
     grid.appendChild(b);
   }
@@ -2112,7 +2128,7 @@ function updateHomeFastTile() {
     ring.style.strokeDashoffset = CIRCUMFERENCE;
     if (elapsed) elapsed.textContent = '—';
     if (label) label.textContent = 'Tap to start a fast';
-    if (btn) { btn.textContent = '▶'; btn.onclick = () => navigate('fasting'); }
+    if (btn) { btn.innerHTML = '<i class="ti ti-player-play"></i>'; btn.style.setProperty('--acc','#2DD4BF'); btn.onclick = () => navigate('fasting'); }
     return;
   }
   const now = new Date();
@@ -2128,7 +2144,7 @@ function updateHomeFastTile() {
   if (label) label.textContent = remaining > 0
     ? Math.ceil(remaining) + 'h remaining'
     : 'Goal reached!';
-  if (btn) { btn.textContent = '⏹'; btn.onclick = () => { endFastNow(); updateHomeFastTile(); }; }
+  if (btn) { btn.innerHTML = '<i class="ti ti-player-stop"></i>'; btn.style.setProperty('--acc','#F87171'); btn.onclick = () => { endFastNow(); updateHomeFastTile(); }; }
 }
 
 // ============================================================
@@ -3176,7 +3192,7 @@ function populateReview() {
   const calAvg = Math.round(dates.map(d => calcTotals(state.logs[d]?.meals||[]).calories).reduce((s,v)=>s+v,0) / 7);
   const proteinAvg = Math.round(dates.map(d => calcTotals(state.logs[d]?.meals||[]).protein).reduce((s,v)=>s+v,0) / 7);
   const calDays = dates.filter(d => { const c = calcTotals(state.logs[d]?.meals||[]).calories; return c > 0 && Math.abs(c - state.targets.calories) < 200; }).length;
-  const waterDays = dates.filter(d => (state.logs[d]?.water||0) >= (state.targets?.water||8)).length;
+  const waterDays = dates.filter(d => (state.logs[d]?.water||0) >= (state.targets?.water||2000)).length;
   const wStart = state.weightLog.find(w => w.date === dates[0])?.kg;
   const wEnd = state.weightLog.find(w => w.date === dates[6])?.kg || state.weightLog[state.weightLog.length-1]?.kg;
   const wChange = wStart && wEnd ? (wEnd - wStart).toFixed(1) : null;
