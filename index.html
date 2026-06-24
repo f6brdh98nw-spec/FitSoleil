@@ -415,102 +415,160 @@
       </div>
       <div class="header-right">
         <div class="streak-badge" id="streak-display">🔥 0 days</div>
-        <button onclick="navigate('plan-overview')" style="background:none;border:none;color:var(--acc);font-size:22px;cursor:pointer;display:flex;align-items:center;padding:4px;">📅</button>
+        <button class="isq" onclick="navigate('plan-overview')" style="font-size:17px">📅</button>
       </div>
     </div>
     <div class="scroll-content">
 
       <!-- Date nav -->
-      <div class="row-between" style="margin-bottom:16px">
+      <div class="row-between" style="margin-bottom:14px">
         <button class="btn btn-secondary btn-sm btn-icon" onclick="changeDay(-1)">‹</button>
         <span id="current-date-label" style="font-weight:600;font-size:14px"></span>
         <button class="btn btn-secondary btn-sm btn-icon" onclick="changeDay(1)">›</button>
       </div>
 
+      <!-- Today's Plan tile -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="card-title" style="margin-bottom:0">Today's Plan</div>
+          <button class="isq" onclick="navigate('settings')" title="Edit targets" style="font-size:14px">⚙️</button>
+        </div>
+        <!-- Workout row -->
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--s2)">
+          <span style="font-size:20px;width:28px;text-align:center">💪</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="plan-workout-name">Rest day</div>
+            <div style="font-size:11px;color:var(--txt3)" id="plan-workout-sub">Tap to start a workout</div>
+          </div>
+          <button class="isq" onclick="navigate('workout')" title="Go to workout">▶</button>
+        </div>
+        <!-- Meals row -->
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--s2)">
+          <span style="font-size:20px;width:28px;text-align:center">🍽️</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600"><span id="plan-cals-eaten">0</span><span style="font-weight:400;color:var(--txt3)"> / <span id="plan-cals-target">2000</span> kcal</span></div>
+            <div class="progress-bar" style="margin-top:5px;height:3px"><div class="progress-fill" id="plan-cals-bar" style="background:var(--acc);width:0%"></div></div>
+          </div>
+          <button class="isq" onclick="openModal('modal-food')" title="Log food" style="font-size:18px;font-weight:300">+</button>
+        </div>
+        <!-- Water row -->
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0">
+          <span style="font-size:20px;width:28px;text-align:center">💧</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--water)"><span id="plan-water-ml">0</span><span style="font-weight:400;color:var(--txt3)"> / <span id="plan-water-target">2000</span> ml</span></div>
+            <div class="progress-bar" style="margin-top:5px;height:3px"><div class="progress-fill" id="plan-water-bar" style="background:var(--water);width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick tiles 2×2 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <button class="btn btn-secondary" style="flex-direction:column;gap:6px;height:84px;border-radius:var(--r)" onclick="openModal('modal-weight')">
+          <span style="font-size:28px">⚖️</span>
+          <span style="font-size:11px;color:var(--txt2);font-weight:500">Log Weight</span>
+        </button>
+        <button class="btn btn-secondary" style="flex-direction:column;gap:6px;height:84px;border-radius:var(--r)" onclick="navigate('workout')">
+          <span style="font-size:28px">💪</span>
+          <span style="font-size:11px;color:var(--txt2);font-weight:500">Workout</span>
+        </button>
+        <button class="btn btn-secondary" style="flex-direction:column;gap:6px;height:84px;border-radius:var(--r)" onclick="openModal('modal-food')">
+          <span style="font-size:28px">🍽️</span>
+          <span style="font-size:11px;color:var(--txt2);font-weight:500">Log Food</span>
+        </button>
+        <button class="btn btn-secondary" style="flex-direction:column;gap:6px;height:84px;border-radius:var(--r)" onclick="navigate('progress');setTimeout(()=>switchTabById('pr-photos'),50)">
+          <span style="font-size:28px">📷</span>
+          <span style="font-size:11px;color:var(--txt2);font-weight:500">Progress Photo</span>
+        </button>
+      </div>
+
       <!-- Calories card -->
       <div class="card">
-        <div class="card-title">Calories</div>
-        <div class="row-between" style="margin-bottom:8px">
-          <div>
-            <span class="big-num" id="cals-consumed">0</span>
-            <span class="big-unit"> / <span id="cals-goal">2000</span> kcal</span>
+        <div class="row-between" style="margin-bottom:10px">
+          <div style="line-height:1">
+            <span style="font-family:'DM Serif Display',serif;font-style:italic;font-size:52px;color:var(--txt)" id="cals-consumed">0</span>
+            <span style="font-size:13px;color:var(--txt3)"> kcal</span>
           </div>
           <div style="text-align:right">
-            <div style="font-size:13px;color:var(--txt2)">Remaining</div>
-            <div style="font-size:22px;font-weight:700;color:var(--acc)" id="cals-remaining">2000</div>
+            <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.5px">Remaining</div>
+            <div style="font-size:26px;font-weight:700;color:var(--acc)" id="cals-remaining">2000</div>
+            <div style="font-size:11px;color:var(--txt3)">of <span id="cals-goal">2000</span></div>
           </div>
         </div>
         <div class="progress-bar"><div class="progress-fill" id="cals-bar" style="background:var(--acc);width:0%"></div></div>
       </div>
 
-      <!-- Macros -->
+      <!-- Macros 2×2 -->
       <div class="card">
-        <div class="card-title">Macros Today</div>
-        <div class="macro-grid">
+        <div class="card-title">Macros</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div class="macro-item">
             <div class="macro-val" id="m-protein" style="color:#60A5FA">0g</div>
             <div class="macro-label">Protein</div>
             <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-protein" style="background:#60A5FA;width:0%"></div></div>
+            <div style="font-size:10px;color:var(--txt3);margin-top:3px"><span id="mv-protein">0</span> / <span id="tgt-protein">120</span>g</div>
           </div>
           <div class="macro-item">
             <div class="macro-val" id="m-carbs" style="color:#34D399">0g</div>
             <div class="macro-label">Carbs</div>
             <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-carbs" style="background:#34D399;width:0%"></div></div>
+            <div style="font-size:10px;color:var(--txt3);margin-top:3px"><span id="mv-carbs">0</span> / <span id="tgt-carbs">150</span>g</div>
           </div>
           <div class="macro-item">
-            <div class="macro-val" id="m-fat" style="color:var(--acc)">0g</div>
+            <div class="macro-val" id="m-fat" style="color:#E8C547">0g</div>
             <div class="macro-label">Fat</div>
-            <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-fat" style="background:var(--acc);width:0%"></div></div>
+            <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-fat" style="background:#E8C547;width:0%"></div></div>
+            <div style="font-size:10px;color:var(--txt3);margin-top:3px"><span id="mv-fat">0</span> / <span id="tgt-fat">55</span>g</div>
           </div>
           <div class="macro-item">
             <div class="macro-val" id="m-fiber" style="color:#F07C3A">0g</div>
             <div class="macro-label">Fibre</div>
             <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-fiber" style="background:#F07C3A;width:0%"></div></div>
+            <div style="font-size:10px;color:var(--txt3);margin-top:3px"><span id="mv-fiber">0</span> / <span id="tgt-fiber">25</span>g</div>
           </div>
         </div>
       </div>
 
-      <!-- Quick log row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:72px" onclick="openModal('modal-food')">
-          <span style="font-size:24px">🍽️</span><span style="font-size:11px">Log Food</span>
-        </button>
-        <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:72px" onclick="navigate('workout')">
-          <span style="font-size:24px">💪</span><span style="font-size:11px">Workout</span>
-        </button>
-        <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:72px" onclick="openModal('modal-weight')">
-          <span style="font-size:24px">⚖️</span><span style="font-size:11px">Log Weight</span>
-        </button>
-      </div>
-
-      <!-- Water -->
-      <div class="card">
-        <div class="section-header">
-          <div class="card-title" style="margin-bottom:0">Water</div>
-          <div style="font-size:12px;color:var(--water)" id="water-count">0 / 8 glasses</div>
-        </div>
-        <div class="water-grid" id="water-grid" style="margin-top:10px"></div>
-        <button class="btn btn-secondary" style="margin-top:12px;font-size:12px" onclick="resetWater()">Reset water</button>
-      </div>
-
-      <!-- Today's meals -->
-      <div class="card">
-        <div class="section-header">
-          <div class="card-title" style="margin-bottom:0">Meals Today</div>
-          <button class="btn btn-outline btn-sm" onclick="openModal('modal-food')">+ Add</button>
-        </div>
-        <div id="meals-list" style="margin-top:8px">
-          <div style="text-align:center;color:var(--txt3);font-size:13px;padding:16px">No meals logged yet</div>
+      <!-- Fasting tile (home mini) -->
+      <div class="card" id="home-fast-card" style="border-color:rgba(45,212,191,0.2)">
+        <div style="display:flex;align-items:center;gap:14px">
+          <svg viewBox="0 0 60 60" width="60" height="60" style="flex-shrink:0">
+            <circle cx="30" cy="30" r="24" fill="none" stroke="var(--s2)" stroke-width="5"/>
+            <circle id="home-fast-ring" cx="30" cy="30" r="24" fill="none" stroke="#2DD4BF" stroke-width="5"
+              stroke-dasharray="151" stroke-dashoffset="151"
+              stroke-linecap="round" transform="rotate(-90 30 30)"
+              style="transition:stroke-dashoffset 1s linear"/>
+          </svg>
+          <div style="flex:1">
+            <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:2px">Fasting</div>
+            <div style="font-size:20px;font-weight:700;color:#2DD4BF;line-height:1.1" id="home-fast-elapsed">—</div>
+            <div style="font-size:11px;color:var(--txt3);margin-top:2px" id="home-fast-label">Tap to start a fast</div>
+          </div>
+          <button id="home-fast-btn" class="isq" onclick="navigate('fasting')"
+            style="--acc:#2DD4BF;width:38px;height:38px;font-size:16px">▶</button>
         </div>
       </div>
 
-      <!-- Weight trend mini -->
+      <!-- Weight mini chart -->
       <div class="card">
-        <div class="section-header">
+        <div class="row-between" style="margin-bottom:8px">
           <div class="card-title" style="margin-bottom:0">Weight</div>
           <span id="current-weight-display" style="font-size:20px;font-weight:700;color:var(--acc)">—</span>
         </div>
         <div id="weight-mini-chart" class="chart-wrap" style="height:80px"></div>
+      </div>
+
+      <!-- Water card (250 ml per bubble) -->
+      <div class="card">
+        <div class="row-between" style="margin-bottom:10px">
+          <div class="card-title" style="margin-bottom:0">Water</div>
+          <div style="font-size:12px;color:var(--water)" id="water-count">0 / 2000 ml</div>
+        </div>
+        <div class="water-grid" id="water-grid" style="margin-bottom:10px"></div>
+        <div class="progress-bar" style="margin-bottom:12px"><div class="progress-fill" id="water-progress-bar" style="background:var(--water);width:0%"></div></div>
+        <div style="display:flex;gap:8px">
+          <input type="number" id="water-custom-ml" placeholder="ml" min="1" max="2000" style="flex:1"/>
+          <button class="btn btn-sm" onclick="addWaterCustom()" style="background:#2DD4BF;color:#0F0F13;white-space:nowrap;width:auto;flex-shrink:0">+ Add</button>
+        </div>
       </div>
 
     </div>
@@ -1768,32 +1826,59 @@ function renderDashboard() {
   const log = getDayLog();
   const totals = calcTotals(log.meals || []);
   const tgt = state.targets;
-  const pct = v => Math.min(100, Math.round((v / (tgt.calories||1)) * 100));
 
+  // ── Calories card ──
   setEl('cals-consumed', totals.calories);
-  setEl('cals-goal', tgt.calories);
-  setEl('cals-remaining', Math.max(0, tgt.calories - totals.calories));
+  setEl('cals-goal', tgt.calories || 2000);
+  setEl('cals-remaining', Math.max(0, (tgt.calories||2000) - totals.calories));
   setWidth('cals-bar', Math.min(100, (totals.calories / (tgt.calories||1)) * 100));
 
-  setEl('m-protein', totals.protein + 'g');
-  setEl('m-carbs', totals.carbs + 'g');
-  setEl('m-fat', totals.fat + 'g');
-  setEl('m-fiber', (totals.fiber||0) + 'g');
-  setWidth('p-protein', Math.min(100, (totals.protein/(tgt.protein||1))*100));
-  setWidth('p-carbs', Math.min(100, (totals.carbs/(tgt.carbs||1))*100));
-  setWidth('p-fat', Math.min(100, (totals.fat/(tgt.fat||1))*100));
-  setWidth('p-fiber', Math.min(100, ((totals.fiber||0)/25)*100));
+  // ── Macros 2×2 ──
+  const macroData = [
+    { key:'protein', val:totals.protein,       tgt:tgt.protein||120, color:'#60A5FA' },
+    { key:'carbs',   val:totals.carbs,          tgt:tgt.carbs||150,   color:'#34D399' },
+    { key:'fat',     val:totals.fat,            tgt:tgt.fat||55,      color:'#E8C547' },
+    { key:'fiber',   val:totals.fiber||0,       tgt:tgt.fibre||25,    color:'#F07C3A' },
+  ];
+  macroData.forEach(m => {
+    setEl('m-'+m.key, m.val+'g');
+    setEl('mv-'+m.key, m.val);
+    setEl('tgt-'+m.key, m.tgt);
+    setWidth('p-'+m.key, Math.min(100, (m.val/(m.tgt||1))*100));
+  });
 
-  // Nutrition screen sync
+  // ── Today's Plan tile ──
+  setEl('plan-cals-eaten', totals.calories);
+  setEl('plan-cals-target', tgt.calories || 2000);
+  setWidth('plan-cals-bar', Math.min(100, (totals.calories/(tgt.calories||1))*100));
+  const waterMl = log.water || 0;
+  const waterTgt = tgt.water || 2000;
+  setEl('plan-water-ml', waterMl);
+  setEl('plan-water-target', waterTgt);
+  setWidth('plan-water-bar', Math.min(100, (waterMl/waterTgt)*100));
+  // Workout row — show today's active plan if exists
+  const todayName = getTodayPlanName();
+  setEl('plan-workout-name', todayName || 'Rest day');
+  setEl('plan-workout-sub', todayName ? 'Tap to start' : 'No plan scheduled');
+
+  // ── Nutrition screen sync ──
   setEl('nd-cals', totals.calories);
-  setEl('nd-cals-rem', 'left: ' + Math.max(0, tgt.calories - totals.calories));
-  setEl('nd-protein', totals.protein + 'g');
-  setEl('nd-carbs', totals.carbs + 'g');
-  setEl('nd-fat', totals.fat + 'g');
+  setEl('nd-cals-rem', 'left: ' + Math.max(0, (tgt.calories||2000) - totals.calories));
+  setEl('nd-protein', totals.protein+'g');
+  setEl('nd-carbs', totals.carbs+'g');
+  setEl('nd-fat', totals.fat+'g');
 
   renderWaterGrid();
   renderMealsList();
   renderWeightMiniChart();
+  updateHomeFastTile();
+}
+
+function getTodayPlanName() {
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const today = days[new Date().getDay()];
+  const plan = (state.plans||[]).find(p => p.days && p.days.includes(today));
+  return plan ? plan.name : null;
 }
 
 function getDayLog(date) {
@@ -1816,40 +1901,94 @@ function calcTotals(meals) {
 // ============================================================
 // WATER
 // ============================================================
+const WATER_STEP = 250; // ml per bubble
+
 function renderWaterGrid() {
   const log = getDayLog();
-  const target = state.targets.water || 8;
-  const count = log.water || 0;
+  const targetMl = state.targets.water || 2000;
+  const consumedMl = log.water || 0;
+  const bubbleCount = Math.ceil(targetMl / WATER_STEP);
+  const filledBubbles = Math.floor(consumedMl / WATER_STEP);
   const grid = document.getElementById('water-grid');
   if (!grid) return;
   grid.innerHTML = '';
-  for (let i = 0; i < target; i++) {
+  for (let i = 0; i < bubbleCount; i++) {
     const b = document.createElement('div');
-    b.className = 'water-bubble' + (i < count ? ' filled' : '');
-    b.innerHTML = i < count ? '💧' : '○';
+    b.className = 'water-bubble' + (i < filledBubbles ? ' filled' : '');
+    b.innerHTML = i < filledBubbles ? '💧' : '○';
     b.onclick = () => toggleWater(i);
     grid.appendChild(b);
   }
-  setEl('water-count', count + ' / ' + target + ' glasses');
+  setEl('plan-water-ml', consumedMl);
+  setEl('plan-water-target', targetMl);
+  setWidth('plan-water-bar', Math.min(100, (consumedMl / targetMl) * 100));
+  const pb = document.getElementById('water-progress-bar');
+  if (pb) pb.style.width = Math.min(100, (consumedMl / targetMl) * 100) + '%';
+  const lbl = document.getElementById('water-count');
+  if (lbl) lbl.textContent = consumedMl + ' / ' + targetMl + ' ml';
 }
 
 function toggleWater(idx) {
   const log = getDayLog();
-  const target = state.targets.water || 8;
-  if (idx < log.water) {
-    log.water = idx;
+  const targetMl = state.targets.water || 2000;
+  const filledBubbles = Math.floor((log.water || 0) / WATER_STEP);
+  if (idx < filledBubbles) {
+    log.water = idx * WATER_STEP;
   } else {
-    log.water = Math.min(target, idx + 1);
+    log.water = Math.min(targetMl, (idx + 1) * WATER_STEP);
   }
   saveState();
   renderWaterGrid();
-  if (log.water === target) showToast('💧 Water goal reached!');
+  if (log.water >= targetMl) showToast('💧 Water goal reached!');
+}
+
+function addWaterCustom() {
+  const inp = document.getElementById('water-custom-ml');
+  if (!inp) return;
+  const ml = parseInt(inp.value, 10);
+  if (!ml || ml <= 0) { showToast('Enter a valid amount'); return; }
+  const log = getDayLog();
+  log.water = (log.water || 0) + ml;
+  inp.value = '';
+  saveState();
+  renderWaterGrid();
+  if (log.water >= (state.targets.water || 2000)) showToast('💧 Water goal reached!');
 }
 
 function resetWater() {
   getDayLog().water = 0;
   saveState();
   renderWaterGrid();
+}
+
+function updateHomeFastTile() {
+  const ring = document.getElementById('home-fast-ring');
+  const elapsed = document.getElementById('home-fast-elapsed');
+  const label = document.getElementById('home-fast-label');
+  const btn = document.getElementById('home-fast-btn');
+  if (!ring) return;
+  const CIRCUMFERENCE = 151;
+  if (!state.activeFast) {
+    ring.style.strokeDashoffset = CIRCUMFERENCE;
+    if (elapsed) elapsed.textContent = '—';
+    if (label) label.textContent = 'Tap to start a fast';
+    if (btn) { btn.textContent = '▶'; btn.onclick = () => navigate('fasting'); }
+    return;
+  }
+  const now = new Date();
+  const start = new Date(state.activeFast.start);
+  const elapsedH = (now - start) / (1000 * 3600);
+  const goalH = state.activeFast.hours || 16;
+  const progress = Math.min(1, elapsedH / goalH);
+  ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
+  const h = Math.floor(elapsedH);
+  const m = Math.floor((elapsedH - h) * 60);
+  if (elapsed) elapsed.textContent = h + 'h ' + String(m).padStart(2,'0') + 'm';
+  const remaining = goalH - elapsedH;
+  if (label) label.textContent = remaining > 0
+    ? Math.ceil(remaining) + 'h remaining'
+    : 'Goal reached!';
+  if (btn) { btn.textContent = '⏹'; btn.onclick = () => { endFastNow(); updateHomeFastTile(); }; }
 }
 
 // ============================================================
@@ -3185,8 +3324,8 @@ function startFast() {
   state.activeFast = { start: new Date(startVal).toISOString(), hours, protocol };
   saveState();
   hideFastForm();
-  if (!fastTimer) fastTimer = setInterval(updateFastDisplay, 1000);
-  updateFastDisplay();
+  if (!fastTimer) fastTimer = setInterval(() => { updateFastDisplay(); updateHomeFastTile(); }, 1000);
+  updateFastDisplay(); updateHomeFastTile();
   renderFastCalendar();
   showToast('Fast started ⏱️');
 }
