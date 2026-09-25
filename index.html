@@ -326,7 +326,7 @@
   .ob-input:focus { outline:none; border-color:rgba(232,197,71,0.5); }
   input.ob-input::placeholder, select.ob-input::placeholder, textarea.ob-input::placeholder { color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
   .ob-input.error { border-color:#F87171; }
-  .ob-error { color:#F87171; font-size:11px; margin-top:-8px; }
+  .ob-error { color:#F87171; font-size:11px; margin-top:6px; }
   .ob-hint { font-size:11px; color:#9A98A0; line-height:1.5; }
   .ob-pace-banner { padding:10px 12px; border-radius:8px; font-size:12px; }
   .ob-pace-ok { background:rgba(74,222,128,0.12); color:#4ADE80; }
@@ -338,6 +338,11 @@
   #ob-review-days .ob-pill.active { background:rgba(232,197,71,0.15); border-color:rgba(232,197,71,0.4); color:#E8C547; }
   #ob-mode-auto.active, #ob-mode-prot.active, #ob-mode-keto.active, #ob-mode-cust.active,
   .s-macro-pill.active {
+    background: rgba(232,197,71,0.15) !important;
+    border-color: rgba(232,197,71,0.4) !important;
+    color: #E8C547 !important;
+  }
+  .ob-pill.active, .ob-split-pill.active {
     background: rgba(232,197,71,0.15) !important;
     border-color: rgba(232,197,71,0.4) !important;
     color: #E8C547 !important;
@@ -568,7 +573,16 @@
           <div class="ob-pill active" id="ob-mode-auto" onclick="obSetMacroMode('auto',this)">Auto</div>
           <div class="ob-pill" id="ob-mode-prot" onclick="obSetMacroMode('prot',this)">Fix protein first</div>
           <div class="ob-pill" id="ob-mode-keto" onclick="obSetMacroMode('keto',this)">Keto</div>
-          <div class="ob-pill" id="ob-mode-cust" onclick="obSetMacroMode('cust',this)">Custom</div>
+          <div class="ob-pill" id="ob-mode-cust" onclick="obSetMacroMode('custom',this)">Custom</div>
+        </div>
+      </div>
+
+      <div id="ob-split-row" style="display:none">
+        <div id="ob-split-label" class="input-label" style="margin-bottom:8px">Carb / fat split</div>
+        <div class="ob-pill-group">
+          <div class="ob-pill ob-split-pill active" onclick="obSetSplit('balanced',this)" data-split="balanced">Balanced</div>
+          <div class="ob-pill ob-split-pill" onclick="obSetSplit('highcarb',this)" data-split="highcarb">High carb</div>
+          <div class="ob-pill ob-split-pill" onclick="obSetSplit('lowcarb',this)" data-split="lowcarb">Low carb</div>
         </div>
       </div>
 
@@ -576,24 +590,27 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div>
           <div class="input-label" style="margin-bottom:4px;color:#60A5FA">Protein (g)</div>
-          <input class="ob-input" id="ob-protein" type="text" inputmode="decimal" placeholder="e.g. 120" oninput="obRecalcMacros('protein')" onfocus="this.select()" />
+          <input class="ob-input" id="ob-protein" type="text" inputmode="decimal" placeholder="e.g. 120" oninput="obRecalcMacros('protein');if(obMacroMode==='custom')this.value=this.value.replace(/[^0-9]/g,'')" onfocus="this.select()" />
         </div>
         <div>
           <div class="input-label" style="margin-bottom:4px;color:#4ADE80">Carbs (g)</div>
-          <input class="ob-input" id="ob-carbs" type="text" inputmode="decimal" placeholder="e.g. 150" oninput="obRecalcMacros('carbs')" onfocus="this.select()" />
+          <input class="ob-input" id="ob-carbs" type="text" inputmode="decimal" placeholder="e.g. 150" oninput="obRecalcMacros('carbs');if(obMacroMode==='custom')this.value=this.value.replace(/[^0-9]/g,'')" onfocus="this.select()" />
         </div>
         <div>
           <div class="input-label" style="margin-bottom:4px;color:#E8C547">Fat (g)</div>
-          <input class="ob-input" id="ob-fat" type="text" inputmode="decimal" placeholder="e.g. 55" oninput="obRecalcMacros('fat')" onfocus="this.select()" />
+          <input class="ob-input" id="ob-fat" type="text" inputmode="decimal" placeholder="e.g. 55" oninput="obRecalcMacros('fat');if(obMacroMode==='custom')this.value=this.value.replace(/[^0-9]/g,'')" onfocus="this.select()" />
         </div>
         <div>
           <div class="input-label" style="margin-bottom:4px;color:#F07C3A">Fibre (g)</div>
-          <input class="ob-input" id="ob-fibre" type="text" inputmode="decimal" placeholder="e.g. 25" value="25" onfocus="this.select()" />
+          <input class="ob-input" id="ob-fibre" type="text" inputmode="decimal" placeholder="e.g. 25" value="25" oninput="if(obMacroMode==='custom')this.value=this.value.replace(/[^0-9]/g,'')" onfocus="this.select()" />
         </div>
       </div>
 
+      <div id="ob-keto-hint" class="ob-hint" style="display:none">5% carbs · 20% protein · fat fills remainder. Adjust carbs and protein — both are net values.</div>
+
       <button id="ob-macro-reset" onclick="obResetMacros()" style="align-self:flex-start;font-size:11px;padding:5px 12px;border-radius:8px;background:rgba(232,197,71,0.08);border:0.5px solid rgba(232,197,71,0.3);color:#E8C547;cursor:pointer;display:none">Reset macros</button>
       <div id="ob-kcal-check" class="ob-kcal-check" style="display:none"></div>
+      <div id="ob-kcal-note" class="ob-hint" style="display:none"></div>
 
       <div class="input-group">
         <label class="input-label">Hit target on how many days per week?</label>
@@ -2821,191 +2838,224 @@ function obValidateGoalDate() {
   return true;
 }
 
-function calcAutoMacros(calories) {
-  const protein_g = Math.round(calories * 0.30 / 4);
-  const fat_g = Math.round(calories * 0.30 / 9);
-  const remaining = calories - protein_g * 4 - fat_g * 9;
-  let carbs_g = Math.round(remaining / 4);
-  let check = protein_g * 4 + carbs_g * 4 + fat_g * 9;
-  if (check !== calories) carbs_g += (calories - check > 0 ? 1 : -1);
-  return { protein_g, carbs_g, fat_g };
+// ── SPLIT RATIOS ────────────────────────────────────────────────
+var AUTO_SPLITS = {
+  balanced:  { pct_p: 0.30, pct_c: 0.40, pct_f: 0.30 },
+  highcarb:  { pct_p: 0.30, pct_c: 0.50, pct_f: 0.20 },
+  lowcarb:   { pct_p: 0.30, pct_c: 0.20, pct_f: 0.50 }
+};
+var FIX_SPLITS = {
+  balanced:  { pct_c: 0.50,   pct_f: 0.50   },
+  highcarb:  { pct_c: 0.675,  pct_f: 0.325  },
+  lowcarb:   { pct_c: 0.25,   pct_f: 0.75   }
+};
+
+function calcAuto(cal, split) {
+  var s = AUTO_SPLITS[split || 'balanced'];
+  var p = Math.round(cal * s.pct_p / 4);
+  var f = Math.round(cal * s.pct_f / 9);
+  var c = Math.round((cal - p*4 - f*9) / 4);
+  var diff = cal - (p*4 + c*4 + f*9);
+  if (diff !== 0) c += diff > 0 ? 1 : -1;
+  return { p: p, c: c, f: f };
 }
 
-function makeExactKeto(calories, protein_g, carbs_g, fat_g) {
-  fat_g = Math.round((calories - protein_g * 4 - carbs_g * 4) / 9);
-  let check = protein_g * 4 + carbs_g * 4 + fat_g * 9;
-  let diff = calories - check;
-  if (diff !== 0) {
-    fat_g += (diff > 0 ? 1 : -1);
-    check = protein_g * 4 + carbs_g * 4 + fat_g * 9;
-    diff = calories - check;
-  }
-  if (diff !== 0) {
-    // fall back to adjusting carbs
-    carbs_g += (diff > 0 ? 1 : -1);
-    fat_g = Math.round((calories - protein_g * 4 - carbs_g * 4) / 9);
-  }
-  return { protein_g, carbs_g, fat_g };
+function calcFixProtein(cal, p, split) {
+  var s = FIX_SPLITS[split || 'balanced'];
+  var rem = cal - p*4;
+  var f = Math.round(rem * s.pct_f / 9);
+  var c = Math.round((rem - f*9) / 4);
+  var diff = cal - (p*4 + c*4 + f*9);
+  if (diff !== 0) c += diff > 0 ? 1 : -1;
+  return { p: p, c: c, f: f };
 }
+
+function calcKetoInitial(cal) {
+  var p = Math.round(cal * 0.20 / 4);
+  var c = Math.round(cal * 0.05 / 4);
+  var f = calcKetoFat(cal, p, c);
+  return { p: p, c: c, f: f };
+}
+
+function calcKetoFat(cal, p, c) {
+  var f = Math.round((cal - p*4 - c*4) / 9);
+  if (f < 0) f = 0;
+  var diff = cal - (p*4 + c*4 + f*9);
+  var f2 = f + Math.sign(diff);
+  if (Math.abs(cal - (p*4 + c*4 + f2*9)) < Math.abs(diff)) f = f2;
+  return f;
+}
+
+function updateKcalCheck(cal, p, c, f, mode) {
+  var total = p*4 + c*4 + f*9;
+  var diff = total - cal;
+  var abs = Math.abs(diff);
+  var msg = 'Macros = ' + total + ' kcal · Target: ' + cal + ' kcal';
+  var state, note;
+  if (abs === 0) {
+    msg += ' ✓'; state = 'ok'; note = null;
+  } else if (abs <= 5) {
+    msg += ' ✓'; state = 'ok';
+    if (mode === 'custom') {
+      note = 'Your macros are ' + abs + ' kcal ' + (diff > 0 ? 'over' : 'under') +
+             ' your target. Close enough, but you can adjust if you\'d like.';
+    } else {
+      note = 'Macro targets are rounded to whole grams and may differ slightly ' +
+             'from your calorie target. This is normal and won\'t affect your results.';
+    }
+  } else {
+    state = 'warn';
+    if (mode === 'custom') {
+      msg += ' · ' + (diff > 0 ? '+' : '') + diff + ' kcal ' +
+             (diff > 0 ? 'over' : 'under') + ' — adjust your values to match';
+    } else {
+      msg += ' · ' + (diff > 0 ? '+' : '') + diff + ' kcal — try Reset macros';
+    }
+    note = null;
+  }
+  return { msg: msg, state: state, note: note };
+}
+
+var _obSplit = 'balanced'; // current split selection
 
 function obSetMacroMode(mode, el) {
-  const oldMode = obMacroMode;
   obMacroMode = mode;
-  document.querySelectorAll('.ob-pill[id^="ob-mode-"]').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  const protEl = document.getElementById('ob-protein');
-  const carbEl = document.getElementById('ob-carbs');
-  const fatEl = document.getElementById('ob-fat');
-  const fibreEl = document.getElementById('ob-fibre');
-  // Keep calories and fibre; reset protein/carbs/fat
-  protEl.value = ''; carbEl.value = ''; fatEl.value = '';
-  if (!fibreEl.value) fibreEl.value = '25';
-  // Set editability per mode
-  protEl.readOnly = false; carbEl.readOnly = false; fatEl.readOnly = false;
-  protEl.style.opacity = '1'; carbEl.style.opacity = '1'; fatEl.style.opacity = '1';
+  document.querySelectorAll('.ob-pill[id^="ob-mode-"]').forEach(function(p) { p.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  var protEl = document.getElementById('ob-protein');
+  var carbEl = document.getElementById('ob-carbs');
+  var fatEl = document.getElementById('ob-fat');
+  var fibreEl = document.getElementById('ob-fibre');
+  // Reset protein/carbs/fat; keep calories and fibre
+  if (protEl) protEl.value = '';
+  if (carbEl) carbEl.value = '';
+  if (fatEl) fatEl.value = '';
+  if (fibreEl && !fibreEl.value) fibreEl.value = '25';
+  // Set editability
+  [protEl, carbEl, fatEl].forEach(function(e) { if (e) { e.readOnly = false; e.style.opacity = '1'; e.style.cursor = ''; } });
   if (mode === 'auto') {
-    protEl.readOnly = true; carbEl.readOnly = true; fatEl.readOnly = true;
-    protEl.style.opacity = '0.55'; carbEl.style.opacity = '0.55'; fatEl.style.opacity = '0.55';
+    [protEl, carbEl, fatEl].forEach(function(e) { if (e) { e.readOnly = true; e.style.opacity = '0.55'; e.style.cursor = 'not-allowed'; } });
   } else if (mode === 'prot') {
-    carbEl.readOnly = true; fatEl.readOnly = true;
-    carbEl.style.opacity = '0.55'; fatEl.style.opacity = '0.55';
+    [carbEl, fatEl].forEach(function(e) { if (e) { e.readOnly = true; e.style.opacity = '0.55'; e.style.cursor = 'not-allowed'; } });
   } else if (mode === 'keto') {
-    fatEl.readOnly = true; fatEl.style.opacity = '0.55';
+    if (fatEl) { fatEl.readOnly = true; fatEl.style.opacity = '0.55'; fatEl.style.cursor = 'not-allowed'; }
+  } else if (mode === 'custom') {
+    // all editable
   }
-  // Keto hint
-  let ketoHint = document.getElementById('ob-keto-hint');
-  if (mode === 'keto') {
-    if (!ketoHint) {
-      ketoHint = document.createElement('div');
-      ketoHint.id = 'ob-keto-hint';
-      ketoHint.className = 'ob-hint';
-      const kcalEl = document.getElementById('ob-kcal-check');
-      kcalEl.parentNode.insertBefore(ketoHint, kcalEl);
-    }
-    ketoHint.textContent = 'Fat fills your remaining calories automatically. Adjust carbs and protein — both are net values.';
-    ketoHint.style.display = '';
-  } else if (ketoHint) {
-    ketoHint.style.display = 'none';
-  }
-  // Show/hide reset button
-  const resetBtn = document.getElementById('ob-macro-reset');
+  // Show/hide split row
+  var splitRow = document.getElementById('ob-split-row');
+  if (splitRow) splitRow.style.display = (mode === 'auto' || mode === 'prot') ? '' : 'none';
+  var splitLabel = document.getElementById('ob-split-label');
+  if (splitLabel) splitLabel.textContent = mode === 'prot' ? 'Remaining calorie split' : 'Carb / fat split';
+  // Keto helper
+  var ketoHint = document.getElementById('ob-keto-hint');
+  if (ketoHint) ketoHint.style.display = mode === 'keto' ? '' : 'none';
+  // Reset button
+  var resetBtn = document.getElementById('ob-macro-reset');
   if (resetBtn) resetBtn.style.display = mode === 'custom' ? 'none' : '';
   // Recalculate
-  _obOldCalories = parseFloat(document.getElementById('ob-calories')?.value) || 0;
+  obRecalcMacros();
+}
+
+function obSetSplit(split, el) {
+  _obSplit = split;
+  document.querySelectorAll('.ob-split-pill').forEach(function(p) { p.classList.remove('active'); });
+  if (el) el.classList.add('active');
   obRecalcMacros();
 }
 
 function obRecalcMacros(changedField) {
-  const cals = Math.round(parseFloat(document.getElementById('ob-calories')?.value) || 0);
-  const protEl = document.getElementById('ob-protein');
-  const carbEl = document.getElementById('ob-carbs');
-  const fatEl = document.getElementById('ob-fat');
-  const kcalEl = document.getElementById('ob-kcal-check');
+  var cals = Math.round(parseFloat(document.getElementById('ob-calories') && document.getElementById('ob-calories').value) || 0);
+  var protEl = document.getElementById('ob-protein');
+  var carbEl = document.getElementById('ob-carbs');
+  var fatEl = document.getElementById('ob-fat');
+  var kcalEl = document.getElementById('ob-kcal-check');
+  var kcalNote = document.getElementById('ob-kcal-note');
   if (!cals) { if (kcalEl) kcalEl.style.display = 'none'; return; }
 
-  let prot, fat, carb;
-
+  var p, c, f;
   if (obMacroMode === 'auto') {
-    const r = calcAutoMacros(cals);
-    prot = r.protein_g; carb = r.carbs_g; fat = r.fat_g;
-    protEl.value = prot; carbEl.value = carb; fatEl.value = fat;
-
+    var r = calcAuto(cals, _obSplit);
+    p = r.p; c = r.c; f = r.f;
+    if (protEl) protEl.value = p;
+    if (carbEl) carbEl.value = c;
+    if (fatEl) fatEl.value = f;
   } else if (obMacroMode === 'prot') {
-    prot = parseFloat(protEl.value) || Math.round(cals * 0.30 / 4);
-    if (!protEl.value) protEl.value = prot;
-    const rem = cals - prot * 4;
-    fat = Math.round(rem * 0.30 / 9);
-    carb = Math.round((rem - fat * 9) / 4);
-    let check = prot * 4 + carb * 4 + fat * 9;
-    if (check !== cals) carb += (cals - check > 0 ? 1 : -1);
-    carbEl.value = carb; fatEl.value = fat;
-
+    p = parseInt(protEl && protEl.value) || Math.round(cals * 0.30 / 4);
+    if (protEl && !protEl.value) protEl.value = p;
+    var r2 = calcFixProtein(cals, p, _obSplit);
+    p = r2.p; c = r2.c; f = r2.f;
+    if (carbEl) carbEl.value = c;
+    if (fatEl) fatEl.value = f;
   } else if (obMacroMode === 'keto') {
-    const prevCarb = parseFloat(carbEl.value) || 0;
-    const prevProt = parseFloat(protEl.value) || 0;
-    const prevCals = _obOldCalories || cals;
-
-    if (!prevCarb && !prevProt) {
-      // Initial entry into keto mode — use standard ratios
-      carb = Math.round(cals * 0.05 / 4);
-      prot = Math.round(cals * 0.20 / 4);
-    } else if (changedField === 'calories' && prevCals !== cals) {
-      // Calories changed — recalculate from ratios
-      if (prevCarb && prevProt && (prevCarb !== Math.round(prevCals * 0.05 / 4) || prevProt !== Math.round(prevCals * 0.20 / 4))) {
-        // User has customised — show prompt
-        const keepCustom = window.confirm('Recalculate from keto ratios, or keep your custom carbs/protein?\n\nOK = Recalculate from ratios\nCancel = Keep custom (adjust fat only)');
-        if (keepCustom) {
-          carb = Math.round(cals * 0.05 / 4);
-          prot = Math.round(cals * 0.20 / 4);
-        } else {
-          carb = prevCarb; prot = prevProt;
-        }
-      } else {
-        carb = Math.round(cals * 0.05 / 4);
-        prot = Math.round(cals * 0.20 / 4);
-      }
-    } else if (changedField === 'carbs') {
-      carb = parseFloat(carbEl.value) || Math.round(cals * 0.05 / 4);
-      prot = parseFloat(protEl.value) || Math.round(cals * 0.20 / 4);
-    } else if (changedField === 'protein') {
-      prot = parseFloat(protEl.value) || Math.round(cals * 0.20 / 4);
-      carb = parseFloat(carbEl.value) || Math.round(cals * 0.05 / 4);
+    var prevC = parseInt(carbEl && carbEl.value) || 0;
+    var prevP = parseInt(protEl && protEl.value) || 0;
+    if (!prevC && !prevP) {
+      var k = calcKetoInitial(cals);
+      p = k.p; c = k.c; f = k.f;
+      if (protEl) protEl.value = p;
+      if (carbEl) carbEl.value = c;
+    } else if (changedField === 'calories') {
+      // Always recalculate from ratios on calorie change
+      var k2 = calcKetoInitial(cals);
+      p = k2.p; c = k2.c; f = k2.f;
+      if (protEl) protEl.value = p;
+      if (carbEl) carbEl.value = c;
     } else {
-      carb = prevCarb || Math.round(cals * 0.05 / 4);
-      prot = prevProt || Math.round(cals * 0.20 / 4);
+      p = prevP || Math.round(cals * 0.20 / 4);
+      c = prevC || Math.round(cals * 0.05 / 4);
+      f = calcKetoFat(cals, p, c);
     }
-
-    const r = makeExactKeto(cals, prot, carb, fat || 0);
-    prot = r.protein_g; carb = r.carbs_g; fat = r.fat_g;
-    if (fat < 1) fat = 1;
-    _obOldCalories = cals;
-
-    if (!protEl.value || changedField !== 'protein') protEl.value = prot;
-    if (!carbEl.value || changedField !== 'carbs') carbEl.value = carb;
-    fatEl.value = fat;
-
-    // Warnings
-    let warn = document.getElementById('ob-keto-warn');
-    if (!warn) {
-      warn = document.createElement('div'); warn.id = 'ob-keto-warn';
-      warn.style.cssText = 'font-size:11px;margin-top:4px';
-      fatEl.parentNode.appendChild(warn);
+    if (fatEl) fatEl.value = f;
+    // Keto warnings (in-app banners, no browser dialogs)
+    var warnEl = document.getElementById('ob-keto-warn');
+    if (!warnEl) {
+      warnEl = document.createElement('div');
+      warnEl.id = 'ob-keto-warn';
+      warnEl.style.cssText = 'font-size:11px;margin-top:4px;padding:8px 10px;border-radius:8px;display:none';
+      var fatParent = fatEl && fatEl.parentNode;
+      if (fatParent) fatParent.appendChild(warnEl);
     }
-    if (fat <= 1 && cals > 0) {
-      warn.style.color = '#F87171';
-      warn.textContent = 'These targets exceed your calorie budget — reduce protein or carbs';
-      warn.style.display = '';
-    } else if (parseFloat(carbEl.value) > 50) {
-      warn.style.color = '#E8C547';
-      warn.textContent = 'High carbs may affect ketosis — standard keto is under 50g net carbs';
-      warn.style.display = '';
+    var carbVal = parseInt(carbEl && carbEl.value) || 0;
+    if (f <= 0) {
+      warnEl.style.background = 'rgba(248,113,113,0.12)'; warnEl.style.color = '#F87171';
+      warnEl.textContent = 'Calorie budget exceeded — reduce protein or carbs';
+      warnEl.style.display = '';
+      if (fatEl) fatEl.value = 1;
+      f = 1;
+    } else if (carbVal > 50) {
+      warnEl.style.background = 'rgba(232,197,71,0.12)'; warnEl.style.color = '#E8C547';
+      warnEl.textContent = 'High carbs may affect ketosis — standard keto is under 50g net carbs';
+      warnEl.style.display = '';
     } else {
-      warn.style.display = 'none';
+      warnEl.style.display = 'none';
     }
+  } else if (obMacroMode === 'custom') {
+    p = parseInt(protEl && protEl.value) || 0;
+    c = parseInt(carbEl && carbEl.value) || 0;
+    f = parseInt(fatEl && fatEl.value) || 0;
   }
-  // custom: no auto-calc
 
-  // Live kcal check
-  const p = parseFloat(protEl.value) || 0;
-  const c = parseFloat(carbEl.value) || 0;
-  const f = parseFloat(fatEl.value) || 0;
-  const total = p * 4 + c * 4 + f * 9;
-  const diff = total - cals;
-  if (!kcalEl) return;
-  kcalEl.style.display = '';
-  if (Math.abs(diff) <= 2) {
-    kcalEl.style.color = '#4ADE80';
-    kcalEl.textContent = `Macros = ${total} kcal · Target: ${cals} kcal ✓`;
-  } else {
-    kcalEl.style.color = '#E8C547';
-    kcalEl.textContent = `Macros = ${total} kcal · Target: ${cals} kcal · ${diff > 0 ? '+' + diff + ' kcal over' : Math.abs(diff) + ' kcal under'}`;
+  // Kcal check
+  p = parseInt(protEl && protEl.value) || 0;
+  c = parseInt(carbEl && carbEl.value) || 0;
+  f = parseInt(fatEl && fatEl.value) || 0;
+  var result = updateKcalCheck(cals, p, c, f, obMacroMode);
+  if (kcalEl) {
+    kcalEl.style.display = '';
+    kcalEl.style.color = result.state === 'ok' ? '#4ADE80' : '#E8C547';
+    kcalEl.textContent = result.msg;
+  }
+  if (kcalNote) {
+    if (result.note) { kcalNote.textContent = result.note; kcalNote.style.display = ''; }
+    else { kcalNote.style.display = 'none'; }
   }
 }
 
 function obResetMacros() {
-  const protEl = document.getElementById('ob-protein');
-  const carbEl = document.getElementById('ob-carbs');
-  const fatEl = document.getElementById('ob-fat');
+  var protEl = document.getElementById('ob-protein');
+  var carbEl = document.getElementById('ob-carbs');
+  var fatEl = document.getElementById('ob-fat');
   if (protEl) protEl.value = '';
   if (carbEl) carbEl.value = '';
   if (fatEl) fatEl.value = '';
@@ -3110,10 +3160,16 @@ function obOrdinalSuffix(n) {
 function obBuildSummary() {
   obSaveDraft();
   const d = obDraft;
+  // Format DOB from YYYY-MM-DD to dd/mm/yyyy
+  var dobStr = '';
+  if (obDraft.dob) {
+    var dp = obDraft.dob.split('-');
+    if (dp.length === 3) dobStr = dp[2] + '/' + dp[1] + '/' + dp[0];
+  }
   const cards = [
     {
       title: '<i class="ti ti-user" style="color:#E8C547"></i> Your details',
-      body: [d.name, d.weight ? `${d.weight} kg` : null, d.height ? `${d.height} cm` : null, d.dob || null].filter(Boolean).join(' · ') || 'Not set',
+      body: [d.name, d.weight ? `${d.weight} kg` : null, d.height ? `${d.height} cm` : null, dobStr || null].filter(Boolean).join(' · ') || 'Not set',
       step: 2
     },
     {
@@ -3122,17 +3178,17 @@ function obBuildSummary() {
       step: 3
     },
     {
-      title: '<i class="ti ti-flame" style="color:#4ADE80"></i> Nutrition',
+      title: '<i class="ti ti-flame" style="color:#4ADE80"></i> Nutrition goal',
       body: d.calories ? `${d.calories} kcal/day · ${d.macroMode || 'auto'} macros${d.nutDays ? ' · ' + d.nutDays + ' days/week' : ''}` : 'Skipped',
       step: 4
     },
     {
-      title: '<i class="ti ti-clock" style="color:#2DD4BF"></i> Fasting',
+      title: '<i class="ti ti-clock" style="color:#2DD4BF"></i> Fasting goal',
       body: d.fasting && d.fasting !== 'none' ? `${d.fasting}${d.fastDays ? ' · ' + d.fastDays + ' fasts/week' : ''}` : 'Skipped',
       step: 5
     },
     {
-      title: '<i class="ti ti-droplet" style="color:#60A5FA"></i> Water',
+      title: '<i class="ti ti-droplet" style="color:#60A5FA"></i> Water goal',
       body: d.water ? `${d.water} ml/day${d.waterDays ? ' · ' + d.waterDays + ' days/week' : ''}` : 'Skipped',
       step: 6
     },
