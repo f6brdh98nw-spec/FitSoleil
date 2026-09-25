@@ -336,6 +336,7 @@
   .ob-pill-group { display:flex; gap:6px; flex-wrap:wrap; }
   .ob-pill { padding:6px 14px; border-radius:20px; border:1px solid #2C2C3A; background:#22222E; color:#9A98A0; font-size:13px; cursor:pointer; }
   .ob-pill.active { background:#3A3A4A; color:#F0EEE8; border-color:#5A5860; }
+  #ob-review-days .ob-pill.active { background:rgba(232,197,71,0.15); border-color:rgba(232,197,71,0.4); color:#E8C547; }
   .ob-milestone-row { display:flex; gap:8px; align-items:center; }
   .ob-milestone-row input { flex:1; }
   .ob-milestone-row button { background:#2C2C3A; border:none; color:#9A98A0; border-radius:8px; padding:8px 10px; cursor:pointer; font-size:16px; }
@@ -503,7 +504,7 @@
           <div class="ob-collapsible" id="ob-weight-ms">
             <div class="ob-hint">Break your goal into checkpoints, e.g. every 2.5 or 5 kg</div>
             <div id="ob-weight-ms-list"></div>
-            <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-weight-ms-list','kg','Weight (kg)')">+ Add milestone</button>
+            <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-weight-ms-list','weight')">+ Add milestone</button>
           </div>
         </div>
       </div>
@@ -520,7 +521,7 @@
           <div class="ob-collapsible" id="ob-workout-ms">
             <div class="ob-hint">e.g. start at 2/week, build to 3/week over a month</div>
             <div id="ob-workout-ms-list"></div>
-            <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-workout-ms-list','sessions','Sessions/week')">+ Add milestone</button>
+            <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-workout-ms-list','workout')">+ Add milestone</button>
           </div>
         </div>
       </div>
@@ -584,7 +585,7 @@
         <span class="ob-toggle-link" onclick="obToggle('ob-nut-ms')">Add milestones</span>
         <div class="ob-collapsible" id="ob-nut-ms">
           <div id="ob-nut-ms-list"></div>
-          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-nut-ms-list','weeks','Hit targets for X weeks')">+ Add milestone</button>
+          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-nut-ms-list','nutrition')">+ Add milestone</button>
         </div>
       </div>
 
@@ -623,7 +624,7 @@
         <div class="ob-collapsible" id="ob-fast-ms">
           <div class="ob-hint">e.g. build from 3 fasts/week to 5 fasts/week over a month</div>
           <div id="ob-fast-ms-list"></div>
-          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-fast-ms-list','weeks','Build consistency for X weeks')">+ Add milestone</button>
+          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-fast-ms-list','fasting')">+ Add milestone</button>
         </div>
       </div>
 
@@ -652,7 +653,7 @@
         <div class="ob-collapsible" id="ob-water-ms">
           <div class="ob-hint">e.g. build from 1L/day to 2L/day over a few weeks</div>
           <div id="ob-water-ms-list"></div>
-          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-water-ms-list','ml','Daily ml target')">+ Add milestone</button>
+          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-water-ms-list','water')">+ Add milestone</button>
         </div>
       </div>
 
@@ -685,10 +686,12 @@
 
       <div class="input-group">
         <label class="input-label">Monthly review day</label>
-        <div style="display:flex;align-items:center;gap:8px">
-          <input class="ob-input" id="ob-monthly-day" type="number" min="1" max="31" placeholder="e.g. 28" value="28" style="width:80px" />
-          <span style="color:#9A98A0;font-size:14px">of the month</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <input class="ob-input" id="ob-monthly-day" type="number" min="1" max="31" placeholder="e.g. 28" value="28" style="width:70px" oninput="obUpdateMonthlyHint()" />
+          <span style="color:#9A98A0;font-size:14px">of the month at</span>
+          <input class="ob-input" id="ob-monthly-time" type="time" value="19:00" style="width:110px" oninput="obUpdateMonthlyHint()" />
         </div>
+        <div class="ob-hint" id="ob-monthly-hint" style="margin-top:4px">We'll remind you to do your monthly review on the 28th of each month at 19:00</div>
       </div>
 
       <button class="btn btn-primary" onclick="obGo(8)" style="width:100%;margin-top:8px">Next</button>
@@ -2652,7 +2655,7 @@ function obSaveDraft() {
     fibre: g('ob-fibre') || '25', nutDays: g('ob-nut-days'),
     fasting: g('ob-fasting'), fastDays: g('ob-fast-days'), fastHours: g('ob-fast-hours'),
     water: g('ob-water'), waterDays: g('ob-water-days'),
-    reviewDay: obGetSelectedDay(), reviewTime: g('ob-review-time'), monthlyDay: g('ob-monthly-day'),
+    reviewDay: obGetSelectedDay(), reviewTime: g('ob-review-time'), monthlyDay: g('ob-monthly-day'), monthlyTime: g('ob-monthly-time') || '19:00',
     macroMode: obMacroMode
   });
   try { localStorage.setItem('fs_onboarding_draft', JSON.stringify(obDraft)); } catch(e) {}
@@ -2694,7 +2697,7 @@ function obCheckPace() {
   if (pace <= 0.75) {
     banner.className = 'ob-pace-banner ob-pace-ok';
     banner.textContent = `Requires ${pace.toFixed(2)} kg/week ✓ Healthy rate`;
-  } else {
+  } else if (pace > 0.75) {
     const safeWeeks = (curWt - tgtWt) / 0.6;
     const safeDate = new Date(Date.now() + safeWeeks * 7 * 864e5);
     const sd = safeDate.toLocaleDateString('en-GB', {day:'2-digit',month:'2-digit',year:'2-digit'});
@@ -2728,44 +2731,91 @@ function obSetMacroMode(mode, el) {
   obMacroMode = mode;
   document.querySelectorAll('.ob-pill[id^="ob-mode-"]').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
+  // Reset all macro fields
+  document.getElementById('ob-protein').value = '';
+  document.getElementById('ob-carbs').value = '';
+  document.getElementById('ob-fat').value = '';
+  // Fibre stays at current value or 25
+  const fibreEl = document.getElementById('ob-fibre');
+  if (!fibreEl.value) fibreEl.value = '25';
+  // Set editability
   const protEl = document.getElementById('ob-protein');
   const carbEl = document.getElementById('ob-carbs');
   const fatEl = document.getElementById('ob-fat');
-  if (mode === 'cust') {
-    [protEl, carbEl, fatEl].forEach(e => e.style.opacity = '1');
-  } else {
-    protEl.style.opacity = mode === 'auto' ? '0.6' : '1';
-    carbEl.style.opacity = '0.6';
-    fatEl.style.opacity = '0.6';
+  protEl.readOnly = false; carbEl.readOnly = false; fatEl.readOnly = false;
+  protEl.style.opacity = '1'; carbEl.style.opacity = '1'; fatEl.style.opacity = '1';
+  if (mode === 'auto') {
+    protEl.style.opacity = '0.6'; carbEl.style.opacity = '0.6'; fatEl.style.opacity = '0.6';
+    protEl.readOnly = true; carbEl.readOnly = true; fatEl.readOnly = true;
+  } else if (mode === 'prot') {
+    carbEl.style.opacity = '0.6'; fatEl.style.opacity = '0.6';
+    carbEl.readOnly = true; fatEl.readOnly = true;
+  } else if (mode === 'keto') {
+    fatEl.style.opacity = '0.6'; fatEl.readOnly = true;
+  }
+  // Show/hide keto helper
+  let ketoHint = document.getElementById('ob-keto-hint');
+  if (mode === 'keto') {
+    if (!ketoHint) {
+      ketoHint = document.createElement('div');
+      ketoHint.id = 'ob-keto-hint';
+      ketoHint.className = 'ob-hint';
+      ketoHint.textContent = 'Keto ratio: ~70% fat · ~18% protein · ~10% carbs. Adjust protein and carbs — fat calculates automatically.';
+      document.getElementById('ob-kcal-check').parentNode.insertBefore(ketoHint, document.getElementById('ob-kcal-check'));
+    }
+    ketoHint.style.display = '';
+  } else if (ketoHint) {
+    ketoHint.style.display = 'none';
   }
   obRecalcMacros();
 }
 
 function obRecalcMacros() {
-  const cals = parseFloat(document.getElementById('ob-calories')?.value) || 0;
+  const cals = Math.round(parseFloat(document.getElementById('ob-calories')?.value) || 0);
   const protEl = document.getElementById('ob-protein');
   const carbEl = document.getElementById('ob-carbs');
   const fatEl = document.getElementById('ob-fat');
   if (!cals) { document.getElementById('ob-kcal-check').style.display = 'none'; return; }
+
   let prot, fat, carb;
+
   if (obMacroMode === 'auto') {
-    fat = Math.round(cals * 0.30 / 9);
     prot = Math.round(cals * 0.30 / 4);
+    fat = Math.round(cals * 0.30 / 9);
     carb = Math.round((cals - prot * 4 - fat * 9) / 4);
+    // Ensure exact: adjust carb ±1
+    let iter = 0;
+    while (prot * 4 + carb * 4 + fat * 9 !== cals && iter++ < 5) {
+      carb += (prot * 4 + carb * 4 + fat * 9 < cals) ? 1 : -1;
+    }
     protEl.value = prot; carbEl.value = carb; fatEl.value = fat;
+
   } else if (obMacroMode === 'prot') {
     prot = parseFloat(protEl.value) || Math.round(cals * 0.30 / 4);
     const rem = cals - prot * 4;
     fat = Math.round(rem * 0.30 / 9);
     carb = Math.round((rem - fat * 9) / 4);
+    let iter = 0;
+    while (prot * 4 + carb * 4 + fat * 9 !== cals && iter++ < 5) {
+      carb += (prot * 4 + carb * 4 + fat * 9 < cals) ? 1 : -1;
+    }
     carbEl.value = carb; fatEl.value = fat;
+
   } else if (obMacroMode === 'keto') {
-    prot = parseFloat(protEl.value) || Math.round(cals * 0.30 / 4);
-    carb = 40;
-    fat = Math.round((cals - prot * 4 - 40 * 4) / 9);
-    carbEl.value = carb; fatEl.value = fat;
+    prot = parseFloat(protEl.value) || Math.round(cals * 0.175 / 4);
+    carb = parseFloat(carbEl.value) || 40;
+    fat = Math.round((cals - prot * 4 - carb * 4) / 9);
+    // Adjust fat ±1 to make exact
+    let iter = 0;
+    while (prot * 4 + carb * 4 + fat * 9 !== cals && iter++ < 5) {
+      fat += (prot * 4 + carb * 4 + fat * 9 < cals) ? 1 : -1;
+    }
+    if (!protEl.value) protEl.value = prot;
+    if (!carbEl.value) carbEl.value = carb;
+    fatEl.value = fat;
   }
-  // kcal check
+
+  // Live kcal check
   const p = parseFloat(protEl.value) || 0;
   const c = parseFloat(carbEl.value) || 0;
   const f = parseFloat(fatEl.value) || 0;
@@ -2773,8 +2823,7 @@ function obRecalcMacros() {
   const diff = total - cals;
   const kcalEl = document.getElementById('ob-kcal-check');
   kcalEl.style.display = '';
-  const absDiff = Math.abs(diff);
-  if (absDiff <= 2) {
+  if (Math.abs(diff) <= 2) {
     kcalEl.style.color = '#4ADE80';
     kcalEl.textContent = `Macros = ${total} kcal · Target: ${cals} kcal ✓`;
   } else {
@@ -2801,24 +2850,75 @@ function obSelectDay(el) {
   el.classList.add('active');
 }
 
+function obUpdateMonthlyHint() {
+  const day = document.getElementById('ob-monthly-day')?.value || '28';
+  const time = document.getElementById('ob-monthly-time')?.value || '19:00';
+  const suffix = ['th','st','nd','rd'];
+  const d = parseInt(day);
+  const suf = (d >= 11 && d <= 13) ? 'th' : (suffix[d % 10] || 'th');
+  const hint = document.getElementById('ob-monthly-hint');
+  if (hint) hint.textContent = `We'll remind you to do your monthly review on the ${d}${suf} of each month at ${time}`;
+}
+
 function obToggle(id) {
   const el = document.getElementById(id);
   if (el) el.classList.toggle('open');
 }
 
-function obAddMilestone(listId, unit, placeholder) {
+function obAddMilestone(listId, type) {
   const list = document.getElementById(listId);
   if (!list) return;
   const row = document.createElement('div');
   row.className = 'ob-milestone-row';
-  row.innerHTML = `<input class="ob-input" type="text" placeholder="${placeholder}" style="font-size:13px;padding:8px 10px" /><button onclick="this.parentElement.remove()">×</button>`;
+  row.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px';
+  let inner = '';
+  if (type === 'workout') {
+    inner = `<input class="ob-input" type="number" min="1" max="7" placeholder="3" style="width:55px;padding:6px 8px;font-size:13px" data-field="target" />
+      <span style="color:#9A98A0;font-size:12px">sessions/week for</span>
+      <input class="ob-input" type="number" min="1" placeholder="4" style="width:55px;padding:6px 8px;font-size:13px" data-field="duration" />
+      <span style="color:#9A98A0;font-size:12px">weeks</span>`;
+  } else if (type === 'water') {
+    inner = `<input class="ob-input" type="number" placeholder="1500" style="width:65px;padding:6px 8px;font-size:13px" data-field="target" />
+      <span style="color:#9A98A0;font-size:12px">ml on</span>
+      <input class="ob-input" type="number" min="1" max="7" placeholder="7" style="width:45px;padding:6px 8px;font-size:13px" data-field="frequency" />
+      <span style="color:#9A98A0;font-size:12px">days/week for</span>
+      <input class="ob-input" type="number" min="1" placeholder="2" style="width:45px;padding:6px 8px;font-size:13px" data-field="duration" />
+      <span style="color:#9A98A0;font-size:12px">weeks</span>`;
+  } else if (type === 'fasting') {
+    inner = `<input class="ob-input" type="number" min="1" max="7" placeholder="4" style="width:45px;padding:6px 8px;font-size:13px" data-field="target" />
+      <span style="color:#9A98A0;font-size:12px">fasts/week for</span>
+      <input class="ob-input" type="number" min="1" placeholder="3" style="width:45px;padding:6px 8px;font-size:13px" data-field="duration" />
+      <span style="color:#9A98A0;font-size:12px">weeks</span>`;
+  } else if (type === 'nutrition') {
+    inner = `<span style="color:#9A98A0;font-size:12px">Hit targets</span>
+      <input class="ob-input" type="number" min="1" max="7" placeholder="5" style="width:45px;padding:6px 8px;font-size:13px" data-field="frequency" />
+      <span style="color:#9A98A0;font-size:12px">days/week for</span>
+      <input class="ob-input" type="number" min="1" placeholder="4" style="width:45px;padding:6px 8px;font-size:13px" data-field="duration" />
+      <span style="color:#9A98A0;font-size:12px">weeks</span>`;
+  } else if (type === 'weight') {
+    inner = `<input class="ob-input" type="number" step="0.1" placeholder="65" style="width:65px;padding:6px 8px;font-size:13px" data-field="target" />
+      <span style="color:#9A98A0;font-size:12px">kg for</span>
+      <input class="ob-input" type="number" min="1" placeholder="4" style="width:45px;padding:6px 8px;font-size:13px" data-field="duration" />
+      <span style="color:#9A98A0;font-size:12px">weeks</span>`;
+  } else {
+    inner = `<input class="ob-input" type="text" placeholder="Milestone" style="flex:1;padding:6px 8px;font-size:13px" data-field="label" />`;
+  }
+  inner += `<button onclick="this.parentElement.remove()" style="background:#2C2C3A;border:none;color:#9A98A0;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px">×</button>`;
+  row.innerHTML = inner;
   list.appendChild(row);
 }
 
 function obGetMilestones(listId) {
   const list = document.getElementById(listId);
   if (!list) return [];
-  return Array.from(list.querySelectorAll('input')).map(i => i.value.trim()).filter(Boolean).map(label => ({id: Date.now() + Math.random(), label, done: false}));
+  return Array.from(list.querySelectorAll('.ob-milestone-row')).map(row => {
+    const inputs = row.querySelectorAll('input[data-field]');
+    const obj = { id: Date.now() + Math.random(), done: false };
+    inputs.forEach(inp => { obj[inp.dataset.field] = inp.value.trim(); });
+    // Build label for display
+    obj.label = Array.from(inputs).map(i => i.value).filter(Boolean).join(' / ');
+    return obj;
+  }).filter(m => m.label);
 }
 
 function obBuildSummary() {
@@ -2866,6 +2966,24 @@ function obBuildSummary() {
 }
 
 function completeOnboard() {
+  localStorage.removeItem('fitsol_v2');
+  // Reset state to clean defaults
+  state = {
+    onboardingComplete: true,
+    profile: {},
+    targets: { calories:0, protein:0, carbs:0, fat:0, fibre:25, water:2000, macroMode:'auto', nutritionDaysPerWeek:7 },
+    goalWeight: null, goalDate: '',
+    currentWeight: 0,
+    goals: [],
+    weightLog: [],
+    fastingProtocol: '16:8',
+    reviewSchedule: { weeklyDay:'Sun', weeklyTime:'19:00', monthlyDay:28, monthlyTime:'19:00' },
+    logs: {}, workouts: [], plans: [], recipes: [],
+    cycleLog: [], fastLog: [], activeFast: null,
+    photos: {}, reviews: [], mealPlan: {},
+    streak: 0, fastStreak: 0,
+    currentDate: new Date().toISOString().split('T')[0]
+  };
   obSaveDraft();
   const d = obDraft;
   // Build goals array
@@ -2946,8 +3064,9 @@ function completeOnboard() {
   state.fastingProtocol = d.fasting && d.fasting !== 'none' ? d.fasting : '16:8';
   state.reviewSchedule = {
     weeklyDay: d.reviewDay || 'Sun',
-    weeklyTime: d.reviewTime || '19:00',
-    monthlyDay: parseInt(d.monthlyDay) || 28
+    weeklyTime: document.getElementById('ob-review-time')?.value || '19:00',
+    monthlyDay: parseInt(d.monthlyDay) || 28,
+    monthlyTime: document.getElementById('ob-monthly-time')?.value || '19:00'
   };
   state.goals = goals;
   state.streak = 0;
