@@ -307,11 +307,46 @@
   .recipe-macro { font-size: 10px; color: var(--txt2); }
 
   /* ONBOARDING */
-  #onboarding { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; }
-  .onboard-step { display: none; width: 100%; max-width: 360px; }
-  .onboard-step.active { display: flex; flex-direction: column; gap: 16px; }
-  .onboard-title { font-family: 'DM Serif Display', serif; font-size: 32px; color: var(--acc); text-align: center; }
-  .onboard-sub { color: var(--txt2); text-align: center; font-size: 14px; line-height: 1.6; }
+  #onboarding { position:fixed; inset:0; background:var(--bg); z-index:5000; display:flex; flex-direction:column; overflow:hidden; }
+  .ob-header { display:flex; align-items:center; padding:max(16px,env(safe-area-inset-top,16px)) 16px 12px; gap:12px; }
+  .ob-back { font-size:22px; color:#9A98A0; background:none; border:none; cursor:pointer; width:32px; }
+  .ob-dots { display:flex; gap:6px; flex:1; justify-content:center; }
+  .ob-dot { width:8px; height:8px; border-radius:50%; background:#2C2C3A; transition:background 0.2s; }
+  .ob-dot.done { background:var(--success); }
+  .ob-dot.current { background:white; }
+  .ob-body { flex:1; overflow-y:auto; padding:0 20px 32px; }
+  .onboard-step { display:none; flex-direction:column; gap:16px; padding-top:8px; }
+  .onboard-step.active { display:flex; }
+  .onboard-title { font-family:'DM Serif Display',serif; font-style:italic; font-size:28px; color:var(--acc); }
+  .onboard-sub { color:#9A98A0; font-size:12px; line-height:1.6; }
+  .ob-card { background:#1A1A22; border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .ob-card-border-purple { border-left:3px solid #C084FC; }
+  .ob-card-border-orange { border-left:3px solid #F07C3A; }
+  .ob-card-label { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#5A5860; }
+  .ob-input { background:#22222E; border:1px solid #2C2C3A; color:#F0EEE8; border-radius:10px; padding:12px; font-size:15px; width:100%; font-family:inherit; }
+  .ob-input:focus { outline:none; border-color:rgba(232,197,71,0.5); }
+  .ob-input::placeholder { color:#5A5860; }
+  .ob-input.error { border-color:#F87171; }
+  .ob-error { color:#F87171; font-size:11px; margin-top:-8px; }
+  .ob-hint { font-size:11px; color:#9A98A0; line-height:1.5; }
+  .ob-pace-banner { padding:10px 12px; border-radius:8px; font-size:12px; }
+  .ob-pace-ok { background:rgba(74,222,128,0.12); color:#4ADE80; }
+  .ob-pace-warn { background:rgba(232,197,71,0.12); color:#E8C547; }
+  .ob-pace-info { background:rgba(192,132,252,0.1); color:#C084FC; }
+  .ob-pill-group { display:flex; gap:6px; flex-wrap:wrap; }
+  .ob-pill { padding:6px 14px; border-radius:20px; border:1px solid #2C2C3A; background:#22222E; color:#9A98A0; font-size:13px; cursor:pointer; }
+  .ob-pill.active { background:#3A3A4A; color:#F0EEE8; border-color:#5A5860; }
+  .ob-milestone-row { display:flex; gap:8px; align-items:center; }
+  .ob-milestone-row input { flex:1; }
+  .ob-milestone-row button { background:#2C2C3A; border:none; color:#9A98A0; border-radius:8px; padding:8px 10px; cursor:pointer; font-size:16px; }
+  .ob-toggle-link { font-size:12px; color:#60A5FA; cursor:pointer; text-decoration:underline; }
+  .ob-collapsible { display:none; flex-direction:column; gap:10px; }
+  .ob-collapsible.open { display:flex; }
+  .ob-skip { font-size:12px; color:#5A5860; text-align:center; cursor:pointer; padding:8px; }
+  .ob-summary-card { background:#1A1A22; border-radius:12px; padding:14px 16px; cursor:pointer; display:flex; flex-direction:column; gap:4px; }
+  .ob-summary-card-title { font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .ob-summary-card-body { font-size:12px; color:#9A98A0; line-height:1.6; }
+  .ob-kcal-check { font-size:11px; padding:8px 10px; border-radius:8px; background:#22222E; }
 
   /* MEAL PLAN GRID */
   .meal-plan-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
@@ -394,65 +429,282 @@
 
 <!-- ONBOARDING -->
 <div id="onboarding">
-  <div class="onboard-step active" id="ob1">
-    <div style="font-size:64px;text-align:center">✨</div>
-    <div class="onboard-title">FitSoleil</div>
-    <div class="onboard-sub">Your personal fitness companion. Built for you. Let's get started.</div>
-    <button class="btn btn-primary" onclick="nextOnboard(2)">Let's go →</button>
-  </div>
-  <div class="onboard-step" id="ob2">
-    <div class="onboard-title">Your Details</div>
-    <div class="input-group"><label class="input-label">Your name</label><input id="ob-name" type="text" placeholder="What should I call you?" /></div>
-    <div class="input-group"><label class="input-label">Current weight (kg)</label><input id="ob-weight" type="number" placeholder="e.g. 72" /></div>
-    <div class="input-group"><label class="input-label">Goal weight (kg)</label><input id="ob-goal-weight" type="number" placeholder="e.g. 65" /></div>
-    <div class="input-group"><label class="input-label">Height (cm)</label><input id="ob-height" type="number" placeholder="e.g. 168" /></div>
-    <div class="input-group"><label class="input-label">Date of birth</label><input id="ob-dob" type="date" /></div>
-    <div class="input-group"><label class="input-label">Goal target date</label><input id="ob-goal-date" type="date" /></div>
-    <div class="input-group"><label class="input-label">Weekly workout frequency</label>
-      <select id="ob-workout-freq">
-        <option value="2">2 times/week</option>
-        <option value="3" selected>3 times/week</option>
-        <option value="4">4 times/week</option>
-        <option value="5">5 times/week</option>
-        <option value="6">6 times/week</option>
-      </select>
+  <!-- header row: back button (hidden on s1) + dots -->
+  <div class="ob-header">
+    <button class="ob-back" id="ob-back-btn" onclick="obBack()" style="visibility:hidden"><i class="ti ti-chevron-left"></i></button>
+    <div class="ob-dots" id="ob-dots">
+      <div class="ob-dot current" data-step="1"></div>
+      <div class="ob-dot" data-step="2"></div>
+      <div class="ob-dot" data-step="3"></div>
+      <div class="ob-dot" data-step="4"></div>
+      <div class="ob-dot" data-step="5"></div>
+      <div class="ob-dot" data-step="6"></div>
+      <div class="ob-dot" data-step="7"></div>
+      <div class="ob-dot" data-step="8"></div>
     </div>
-    <button class="btn btn-primary" onclick="nextOnboard(3)">Next →</button>
+    <div style="width:32px"></div>
   </div>
-  <div class="onboard-step" id="ob3">
-    <div class="onboard-title">Your Goals</div>
-    <div class="input-group"><label class="input-label">Daily calorie target</label><input id="ob-calories" type="number" placeholder="e.g. 1500" oninput="obRecalcMacros()" /></div>
-    <div class="input-group">
-      <label class="input-label">Macro mode</label>
-      <div style="display:flex;gap:6px;margin-top:4px">
-        <button class="btn btn-secondary btn-sm" id="ob-mode-auto" onclick="obSetMacroMode('auto',this)" style="flex:1">Auto</button>
-        <button class="btn btn-secondary btn-sm" id="ob-mode-prot" onclick="obSetMacroMode('prot',this)" style="flex:1">Fix Protein</button>
-        <button class="btn btn-secondary btn-sm" id="ob-mode-cust" onclick="obSetMacroMode('cust',this)" style="flex:1">Custom</button>
+
+  <div class="ob-body">
+
+    <!-- Screen 1: Welcome -->
+    <div class="onboard-step active" id="ob1">
+      <div style="height:60px"></div>
+      <div style="font-family:'DM Serif Display',serif;font-style:italic;font-size:36px;color:#E8C547;text-align:center">FitSoleil</div>
+      <div style="color:#9A98A0;font-size:14px;text-align:center;margin-top:-8px">Your personal fitness companion</div>
+      <div style="height:40px"></div>
+      <button class="btn btn-primary" onclick="obGo(2)" style="width:100%">Get started</button>
+    </div>
+
+    <!-- Screen 2: Your details -->
+    <div class="onboard-step" id="ob2">
+      <div class="onboard-title" style="color:#E8C547">About you</div>
+      <div class="input-group">
+        <label class="input-label">First name</label>
+        <input class="ob-input" id="ob-name" type="text" placeholder="First name" />
+        <div class="ob-error" id="ob-name-err" style="display:none">Please enter your name</div>
       </div>
+      <div class="input-group">
+        <label class="input-label">Current weight (kg)</label>
+        <input class="ob-input" id="ob-weight" type="number" step="0.1" placeholder="e.g. 75.0" />
+        <div class="ob-error" id="ob-weight-err" style="display:none">Please enter your current weight</div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Height (cm) <span style="color:#5A5860;font-size:11px">optional</span></label>
+        <input class="ob-input" id="ob-height" type="number" placeholder="e.g. 168" />
+      </div>
+      <div class="input-group">
+        <label class="input-label">Date of birth <span style="color:#5A5860;font-size:11px">optional</span></label>
+        <input class="ob-input" id="ob-dob" type="date" />
+        <div class="ob-hint" style="margin-top:4px">Optional — used to suggest a calorie target based on your stats.</div>
+      </div>
+      <button class="btn btn-primary" onclick="obNext2()" style="width:100%;margin-top:8px">Next</button>
     </div>
-    <div class="input-group"><label class="input-label">Daily protein target (g)</label><input id="ob-protein" type="number" placeholder="e.g. 120" oninput="obRecalcMacros()" /></div>
-    <div class="input-group"><label class="input-label">Daily carb target (g)</label><input id="ob-carbs" type="number" placeholder="e.g. 150" oninput="obRecalcMacros()" /></div>
-    <div class="input-group"><label class="input-label">Daily fat target (g)</label><input id="ob-fat" type="number" placeholder="e.g. 55" oninput="obRecalcMacros()" /></div>
-    <div id="ob-macro-hint" style="font-size:11px;color:var(--txt2);margin-bottom:12px;padding:8px;background:var(--s2);border-radius:8px;display:none"></div>
-    <div class="input-group"><label class="input-label">Daily water target (ml)</label><input id="ob-water" type="number" placeholder="e.g. 2000" /></div>
-    <div class="input-group"><label class="input-label">Fasting protocol preference</label>
-      <select id="ob-fasting">
-        <option value="none">None</option>
-        <option value="16:8">16:8</option>
-        <option value="18:6">18:6</option>
-        <option value="20:4">20:4</option>
-        <option value="5:2">5:2</option>
-        <option value="OMAD">OMAD</option>
-      </select>
+
+    <!-- Screen 3: Body goals -->
+    <div class="onboard-step" id="ob3">
+      <div class="onboard-title" style="color:#C084FC">Body goals</div>
+      <div class="onboard-sub">Set a target weight and workout frequency. You can update these any time.</div>
+
+      <!-- Weight goal card -->
+      <div class="ob-card ob-card-border-purple">
+        <div class="ob-card-label">Weight goal</div>
+        <div class="input-group" style="gap:6px">
+          <label class="input-label">Target weight (kg)</label>
+          <input class="ob-input" id="ob-goal-weight" type="number" step="0.1" placeholder="e.g. 65.0" oninput="obCheckPace()" />
+        </div>
+        <div class="input-group" style="gap:6px">
+          <label class="input-label">Target date</label>
+          <input class="ob-input" id="ob-goal-date" type="date" oninput="obCheckPace()" />
+        </div>
+        <div id="ob-pace-banner" style="display:none"></div>
+        <div>
+          <span class="ob-toggle-link" onclick="obToggle('ob-weight-ms')">Add milestones</span>
+          <div class="ob-collapsible" id="ob-weight-ms">
+            <div class="ob-hint">Break your goal into checkpoints, e.g. every 2.5 or 5 kg</div>
+            <div id="ob-weight-ms-list"></div>
+            <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-weight-ms-list','kg','Weight (kg)')">+ Add milestone</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Workout goal card -->
+      <div class="ob-card ob-card-border-orange">
+        <div class="ob-card-label">Workout goal</div>
+        <div class="input-group" style="gap:6px">
+          <label class="input-label">Sessions per week</label>
+          <input class="ob-input" id="ob-workout-freq" type="number" min="1" max="7" placeholder="e.g. 3" />
+        </div>
+        <div>
+          <span class="ob-toggle-link" onclick="obToggle('ob-workout-ms')">Add milestones</span>
+          <div class="ob-collapsible" id="ob-workout-ms">
+            <div class="ob-hint">e.g. start at 2/week, build to 3/week over a month</div>
+            <div id="ob-workout-ms-list"></div>
+            <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-workout-ms-list','sessions','Sessions/week')">+ Add milestone</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ob-skip" onclick="obGo(4)">Skip for now →</div>
+      <button class="btn btn-primary" onclick="obGo(4)" style="width:100%">Next</button>
     </div>
-    <button class="btn btn-primary" onclick="nextOnboard(4)">Next →</button>
-  </div>
-  <div class="onboard-step" id="ob4">
-    <div style="font-size:48px;text-align:center">🚀</div>
-    <div class="onboard-title">You're all set!</div>
-    <div id="ob-summary" style="background:var(--s2);border-radius:12px;padding:16px;font-size:13px;color:var(--txt2);line-height:1.8"></div>
-    <button class="btn btn-primary" onclick="completeOnboard()">Start my journey 🚀</button>
-  </div>
+
+    <!-- Screen 4: Nutrition goal -->
+    <div class="onboard-step" id="ob4">
+      <div class="onboard-title" style="color:#4ADE80">Nutrition</div>
+      <div class="onboard-sub">Set calorie and macro targets. Skip if you're not tracking food.</div>
+
+      <div id="ob-cal-suggest" class="ob-hint" style="display:none"></div>
+
+      <div class="input-group">
+        <label class="input-label">Daily calories (kcal)</label>
+        <input class="ob-input" id="ob-calories" type="number" placeholder="e.g. 1800" oninput="obRecalcMacros()" />
+      </div>
+
+      <!-- Macro mode pills -->
+      <div>
+        <div class="input-label" style="margin-bottom:8px">Macro mode</div>
+        <div class="ob-pill-group">
+          <div class="ob-pill active" id="ob-mode-auto" onclick="obSetMacroMode('auto',this)">Auto</div>
+          <div class="ob-pill" id="ob-mode-prot" onclick="obSetMacroMode('prot',this)">Fix protein first</div>
+          <div class="ob-pill" id="ob-mode-keto" onclick="obSetMacroMode('keto',this)">Keto</div>
+          <div class="ob-pill" id="ob-mode-cust" onclick="obSetMacroMode('cust',this)">Custom</div>
+        </div>
+      </div>
+
+      <!-- 2x2 macro grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <div class="input-label" style="margin-bottom:4px;color:#60A5FA">Protein (g)</div>
+          <input class="ob-input" id="ob-protein" type="number" placeholder="e.g. 120" oninput="obRecalcMacros()" />
+        </div>
+        <div>
+          <div class="input-label" style="margin-bottom:4px;color:#4ADE80">Carbs (g)</div>
+          <input class="ob-input" id="ob-carbs" type="number" placeholder="e.g. 150" oninput="obRecalcMacros()" />
+        </div>
+        <div>
+          <div class="input-label" style="margin-bottom:4px;color:#E8C547">Fat (g)</div>
+          <input class="ob-input" id="ob-fat" type="number" placeholder="e.g. 55" oninput="obRecalcMacros()" />
+        </div>
+        <div>
+          <div class="input-label" style="margin-bottom:4px;color:#F07C3A">Fibre (g)</div>
+          <input class="ob-input" id="ob-fibre" type="number" placeholder="e.g. 25" value="25" oninput="obRecalcMacros()" />
+        </div>
+      </div>
+
+      <div id="ob-kcal-check" class="ob-kcal-check" style="display:none"></div>
+
+      <div class="input-group">
+        <label class="input-label">Hit target on how many days per week?</label>
+        <input class="ob-input" id="ob-nut-days" type="number" min="1" max="7" placeholder="e.g. 5" />
+        <div class="ob-hint" style="margin-top:4px">Goal counts as achieved each week you hit targets this many days</div>
+      </div>
+
+      <div>
+        <span class="ob-toggle-link" onclick="obToggle('ob-nut-ms')">Add milestones</span>
+        <div class="ob-collapsible" id="ob-nut-ms">
+          <div id="ob-nut-ms-list"></div>
+          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-nut-ms-list','weeks','Hit targets for X weeks')">+ Add milestone</button>
+        </div>
+      </div>
+
+      <div class="ob-skip" onclick="obGo(5)">Skip for now →</div>
+      <button class="btn btn-primary" onclick="obGo(5)" style="width:100%">Next</button>
+    </div>
+
+    <!-- Screen 5: Fasting goal -->
+    <div class="onboard-step" id="ob5">
+      <div class="onboard-title" style="color:#2DD4BF">Fasting</div>
+      <div class="onboard-sub">Set a fasting goal if you practice intermittent fasting. Skip if not.</div>
+
+      <div class="input-group">
+        <label class="input-label">Preferred protocol</label>
+        <select class="ob-input" id="ob-fasting" onchange="obFastingProtocolChange()">
+          <option value="16:8">16:8</option>
+          <option value="18:6">18:6</option>
+          <option value="20:4">20:4</option>
+          <option value="OMAD">OMAD (23:1)</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Fasts per week</label>
+        <input class="ob-input" id="ob-fast-days" type="number" min="1" max="7" placeholder="e.g. 5" />
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Minimum fast length (hours)</label>
+        <input class="ob-input" id="ob-fast-hours" type="number" placeholder="e.g. 16" value="16" />
+      </div>
+
+      <div>
+        <span class="ob-toggle-link" onclick="obToggle('ob-fast-ms')">Add milestones</span>
+        <div class="ob-collapsible" id="ob-fast-ms">
+          <div class="ob-hint">e.g. build from 3 fasts/week to 5 fasts/week over a month</div>
+          <div id="ob-fast-ms-list"></div>
+          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-fast-ms-list','weeks','Build consistency for X weeks')">+ Add milestone</button>
+        </div>
+      </div>
+
+      <div class="ob-skip" onclick="obGo(6)">Skip for now →</div>
+      <button class="btn btn-primary" onclick="obGo(6)" style="width:100%">Next</button>
+    </div>
+
+    <!-- Screen 6: Water goal -->
+    <div class="onboard-step" id="ob6">
+      <div class="onboard-title" style="color:#60A5FA">Water</div>
+      <div class="onboard-sub">Set a daily water target. The home screen shows your progress as bubbles (250ml each).</div>
+
+      <div class="input-group">
+        <label class="input-label">Daily water target (ml)</label>
+        <input class="ob-input" id="ob-water" type="number" placeholder="e.g. 2000" oninput="obUpdateBubbles()" />
+        <div id="ob-bubble-hint" class="ob-hint" style="margin-top:4px"></div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Hit target on how many days per week?</label>
+        <input class="ob-input" id="ob-water-days" type="number" min="1" max="7" placeholder="e.g. 7" />
+      </div>
+
+      <div>
+        <span class="ob-toggle-link" onclick="obToggle('ob-water-ms')">Add milestones</span>
+        <div class="ob-collapsible" id="ob-water-ms">
+          <div class="ob-hint">e.g. build from 1L/day to 2L/day over a few weeks</div>
+          <div id="ob-water-ms-list"></div>
+          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-water-ms-list','ml','Daily ml target')">+ Add milestone</button>
+        </div>
+      </div>
+
+      <div class="ob-skip" onclick="obGo(7)">Skip for now →</div>
+      <button class="btn btn-primary" onclick="obGo(7)" style="width:100%">Next</button>
+    </div>
+
+    <!-- Screen 7: Review schedule -->
+    <div class="onboard-step" id="ob7">
+      <div class="onboard-title" style="color:#C084FC">Reviews</div>
+      <div class="onboard-sub">FitSoleil will remind you to do a weekly and monthly check-in.</div>
+
+      <div>
+        <div class="input-label" style="margin-bottom:8px">Weekly review day</div>
+        <div class="ob-pill-group" id="ob-review-days">
+          <div class="ob-pill" onclick="obSelectDay(this)" data-day="Mon">Mon</div>
+          <div class="ob-pill" onclick="obSelectDay(this)" data-day="Tue">Tue</div>
+          <div class="ob-pill" onclick="obSelectDay(this)" data-day="Wed">Wed</div>
+          <div class="ob-pill" onclick="obSelectDay(this)" data-day="Thu">Thu</div>
+          <div class="ob-pill" onclick="obSelectDay(this)" data-day="Fri">Fri</div>
+          <div class="ob-pill" onclick="obSelectDay(this)" data-day="Sat">Sat</div>
+          <div class="ob-pill active" onclick="obSelectDay(this)" data-day="Sun">Sun</div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Weekly review time</label>
+        <input class="ob-input" id="ob-review-time" type="time" value="19:00" />
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Monthly review day</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input class="ob-input" id="ob-monthly-day" type="number" min="1" max="31" placeholder="e.g. 28" value="28" style="width:80px" />
+          <span style="color:#9A98A0;font-size:14px">of the month</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="obGo(8)" style="width:100%;margin-top:8px">Next</button>
+    </div>
+
+    <!-- Screen 8: Summary -->
+    <div class="onboard-step" id="ob8">
+      <div class="onboard-title" style="color:#E8C547">You're all set</div>
+      <div class="onboard-sub">Here's what we've set up. Tap any section to edit before you start.</div>
+
+      <div id="ob-summary-cards" style="display:flex;flex-direction:column;gap:10px"></div>
+
+      <button class="btn btn-primary" onclick="completeOnboard()" style="width:100%;margin-top:8px">Start FitSoleil</button>
+    </div>
+
+  </div><!-- .ob-body -->
 </div>
 
 <!-- APP -->
@@ -2314,9 +2566,12 @@ function loadTestData() {
 
 window.addEventListener('load', () => {
   loadState();
-  const hasProfile = state.profile && state.profile.name;
-  if (hasProfile) {
+  if (!state.onboardingComplete) {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('onboarding').style.display = 'flex';
+  } else {
     document.getElementById('onboarding').style.display = 'none';
+    document.getElementById('app').style.display = '';
     initApp();
   }
   setInterval(updateWorkoutTimer, 1000);
@@ -2358,42 +2613,355 @@ function initApp() {
 // ============================================================
 // ONBOARDING
 // ============================================================
-function nextOnboard(step) {
+let obCurrentStep = 1;
+let obMacroMode = 'auto';
+let obDraft = {};
+
+function obGo(step) {
+  // Save draft from current step
+  obSaveDraft();
+  // Navigate
+  obCurrentStep = step;
   document.querySelectorAll('.onboard-step').forEach(s => s.classList.remove('active'));
-  document.getElementById('ob' + step).classList.add('active');
-  if (step === 4) showOnboardSummary();
+  const el = document.getElementById('ob' + step);
+  if (el) { el.classList.add('active'); el.scrollIntoView ? el.scrollIntoView({block:'start'}) : null; }
+  document.querySelector('.ob-body').scrollTop = 0;
+  // Back button
+  const backBtn = document.getElementById('ob-back-btn');
+  backBtn.style.visibility = step === 1 ? 'hidden' : 'visible';
+  // Update dots
+  document.querySelectorAll('.ob-dot').forEach(d => {
+    const s = +d.dataset.step;
+    d.className = 'ob-dot' + (s < step ? ' done' : s === step ? ' current' : '');
+  });
+  // Step-specific setup
+  if (step === 4) obSetupNutrition();
+  if (step === 8) obBuildSummary();
+}
+
+function obBack() {
+  if (obCurrentStep > 1) obGo(obCurrentStep - 1);
+}
+
+function obSaveDraft() {
+  const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  obDraft = Object.assign(obDraft, {
+    name: g('ob-name'), weight: g('ob-weight'), height: g('ob-height'), dob: g('ob-dob'),
+    goalWeight: g('ob-goal-weight'), goalDate: g('ob-goal-date'), workoutFreq: g('ob-workout-freq'),
+    calories: g('ob-calories'), protein: g('ob-protein'), carbs: g('ob-carbs'), fat: g('ob-fat'),
+    fibre: g('ob-fibre') || '25', nutDays: g('ob-nut-days'),
+    fasting: g('ob-fasting'), fastDays: g('ob-fast-days'), fastHours: g('ob-fast-hours'),
+    water: g('ob-water'), waterDays: g('ob-water-days'),
+    reviewDay: obGetSelectedDay(), reviewTime: g('ob-review-time'), monthlyDay: g('ob-monthly-day'),
+    macroMode: obMacroMode
+  });
+  try { localStorage.setItem('fs_onboarding_draft', JSON.stringify(obDraft)); } catch(e) {}
+}
+
+function obGetSelectedDay() {
+  const active = document.querySelector('#ob-review-days .ob-pill.active');
+  return active ? active.dataset.day : 'Sun';
+}
+
+function obNext2() {
+  const name = document.getElementById('ob-name');
+  const wt = document.getElementById('ob-weight');
+  let ok = true;
+  document.getElementById('ob-name-err').style.display = 'none';
+  document.getElementById('ob-weight-err').style.display = 'none';
+  name.classList.remove('error'); wt.classList.remove('error');
+  if (!name.value.trim()) { name.classList.add('error'); document.getElementById('ob-name-err').style.display = ''; ok = false; }
+  if (!wt.value) { wt.classList.add('error'); document.getElementById('ob-weight-err').style.display = ''; ok = false; }
+  if (ok) obGo(3);
+}
+
+function obCheckPace() {
+  const banner = document.getElementById('ob-pace-banner');
+  const curWt = parseFloat(document.getElementById('ob-weight')?.value) || 0;
+  const tgtWt = parseFloat(document.getElementById('ob-goal-weight')?.value) || 0;
+  const tgtDate = document.getElementById('ob-goal-date')?.value;
+  if (!tgtWt || !curWt) { banner.style.display = 'none'; return; }
+  if (tgtWt >= curWt) {
+    banner.className = 'ob-pace-banner ob-pace-info';
+    banner.textContent = 'Your target is higher than your current weight — that\'s fine, just checking!';
+    banner.style.display = '';
+    return;
+  }
+  if (!tgtDate) { banner.style.display = 'none'; return; }
+  const weeks = (new Date(tgtDate) - new Date()) / (7 * 864e5);
+  if (weeks <= 0) { banner.style.display = 'none'; return; }
+  const pace = (curWt - tgtWt) / weeks;
+  if (pace <= 0.75) {
+    banner.className = 'ob-pace-banner ob-pace-ok';
+    banner.textContent = `Requires ${pace.toFixed(2)} kg/week ✓ Healthy rate`;
+  } else {
+    const safeWeeks = (curWt - tgtWt) / 0.6;
+    const safeDate = new Date(Date.now() + safeWeeks * 7 * 864e5);
+    const sd = safeDate.toLocaleDateString('en-GB', {day:'2-digit',month:'2-digit',year:'2-digit'});
+    banner.className = 'ob-pace-banner ob-pace-warn';
+    banner.textContent = `That's ${pace.toFixed(2)} kg/week — a safer pace is 0.5–0.75 kg/week. Consider ${sd} as your target instead.`;
+  }
+  banner.style.display = '';
+}
+
+function obSetupNutrition() {
+  const dob = document.getElementById('ob-dob')?.value;
+  const wt = parseFloat(document.getElementById('ob-weight')?.value) || 0;
+  const ht = parseFloat(document.getElementById('ob-height')?.value) || 0;
+  const suggest = document.getElementById('ob-cal-suggest');
+  if (dob && wt && ht) {
+    const age = Math.floor((Date.now() - new Date(dob)) / (365.25 * 864e5));
+    const bmr = 10 * wt + 6.25 * ht - 5 * age - 161;
+    const tdee = bmr * 1.375;
+    const target = Math.round(tdee - 400);
+    const calEl = document.getElementById('ob-calories');
+    if (!calEl.value) calEl.value = target;
+    suggest.textContent = `Suggested based on your stats: ${target} kcal/day for ~0.5 kg/week loss. Adjust as needed.`;
+    suggest.style.display = '';
+    obRecalcMacros();
+  } else {
+    suggest.style.display = 'none';
+  }
+}
+
+function obSetMacroMode(mode, el) {
+  obMacroMode = mode;
+  document.querySelectorAll('.ob-pill[id^="ob-mode-"]').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  const protEl = document.getElementById('ob-protein');
+  const carbEl = document.getElementById('ob-carbs');
+  const fatEl = document.getElementById('ob-fat');
+  if (mode === 'cust') {
+    [protEl, carbEl, fatEl].forEach(e => e.style.opacity = '1');
+  } else {
+    protEl.style.opacity = mode === 'auto' ? '0.6' : '1';
+    carbEl.style.opacity = '0.6';
+    fatEl.style.opacity = '0.6';
+  }
+  obRecalcMacros();
+}
+
+function obRecalcMacros() {
+  const cals = parseFloat(document.getElementById('ob-calories')?.value) || 0;
+  const protEl = document.getElementById('ob-protein');
+  const carbEl = document.getElementById('ob-carbs');
+  const fatEl = document.getElementById('ob-fat');
+  if (!cals) { document.getElementById('ob-kcal-check').style.display = 'none'; return; }
+  let prot, fat, carb;
+  if (obMacroMode === 'auto') {
+    fat = Math.round(cals * 0.30 / 9);
+    prot = Math.round(cals * 0.30 / 4);
+    carb = Math.round((cals - prot * 4 - fat * 9) / 4);
+    protEl.value = prot; carbEl.value = carb; fatEl.value = fat;
+  } else if (obMacroMode === 'prot') {
+    prot = parseFloat(protEl.value) || Math.round(cals * 0.30 / 4);
+    const rem = cals - prot * 4;
+    fat = Math.round(rem * 0.30 / 9);
+    carb = Math.round((rem - fat * 9) / 4);
+    carbEl.value = carb; fatEl.value = fat;
+  } else if (obMacroMode === 'keto') {
+    prot = parseFloat(protEl.value) || Math.round(cals * 0.30 / 4);
+    carb = 40;
+    fat = Math.round((cals - prot * 4 - 40 * 4) / 9);
+    carbEl.value = carb; fatEl.value = fat;
+  }
+  // kcal check
+  const p = parseFloat(protEl.value) || 0;
+  const c = parseFloat(carbEl.value) || 0;
+  const f = parseFloat(fatEl.value) || 0;
+  const total = p * 4 + c * 4 + f * 9;
+  const diff = total - cals;
+  const kcalEl = document.getElementById('ob-kcal-check');
+  kcalEl.style.display = '';
+  const absDiff = Math.abs(diff);
+  if (absDiff <= 2) {
+    kcalEl.style.color = '#4ADE80';
+    kcalEl.textContent = `Macros = ${total} kcal · Target: ${cals} kcal ✓`;
+  } else {
+    kcalEl.style.color = '#E8C547';
+    kcalEl.textContent = `Macros = ${total} kcal · Target: ${cals} kcal · ${diff > 0 ? '+' : ''}${diff} kcal`;
+  }
+}
+
+function obFastingProtocolChange() {
+  const proto = document.getElementById('ob-fasting')?.value;
+  const hoursMap = {'16:8':16,'18:6':18,'20:4':20,'OMAD':23,'custom':16};
+  const el = document.getElementById('ob-fast-hours');
+  if (el && hoursMap[proto]) el.value = hoursMap[proto];
+}
+
+function obUpdateBubbles() {
+  const ml = parseInt(document.getElementById('ob-water')?.value) || 0;
+  const hint = document.getElementById('ob-bubble-hint');
+  if (hint) hint.textContent = ml ? `${Math.round(ml / 250)} bubbles on the home screen` : '';
+}
+
+function obSelectDay(el) {
+  document.querySelectorAll('#ob-review-days .ob-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function obToggle(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+function obAddMilestone(listId, unit, placeholder) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  const row = document.createElement('div');
+  row.className = 'ob-milestone-row';
+  row.innerHTML = `<input class="ob-input" type="text" placeholder="${placeholder}" style="font-size:13px;padding:8px 10px" /><button onclick="this.parentElement.remove()">×</button>`;
+  list.appendChild(row);
+}
+
+function obGetMilestones(listId) {
+  const list = document.getElementById(listId);
+  if (!list) return [];
+  return Array.from(list.querySelectorAll('input')).map(i => i.value.trim()).filter(Boolean).map(label => ({id: Date.now() + Math.random(), label, done: false}));
+}
+
+function obBuildSummary() {
+  obSaveDraft();
+  const d = obDraft;
+  const cards = [
+    {
+      title: '<i class="ti ti-user" style="color:#E8C547"></i> Your details',
+      body: [d.name, d.weight ? `${d.weight} kg` : null, d.height ? `${d.height} cm` : null, d.dob || null].filter(Boolean).join(' · ') || 'Not set',
+      step: 2
+    },
+    {
+      title: '<i class="ti ti-target" style="color:#C084FC"></i> Body goals',
+      body: d.goalWeight ? `${d.weight} kg → ${d.goalWeight} kg${d.goalDate ? ' by ' + new Date(d.goalDate).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'2-digit'}) : ''}${d.workoutFreq ? ' · ' + d.workoutFreq + ' workouts/week' : ''}` : (d.workoutFreq ? `${d.workoutFreq} workouts/week` : 'Skipped'),
+      step: 3
+    },
+    {
+      title: '<i class="ti ti-flame" style="color:#4ADE80"></i> Nutrition',
+      body: d.calories ? `${d.calories} kcal/day · ${d.macroMode || 'auto'} macros${d.nutDays ? ' · ' + d.nutDays + ' days/week' : ''}` : 'Skipped',
+      step: 4
+    },
+    {
+      title: '<i class="ti ti-clock" style="color:#2DD4BF"></i> Fasting',
+      body: d.fasting && d.fasting !== 'none' ? `${d.fasting}${d.fastDays ? ' · ' + d.fastDays + ' fasts/week' : ''}` : 'Skipped',
+      step: 5
+    },
+    {
+      title: '<i class="ti ti-droplet" style="color:#60A5FA"></i> Water',
+      body: d.water ? `${d.water} ml/day${d.waterDays ? ' · ' + d.waterDays + ' days/week' : ''}` : 'Skipped',
+      step: 6
+    },
+    {
+      title: '<i class="ti ti-calendar-check" style="color:#C084FC"></i> Reviews',
+      body: `${d.reviewDay || 'Sun'} at ${d.reviewTime || '19:00'} · Monthly on day ${d.monthlyDay || '28'}`,
+      step: 7
+    }
+  ];
+  const container = document.getElementById('ob-summary-cards');
+  container.innerHTML = cards.map(c => `
+    <div class="ob-summary-card" onclick="obGo(${c.step})">
+      <div class="ob-summary-card-title">${c.title}</div>
+      <div class="ob-summary-card-body">${c.body}</div>
+    </div>
+  `).join('');
 }
 
 function completeOnboard() {
-  state.profile = {
-    name: document.getElementById('ob-name')?.value || 'Friend',
-    height: +document.getElementById('ob-height')?.value || 0,
-    dob: document.getElementById('ob-dob')?.value || '',
-  };
-  state.targets = {
-    calories: +document.getElementById('ob-calories')?.value || 1800,
-    protein: +document.getElementById('ob-protein')?.value || 120,
-    carbs: +document.getElementById('ob-carbs')?.value || 150,
-    fat: +document.getElementById('ob-fat')?.value || 60,
-    water: +document.getElementById('ob-water')?.value || 2000,
-  };
-  state.goals_weight = +document.getElementById('ob-goal-weight')?.value || 0;
-  state.goalDate = document.getElementById('ob-goal-date')?.value || '';
-  state.weeklyWorkoutFreq = +document.getElementById('ob-workout-freq')?.value || 3;
-  state.fastingProtocol = document.getElementById('ob-fasting')?.value || 'none';
-  if (state.fastingProtocol && state.fastingProtocol !== 'none') state.lastFastProtocol = state.fastingProtocol;
-  state.macroMode = obMacroMode || 'auto';
-  const startWeight = +document.getElementById('ob-weight')?.value;
-  if (startWeight) {
-    state.weightLog.push({ date: state.currentDate, kg: startWeight });
+  obSaveDraft();
+  const d = obDraft;
+  // Build goals array
+  const goals = [];
+  if (d.goalWeight) {
+    goals.push({
+      id: 'g_weight_' + Date.now(),
+      type: 'weight',
+      target: parseFloat(d.goalWeight),
+      unit: 'kg',
+      date: d.goalDate || '',
+      note: '',
+      milestones: obGetMilestones('ob-weight-ms-list')
+    });
   }
+  if (d.workoutFreq) {
+    goals.push({
+      id: 'g_workouts_' + Date.now(),
+      type: 'workouts',
+      target: parseInt(d.workoutFreq),
+      unit: 'per week',
+      date: '',
+      note: '',
+      milestones: obGetMilestones('ob-workout-ms-list')
+    });
+  }
+  if (d.calories) {
+    goals.push({
+      id: 'g_nutrition_' + Date.now(),
+      type: 'nutrition',
+      target: parseInt(d.calories),
+      unit: 'kcal/day',
+      date: '',
+      note: '',
+      milestones: obGetMilestones('ob-nut-ms-list')
+    });
+  }
+  if (d.water) {
+    goals.push({
+      id: 'g_water_' + Date.now(),
+      type: 'water',
+      target: parseInt(d.water),
+      unit: 'ml/day',
+      date: '',
+      note: '',
+      milestones: obGetMilestones('ob-water-ms-list')
+    });
+  }
+  if (d.fasting && d.fasting !== 'none') {
+    goals.push({
+      id: 'g_fasting_' + Date.now(),
+      type: 'fasting',
+      target: parseInt(d.fastHours) || 16,
+      unit: 'hours',
+      date: '',
+      note: '',
+      milestones: obGetMilestones('ob-fast-ms-list')
+    });
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const startWeight = parseFloat(d.weight) || 0;
+
+  state.profile = { name: d.name || 'Friend', height: parseFloat(d.height) || 0, dob: d.dob || '' };
+  state.currentWeight = startWeight;
+  state.targets = {
+    calories: parseInt(d.calories) || 1800,
+    protein: parseInt(document.getElementById('ob-protein')?.value) || 120,
+    carbs: parseInt(document.getElementById('ob-carbs')?.value) || 150,
+    fat: parseInt(document.getElementById('ob-fat')?.value) || 60,
+    fibre: parseInt(document.getElementById('ob-fibre')?.value) || 25,
+    water: parseInt(d.water) || 2000,
+    macroMode: d.macroMode || 'auto',
+    nutritionDaysPerWeek: parseInt(d.nutDays) || 5
+  };
+  state.goalWeight = parseFloat(d.goalWeight) || null;
+  state.goalDate = d.goalDate || '';
+  state.fastingProtocol = d.fasting && d.fasting !== 'none' ? d.fasting : '16:8';
+  state.reviewSchedule = {
+    weeklyDay: d.reviewDay || 'Sun',
+    weeklyTime: d.reviewTime || '19:00',
+    monthlyDay: parseInt(d.monthlyDay) || 28
+  };
+  state.goals = goals;
+  state.streak = 0;
+  state.fastStreak = 0;
+  state.onboardingComplete = true;
+  if (startWeight) state.weightLog.push({ date: today, kg: startWeight });
+
   saveState();
+  try { localStorage.removeItem('fs_onboarding_draft'); } catch(e) {}
   document.getElementById('onboarding').style.display = 'none';
   document.getElementById('app').style.display = '';
   initApp();
   navigate('home');
-  showToast('Welcome to FitSoleil! 🌟');
-  requestNotificationPermission();
+  showToast('Welcome to FitSoleil!');
 }
 
 // ============================================================
@@ -5353,71 +5921,6 @@ function openReviewDetail(review) {
   }
   openModal('modal-review-detail');
 }
-
-// ============================================================
-// ONBOARDING JS (Priority 0)
-// ============================================================
-let obMacroMode = 'auto';
-
-function obSetMacroMode(mode, btn) {
-  obMacroMode = mode;
-  document.querySelectorAll('#ob3 button[id^="ob-mode"]').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); });
-  btn.classList.add('btn-primary'); btn.classList.remove('btn-secondary');
-  obRecalcMacros();
-}
-
-function obRecalcMacros() {
-  const cals = +document.getElementById('ob-calories').value || 0;
-  const hint = document.getElementById('ob-macro-hint');
-  if (!cals || !hint) return;
-  hint.style.display = 'block';
-  if (obMacroMode === 'auto') {
-    const p = Math.round(cals*0.30/4);
-    const fa = Math.round(cals*0.30/9);
-    const c = Math.max(0, Math.round((cals - p*4 - fa*9)/4));
-    document.getElementById('ob-protein').value = p;
-    document.getElementById('ob-carbs').value = c;
-    document.getElementById('ob-fat').value = fa;
-    hint.textContent = 'Auto: ' + p + 'g protein · ' + c + 'g carbs · ' + fa + 'g fat';
-  } else if (obMacroMode === 'prot') {
-    const p = +document.getElementById('ob-protein').value || Math.round(cals*0.35/4);
-    document.getElementById('ob-protein').value = p;
-    const rem = cals - p*4;
-    const fa = Math.round(rem*0.30/9);
-    const c = Math.max(0, Math.round((rem - fa*9)/4));
-    document.getElementById('ob-fat').value = fa;
-    document.getElementById('ob-carbs').value = c;
-    hint.textContent = 'Protein first: ' + p + 'g protein · ' + c + 'g carbs · ' + fa + 'g fat';
-  } else {
-    const p = +document.getElementById('ob-protein').value||0;
-    const c = +document.getElementById('ob-carbs').value||0;
-    const fa = +document.getElementById('ob-fat').value||0;
-    const tot = p*4+c*4+fa*9;
-    const diff = tot - cals;
-    hint.textContent = 'Total: ' + tot + ' kcal (' + (diff>0?'+':'') + diff + ' vs target)';
-    hint.style.color = Math.abs(diff) < 50 ? 'var(--success)' : 'var(--danger)';
-  }
-}
-
-function showOnboardSummary() {
-  const name = document.getElementById('ob-name')?.value || 'there';
-  const cw = document.getElementById('ob-weight')?.value || '—';
-  const gw = document.getElementById('ob-goal-weight')?.value || '—';
-  const cals = document.getElementById('ob-calories')?.value || '—';
-  const protein = document.getElementById('ob-protein')?.value || '—';
-  const fast = document.getElementById('ob-fasting')?.value || 'none';
-  const el = document.getElementById('ob-summary');
-  if (el) el.innerHTML = `
-    👋 Hey <strong>${name}</strong>!<br>
-    ⚖️ Current: <strong>${cw}kg</strong> → Goal: <strong>${gw}kg</strong><br>
-    🔥 Daily calories: <strong>${cals} kcal</strong><br>
-    💪 Protein: <strong>${protein}g</strong><br>
-    ⏱️ Fasting: <strong>${fast === 'none' ? 'Not tracking' : fast}</strong>
-  `;
-}
-
-// Override nextOnboard to add summary on step 4
-const _origNextOnboard = typeof nextOnboard !== 'undefined' ? nextOnboard : null;
 
 // ============================================================
 // PERIOD FILTER (Item 31)
