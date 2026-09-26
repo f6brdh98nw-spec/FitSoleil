@@ -4190,24 +4190,93 @@ function runFoodSearch(query) {
   searchDebounceTimer = setTimeout(function() { executeFoodSearch(query); }, 600);
 }
 
+var FOOD_CATEGORIES = {
+  'chicken': 'en:chicken', 'turkey': 'en:turkey',
+  'beef': 'en:beef', 'steak': 'en:beef',
+  'lamb': 'en:lamb',
+  'pork': 'en:pork', 'bacon': 'en:bacons', 'ham': 'en:hams',
+  'salmon': 'en:salmon', 'tuna': 'en:tuna', 'fish': 'en:fish',
+  'snapper': 'en:fish', 'hoki': 'en:fish', 'cod': 'en:fish',
+  'prawns': 'en:shrimps', 'shrimp': 'en:shrimps',
+  'mussels': 'en:mussels',
+  'milk': 'en:milks', 'cheese': 'en:cheeses',
+  'yoghurt': 'en:yogurts', 'yogurt': 'en:yogurts',
+  'butter': 'en:butters', 'cream': 'en:creams',
+  'egg': 'en:eggs', 'eggs': 'en:eggs',
+  'broccoli': 'en:broccoli', 'spinach': 'en:spinach',
+  'carrot': 'en:carrots', 'carrots': 'en:carrots',
+  'potato': 'en:potatoes', 'potatoes': 'en:potatoes',
+  'kumara': 'en:sweet-potatoes', 'sweet potato': 'en:sweet-potatoes',
+  'tomato': 'en:tomatoes', 'tomatoes': 'en:tomatoes',
+  'lettuce': 'en:lettuces', 'cucumber': 'en:cucumbers',
+  'capsicum': 'en:bell-peppers', 'pepper': 'en:bell-peppers',
+  'onion': 'en:onions', 'onions': 'en:onions',
+  'garlic': 'en:garlic', 'mushroom': 'en:mushrooms', 'mushrooms': 'en:mushrooms',
+  'corn': 'en:corn', 'peas': 'en:peas', 'beans': 'en:green-beans',
+  'avocado': 'en:avocados', 'avocados': 'en:avocados',
+  'courgette': 'en:zucchinis', 'zucchini': 'en:zucchinis',
+  'cauliflower': 'en:cauliflowers', 'cabbage': 'en:cabbages',
+  'beetroot': 'en:beets', 'celery': 'en:celeries',
+  'leek': 'en:leeks', 'asparagus': 'en:asparagus', 'kale': 'en:kale',
+  'apple': 'en:apples', 'apples': 'en:apples',
+  'banana': 'en:bananas', 'bananas': 'en:bananas',
+  'orange': 'en:oranges', 'oranges': 'en:oranges',
+  'grape': 'en:grapes', 'grapes': 'en:grapes',
+  'strawberry': 'en:strawberries', 'strawberries': 'en:strawberries',
+  'blueberry': 'en:blueberries', 'blueberries': 'en:blueberries',
+  'mango': 'en:mangoes', 'kiwi': 'en:kiwis',
+  'watermelon': 'en:watermelons', 'pear': 'en:pears',
+  'peach': 'en:peaches', 'lemon': 'en:lemons', 'lime': 'en:limes',
+  'cherry': 'en:cherries', 'cherries': 'en:cherries',
+  'pineapple': 'en:pineapples', 'melon': 'en:melons',
+  'oats': 'en:oats', 'rice': 'en:rice',
+  'pasta': 'en:pasta', 'bread': 'en:breads',
+  'flour': 'en:flours', 'quinoa': 'en:quinoa',
+  'couscous': 'en:couscous', 'barley': 'en:barley',
+  'lentils': 'en:lentils', 'lentil': 'en:lentils',
+  'chickpeas': 'en:chickpeas', 'tofu': 'en:tofu',
+  'tempeh': 'en:tempeh', 'edamame': 'en:edamame',
+  'almonds': 'en:almonds', 'peanuts': 'en:peanuts',
+  'cashews': 'en:cashew-nuts', 'walnuts': 'en:walnuts',
+  'sunflower seeds': 'en:sunflower-seeds',
+  'chia': 'en:chia-seeds', 'flaxseed': 'en:flaxseeds',
+  'olive oil': 'en:olive-oils', 'oil': 'en:oils',
+  'mince': 'en:ground-meat'
+};
+
+function getCategoryForQuery(query) {
+  var q = query.toLowerCase().trim();
+  if (FOOD_CATEGORIES[q]) return FOOD_CATEGORIES[q];
+  var firstWord = q.split(/\s+/)[0];
+  return FOOD_CATEGORIES[firstWord] || null;
+}
+
+function searchOFFByCategory(category, signal) {
+  var url = 'https://world.openfoodfacts.org/category/' +
+    category + '/1.json?' +
+    'fields=product_name,nutriments,brands,code&' +
+    'sort_by=unique_scans_n&' +
+    'page_size=10&' +
+    'tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
+  return fetch(url, { signal: signal })
+    .then(function(r) { return r.json(); })
+    .then(function(data) { return parseOpenFoodFacts(data.products || []); })
+    .catch(function() { return []; });
+}
+
 function executeFoodSearch(query) {
   var parsed = parseFoodQuery(query);
   var foodQuery = parsed.food;
   var brandFilter = parsed.brand;
+  var category = !brandFilter ? getCategoryForQuery(foodQuery) : null;
 
   if (activeSearchController) activeSearchController.abort();
   activeSearchController = new AbortController();
+  var signal = activeSearchController.signal;
 
-  var instantResults = [];
-  if (!brandFilter) {
-    var customResults = searchCustomFoods(foodQuery);
-    var foodfilesResults = searchFoodFiles(foodQuery);
-    instantResults = customResults.concat(foodfilesResults);
-  } else {
-    instantResults = searchCustomFoods(foodQuery).filter(function(f) {
-      return f.brand && f.brand.toLowerCase().includes(brandFilter.toLowerCase());
-    });
-  }
+  var customResults = searchCustomFoods(foodQuery);
+  var foodfilesResults = brandFilter ? [] : searchFoodFiles(foodQuery);
+  var instantResults = customResults.concat(foodfilesResults);
 
   if (instantResults.length > 0) {
     renderSearchResults(instantResults, []);
@@ -4218,7 +4287,11 @@ function executeFoodSearch(query) {
       : 'Searching...');
   }
 
-  searchOpenFoodFacts(foodQuery, brandFilter, activeSearchController.signal)
+  var offPromise = category
+    ? searchOFFByCategory(category, signal)
+    : searchOpenFoodFacts(foodQuery, brandFilter, signal);
+
+  offPromise
     .then(function(offResults) {
       activeSearchController = null;
       var usedNames = new Set(instantResults.map(function(f) {
@@ -4228,20 +4301,14 @@ function executeFoodSearch(query) {
         return !usedNames.has(f.name.split(/[,—]/)[0].toLowerCase().trim());
       });
 
-      var wholeFoods = instantResults;
-      var branded = newOff;
-
-      if (wholeFoods.length > 0 || branded.length > 0) {
-        renderSearchResults(wholeFoods, branded);
-        var parts = [];
-        if (wholeFoods.length > 0) parts.push('FOODfiles NZ (' + wholeFoods.length + ')');
-        if (branded.length > 0) parts.push('Open Food Facts (' + branded.length + ')');
-        _setFoodSourceLine('Sources: ' + parts.join(' + '));
+      if (instantResults.length > 0 || newOff.length > 0) {
+        renderSearchResults(instantResults, newOff);
+        _setFoodSourceLine('');
       } else {
         var fallback = searchFallback(foodQuery);
         renderSearchResults(fallback, []);
         _setFoodSourceLine(fallback.length > 0
-          ? 'Showing NZ foods — try adding a brand name after a comma'
+          ? 'Showing NZ foods'
           : 'No results. Try different terms or add a custom food.');
       }
     })
