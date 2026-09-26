@@ -529,7 +529,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         </div>
         <div id="ob-pace-banner" style="display:none"></div>
         <div>
-          <span class="ob-toggle-link" onclick="obToggle('ob-weight-ms')">Add milestones</span>
+          <span class="ob-toggle-link" onclick="obAddMilestoneExpand('ob-weight-ms','ob-weight-ms-list','weight')">+ Add milestone</span>
           <div class="ob-collapsible" id="ob-weight-ms">
             <div class="ob-hint">Break your goal into checkpoints, e.g. every 2.5 or 5 kg</div>
             <div id="ob-weight-ms-list"></div>
@@ -546,7 +546,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           <input class="ob-input" id="ob-workout-freq" type="number" min="1" max="7" placeholder="e.g. 3" />
         </div>
         <div>
-          <span class="ob-toggle-link" onclick="obToggle('ob-workout-ms')">Add milestones</span>
+          <span class="ob-toggle-link" onclick="obAddMilestoneExpand('ob-workout-ms','ob-workout-ms-list','workout')">+ Add milestone</span>
           <div class="ob-collapsible" id="ob-workout-ms">
             <div class="ob-hint">e.g. start at 2/week, build to 3/week over a month</div>
             <div id="ob-workout-ms-list"></div>
@@ -624,7 +624,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
 
       <div>
-        <span class="ob-toggle-link" onclick="obToggle('ob-nut-ms')">Add milestones</span>
+        <span class="ob-toggle-link" onclick="obAddMilestoneExpand('ob-nut-ms','ob-nut-ms-list','nutrition')">+ Add milestone</span>
         <div class="ob-collapsible" id="ob-nut-ms">
           <div id="ob-nut-ms-list"></div>
           <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-nut-ms-list','nutrition')">+ Add milestone</button>
@@ -662,7 +662,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
 
       <div>
-        <span class="ob-toggle-link" onclick="obToggle('ob-fast-ms')">Add milestones</span>
+        <span class="ob-toggle-link" onclick="obAddMilestoneExpand('ob-fast-ms','ob-fast-ms-list','fasting')">+ Add milestone</span>
         <div class="ob-collapsible" id="ob-fast-ms">
           <div class="ob-hint">e.g. build from 3 fasts/week to 5 fasts/week over a month</div>
           <div id="ob-fast-ms-list"></div>
@@ -691,7 +691,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
 
       <div>
-        <span class="ob-toggle-link" onclick="obToggle('ob-water-ms')">Add milestones</span>
+        <span class="ob-toggle-link" onclick="obAddMilestoneExpand('ob-water-ms','ob-water-ms-list','water')">+ Add milestone</span>
         <div class="ob-collapsible" id="ob-water-ms">
           <div class="ob-hint">e.g. build from 1L/day to 2L/day over a few weeks</div>
           <div id="ob-water-ms-list"></div>
@@ -1617,10 +1617,13 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <div class="input-group">
           <label class="input-label">Weekly review day</label>
           <select id="s-review-day">
-            <option value="Sunday">Sunday</option>
             <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
             <option value="Friday">Friday</option>
             <option value="Saturday">Saturday</option>
+            <option value="Sunday">Sunday</option>
           </select>
         </div>
         <div class="input-group">
@@ -2753,10 +2756,11 @@ function obCheckPace() {
   const weeks = (new Date(tgtDate) - new Date()) / (7 * 864e5);
   if (weeks <= 0) { banner.style.display = 'none'; return; }
   const pace = (curWt - tgtWt) / weeks;
-  if (pace <= 0.75) {
+  const paceR = Math.round(pace * 100) / 100;
+  if (paceR <= 0.75) {
     banner.className = 'ob-pace-banner ob-pace-ok';
     banner.textContent = `Requires ${pace.toFixed(2)} kg/week ✓ Healthy rate`;
-  } else if (pace > 0.75) {
+  } else if (paceR > 0.75) {
     const safeWeeks = (curWt - tgtWt) / 0.6;
     const safeDate = new Date(Date.now() + safeWeeks * 7 * 864e5);
     const sd = safeDate.toLocaleDateString('en-GB', {day:'2-digit',month:'2-digit',year:'2-digit'});
@@ -2823,19 +2827,32 @@ function obGoalDateChanged() {
 }
 
 function obValidateDob() {
-  const str = obGetDobStr();
+  const d = document.getElementById('ob-dob-d')?.value || '';
+  const m = document.getElementById('ob-dob-m')?.value || '';
+  const y = document.getElementById('ob-dob-y')?.value || '';
   const err = document.getElementById('ob-dob-err');
-  if (!str) { if (err) err.style.display = 'none'; return true; }
-  const dt = new Date(str);
-  const yr = parseInt(document.getElementById('ob-dob-y')?.value);
-  const valid = !isNaN(dt) && yr >= 1930 && yr <= new Date().getFullYear();
-  if (err) err.style.display = valid ? 'none' : '';
-  return valid;
+  if (!d && !m && !y) { if (err) err.style.display = 'none'; return true; }
+  if (y.length < 4) { if (err) err.style.display = 'none'; return true; }
+  const yr = parseInt(y), mo = parseInt(m), dy = parseInt(d);
+  const dt = new Date(yr, mo - 1, dy);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const isReal = dt.getFullYear()===yr && dt.getMonth()===mo-1 && dt.getDate()===dy && yr>=1900 && yr<=today.getFullYear();
+  const isPast = dt < today;
+  if (!isReal) {
+    if (err) { err.textContent = 'Please enter a valid date of birth'; err.style.display = ''; }
+    return false;
+  }
+  if (!isPast) {
+    if (err) { err.textContent = 'Date of birth must be in the past'; err.style.display = ''; }
+    return false;
+  }
+  if (err) err.style.display = 'none';
+  return true;
 }
 
 function validateTargetDate(dd, mm, yyyy) {
   var d = parseInt(dd), m = parseInt(mm), y = parseInt(yyyy);
-  if (!d || !m || !y || d < 1 || d > 31 || m < 1 || m > 12 || y < 2024 || y > 2040) {
+  if (!d || !m || !y || d < 1 || d > 31 || m < 1 || m > 12 || y < 1000 || y > 9999) {
     return { valid: false, message: 'Please enter a valid date' };
   }
   var date = new Date(y, m - 1, d);
@@ -2856,6 +2873,7 @@ function obValidateGoalDate() {
   var yyyy = document.getElementById('ob-gd-y')?.value || '';
   var err = document.getElementById('ob-gd-err');
   if (!dd && !mm && !yyyy) { if (err) err.style.display = 'none'; return true; }
+  if (yyyy.length < 4) { if (err) err.style.display = 'none'; return true; }
   var result = validateTargetDate(dd, mm, yyyy);
   if (err) {
     if (!result.valid) { err.textContent = result.message; err.style.display = ''; }
@@ -3110,18 +3128,28 @@ function obSelectDay(el) {
 }
 
 function obUpdateMonthlyHint() {
-  const day = document.getElementById('ob-monthly-day')?.value || '28';
+  const el = document.getElementById('ob-monthly-day');
+  var day = el?.value || '28';
+  var d = parseInt(day) || 28;
+  if (d < 1) d = 1;
+  if (d > 28) d = 28; // cap at 28 so it's valid every month
+  if (el) el.value = d;
   const time = document.getElementById('ob-monthly-time')?.value || '19:00';
   const suffix = ['th','st','nd','rd'];
-  const d = parseInt(day);
   const suf = (d >= 11 && d <= 13) ? 'th' : (suffix[d % 10] || 'th');
   const hint = document.getElementById('ob-monthly-hint');
-  if (hint) hint.textContent = `We'll remind you to do your monthly review on the ${d}${suf} of each month at ${time}`;
+  if (hint) hint.textContent = `We'll remind you on the ${d}${suf} of each month at ${time}. Days 29–31 are capped at 28 to work every month.`;
 }
 
 function obToggle(id) {
   const el = document.getElementById(id);
   if (el) el.classList.toggle('open');
+}
+
+function obAddMilestoneExpand(sectionId, listId, type) {
+  const el = document.getElementById(sectionId);
+  if (el && !el.classList.contains('open')) el.classList.add('open');
+  obAddMilestone(listId, type);
 }
 
 function obAddMilestone(listId, type) {
@@ -3325,6 +3353,7 @@ function completeOnboard() {
     fibre: parseInt(document.getElementById('ob-fibre')?.value) || 25,
     water: parseInt(d.water) || 2000,
     macroMode: d.macroMode || 'auto',
+    macroSplit: _obSplit || 'balanced',
     nutritionDaysPerWeek: parseInt(d.nutDays) || 5
   };
   state.goalWeight = parseFloat(d.goalWeight) || null;
@@ -5517,7 +5546,11 @@ function loadSettingsFields() {
   document.getElementById('s-water').value = state.targets?.water || '';
   if (document.getElementById('s-goal-weight')) document.getElementById('s-goal-weight').value = state.goalWeight || '';
   if (document.getElementById('s-goal-date')) document.getElementById('s-goal-date').value = state.goalDate || '';
-  if (document.getElementById('s-review-day')) document.getElementById('s-review-day').value = state.reviewSchedule?.weeklyDay || state.reviewSchedule?.day || 'Sunday';
+  if (document.getElementById('s-review-day')) {
+    const _s2f = {Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'};
+    var _rd = state.reviewSchedule?.weeklyDay || state.reviewSchedule?.day || 'Sunday';
+    document.getElementById('s-review-day').value = _s2f[_rd] || _rd;
+  }
   if (document.getElementById('s-monthly-review-day')) document.getElementById('s-monthly-review-day').value = state.reviewSchedule?.monthlyDay || 1;
   if (document.getElementById('s-review-time')) document.getElementById('s-review-time').value = state.reviewSchedule?.weeklyTime || state.reviewSchedule?.time || '19:00';
   if (document.getElementById('s-monthly-time')) document.getElementById('s-monthly-time').value = state.reviewSchedule?.monthlyTime || '19:00';
@@ -5543,13 +5576,20 @@ function loadSettingsFromState() {
   setVal('s-monthly-review-day', rs.monthlyDay);
   setVal('s-monthly-time', rs.monthlyTime);
   if (rs.weeklyDay || rs.day) {
-    const dayVal = rs.weeklyDay || rs.day;
+    const shortToFull = {Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'};
+    var dayVal = rs.weeklyDay || rs.day;
+    dayVal = shortToFull[dayVal] || dayVal;
     const dayEl = document.getElementById('s-review-day');
     if (dayEl) dayEl.value = dayVal;
   }
   var mode = t.macroMode || state.macroMode || 'auto';
   _settingsMacroMode = mode;
+  _settingsSplit = t.macroSplit || 'balanced';
   var modeEl = document.getElementById('sm-' + (mode === 'prot' ? 'prot' : mode === 'keto' ? 'keto' : mode === 'cust' ? 'cust' : 'auto'));
+  // highlight saved split pill
+  document.querySelectorAll('#s-split-row .ob-split-pill').forEach(function(p) { p.classList.remove('active'); });
+  var splitEl = document.getElementById('ss-' + _settingsSplit);
+  if (splitEl) splitEl.classList.add('active');
   settingsSetMacroMode(mode, modeEl);
 }
 
