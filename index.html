@@ -4242,6 +4242,23 @@ function _mergeWithLocal(q, apiFoods) {
   return uniqueLocal.concat(apiFoods);
 }
 
+// Score how well a food name matches the query — lower is better
+function _relevanceScore(name, q) {
+  const n = (name || '').toLowerCase();
+  const terms = q.toLowerCase().split(/\s+/);
+  var score = n.length; // shorter names rank higher by default
+  if (n === q.toLowerCase()) score -= 1000; // exact match
+  if (n.startsWith(q.toLowerCase())) score -= 500;
+  terms.forEach(function(t) { if (n.includes(t)) score -= 100; });
+  return score;
+}
+
+function _sortByRelevance(foods, q) {
+  return foods.slice().sort(function(a, b) {
+    return _relevanceScore(a.description || a.name, q) - _relevanceScore(b.description || b.name, q);
+  });
+}
+
 function doFoodSearch(q) {
   if (currentSearchController) currentSearchController.abort();
   currentSearchController = new AbortController();
@@ -4254,46 +4271,61 @@ function doFoodSearch(q) {
   const immediateLocal = _searchLocalFoods(q);
   if (immediateLocal.length) { loading.style.display = 'none'; _renderFoodResults(immediateLocal); }
 
+  // Open Food Facts primary (no key needed, no rate limit)
+  _searchOpenFoodFacts(q, signal)
+    .then(function(offFoods) {
+      if (signal.aborted) return;
+      loading.style.display = 'none';
+      const sorted = _sortByRelevance(offFoods, q);
+      const merged = _mergeWithLocal(q, sorted);
+      if (merged.length) {
+        _setFoodSourceLine('Source: Open Food Facts (' + offFoods.length + ' results)');
+        _renderFoodResults(merged);
+        return;
+      }
+      // OFf returned nothing — try USDA as fallback
+      _tryUSDA(q, signal);
+    })
+    .catch(function(err) {
+      if (err.name === 'AbortError') return;
+      loading.style.display = 'none';
+      _setFoodSourceLine('Open Food Facts unavailable — trying USDA…');
+      _tryUSDA(q, new AbortController().signal);
+    });
+}
+
+function _tryUSDA(q, signal) {
+  const loading = document.getElementById('food-search-loading');
+  loading.style.display = 'flex';
   const usdaUrl = 'https://api.nal.usda.gov/fdc/v1/foods/search?query=' +
     encodeURIComponent(q) +
     '&api_key=DEMO_KEY&pageSize=20&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded';
-
   fetch(usdaUrl, {signal})
     .then(function(r) {
-      console.log('[FitSoleil] USDA status:', r.status, 'query:', q);
       if (r.status === 429) throw new Error('rate_limit');
       if (!r.ok) throw new Error('api_error_' + r.status);
       return r.json();
     })
     .then(function(data) {
-      currentSearchController = null;
       loading.style.display = 'none';
       var foods = data.foods || [];
-      _setFoodSourceLine('Source: USDA FoodData Central (' + foods.length + ' results)');
-      _renderFoodResults(_mergeWithLocal(q, foods.length ? foods : []));
+      const sorted = _sortByRelevance(foods, q);
+      const merged = _mergeWithLocal(q, sorted);
+      if (merged.length) {
+        _setFoodSourceLine('Source: USDA FoodData Central (' + foods.length + ' results)');
+        _renderFoodResults(merged);
+        return;
+      }
+      const local = _searchLocalFoods(q);
+      if (local.length) { _setFoodSourceLine('Source: Built-in database'); _renderFoodResults(local); }
+      else { _showFoodStatus('No results found. Try different terms or use the Custom tab.'); }
     })
     .catch(function(err) {
       if (err.name === 'AbortError') return;
-      currentSearchController = null;
-      _setFoodSourceLine('USDA unavailable (' + err.message + ') — trying Open Food Facts…');
-      // Use a fresh controller for OFf so it isn't affected by a re-typed search
-      var offCtrl = new AbortController();
-      _searchOpenFoodFacts(q, offCtrl.signal)
-        .then(function(offFoods) {
-          loading.style.display = 'none';
-          const merged = _mergeWithLocal(q, offFoods);
-          if (merged.length) { _setFoodSourceLine('Source: Open Food Facts (' + offFoods.length + ' results)'); _renderFoodResults(merged); return; }
-          _showFoodStatus(err.message === 'rate_limit'
-            ? 'Too many searches — wait a moment and try again.'
-            : 'No results found. Try different terms or use the Custom tab.');
-        })
-        .catch(function(e2) {
-          if (e2.name === 'AbortError') return;
-          loading.style.display = 'none';
-          const local = _searchLocalFoods(q);
-          if (local.length) { _renderFoodResults(local); }
-          else { _showFoodStatus('Search unavailable. Use the Custom tab to add food manually.'); }
-        });
+      loading.style.display = 'none';
+      const local = _searchLocalFoods(q);
+      if (local.length) { _setFoodSourceLine('Source: Built-in database'); _renderFoodResults(local); }
+      else { _showFoodStatus('Search unavailable. Use the Custom tab to add food manually.'); }
     });
 }
 
