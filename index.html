@@ -4009,6 +4009,9 @@ function searchFoodFiles(query) {
       var pos = name.indexOf(firstWord);
       if (pos >= 0) score += Math.max(0, 50 - pos);
 
+      // Prefer unprocessed/raw entries as tiebreakers
+      if (/\braw\b/.test(name)) score += 5;
+
       score -= name.length * 0.1;
 
       return { food: food, score: score };
@@ -4030,22 +4033,32 @@ function searchCustomFoods(query) {
   });
 }
 
-// Common non-English words that slip through ASCII filter
-var _OFF_REJECT = /\b(de|du|le|la|les|un|une|avec|pour|au|aux|bio|et|von|der|die|das|und|mit|van|voor|met|del|della|con|para|los|las|los|sin)\b/i;
+// Common non-English function words that indicate non-English product names
+var _OFF_REJECT = /\b(de|du|le|la|les|un|une|avec|pour|au|aux|et|von|der|die|das|und|mit|van|voor|met|del|della|con|para|los|las|sin)\b/i;
+
+function _offKcal(n) {
+  var k = n['energy-kcal_100g'] || n['energy-kcal'];
+  if (k && k > 0) return k;
+  // Fallback: derive from kJ stored as energy_100g
+  var kj = n['energy_100g'];
+  if (kj && kj > 0) return Math.round(kj / 4.184);
+  // Fallback: calculate from macros
+  var p = n['proteins_100g'] || 0, c = n['carbohydrates_100g'] || 0, f = n['fat_100g'] || 0;
+  var calc = p * 4 + c * 4 + f * 9;
+  return calc > 0 ? Math.round(calc) : 0;
+}
 
 function parseOpenFoodFacts(products) {
   return (products || []).filter(function(p) {
     if (!p.product_name || p.product_name.trim().length < 2) return false;
     if (/[^\x00-\x7F]/.test(p.product_name)) return false;
-    // Reject products with common non-English function words
     if (_OFF_REJECT.test(p.product_name)) return false;
     if (!p.nutriments) return false;
-    var kcal = p.nutriments['energy-kcal_100g'] || p.nutriments['energy-kcal'];
-    if (!kcal || kcal <= 0) return false;
+    if (_offKcal(p.nutriments) <= 0) return false;
     return true;
   }).map(function(p) {
     var n = p.nutriments;
-    var kcal = n['energy-kcal_100g'] || n['energy-kcal'] || 0;
+    var kcal = _offKcal(n);
     var name = p.product_name.trim();
     var brand = p.brands ? p.brands.split(',')[0].trim() : '';
     return {
