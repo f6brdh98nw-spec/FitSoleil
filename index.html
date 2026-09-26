@@ -3611,10 +3611,10 @@ function renderDashboard() {
       }
     });
 
-    // Active workout not in scheduled plans (started ad-hoc or from another plan)
+    // Active workout not in scheduled plans (ad-hoc or unscheduled plan)
     if (activeWO && !todayPlanIds.has(activeWO.planId)) {
-      const plan = (state.plans||[]).find(p => p.id === activeWO.planId);
-      const name = plan ? plan.name : 'Workout';
+      const plan = activeWO.planId ? (state.plans||[]).find(p => p.id === activeWO.planId) : null;
+      const name = state.lastActiveWorkout?.name || (plan ? plan.name : 'Workout');
       rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${name} <span style="color:#F07C3A;font-size:11px">● In progress</span></div>`);
     }
 
@@ -4582,6 +4582,7 @@ function addExerciseToLog(name, group) {
       id: Date.now(), date: state.currentDate, name: 'Quick Workout',
       exercises: [], duration: 0, started: Date.now()
     };
+    state.activeWorkout = { planId: null, startTime: new Date().toISOString(), date: state.currentDate };
     state.workoutTimerStart = Date.now();
     document.getElementById('active-workout-banner').classList.remove('hidden');
     document.getElementById('active-plan-name').textContent = 'Quick Workout';
