@@ -3594,9 +3594,11 @@ function renderDashboard() {
   // ── Workout rows (multi-plan support) ──
   const workoutRowsEl = document.getElementById('plan-workout-rows');
   if (workoutRowsEl) {
-    const selectedDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(state.currentDate+'T12:00:00').getDay()];
+    const _dow = new Date(state.currentDate+'T12:00:00').getDay();
+    const selectedDayFull  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][_dow];
+    const selectedDayShort = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][_dow];
     const todayPlans = (state.plans||[]).filter(p => {
-      if (p.days && p.days.includes(selectedDayName)) return true;
+      if (p.days && (p.days.includes(selectedDayFull) || p.days.includes(selectedDayShort))) return true;
       // Plans with no days scheduled show on the day they were created
       if (!p.days || p.days.length === 0) return localDateStr(new Date(p.id)) === state.currentDate;
       return false;
