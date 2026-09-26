@@ -4202,6 +4202,7 @@ function searchOpenFoodFacts(query, brandFilter, signal) {
 
 var searchDebounceTimer = null;
 var activeSearchController = null;
+var _lastSearchState = null; // tracks current search for "load more"
 
 function runFoodSearch(query) {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
@@ -4270,11 +4271,15 @@ function getCategoryForQuery(query) {
   return FOOD_CATEGORIES[firstWord] || null;
 }
 
-function searchOFFByCategory(category, signal) {
-  var base = 'fields=product_name,nutriments,brands,code&sort_by=unique_scans_n&page_size=20';
-  var nzUrl = 'https://world.openfoodfacts.org/category/' + category + '/1.json?' +
-    base + '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
-  var globalUrl = 'https://world.openfoodfacts.org/category/' + category + '/1.json?' + base;
+function searchOFFByCategory(category, signal, page) {
+  // Use search API with category tag — /category/ endpoint ignores tag filter params
+  var base = 'action=process&json=1&fields=product_name,nutriments,brands,code' +
+    '&sort_by=unique_scans_n&page_size=20' +
+    '&tagtype_0=categories&tag_contains_0=contains&tag_0=' + encodeURIComponent(category);
+  var pg = page || 1;
+  var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + base +
+    '&tagtype_1=countries&tag_contains_1=contains&tag_1=new-zealand&page=' + pg;
+  var globalUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + base + '&page=' + pg;
   return Promise.all([
     fetch(nzUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};}),
     fetch(globalUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};})
@@ -4387,17 +4392,25 @@ function executeFoodSearch(query) {
   offPromise
     .then(function(offResults) {
       activeSearchController = null;
-      // Dedup by full name only — first-segment dedup incorrectly filters
-      // OFF results when USDA entries share a short first word (e.g. "chicken")
       var usedIds = new Set(instantResults.map(function(f){return f.id;}));
       var newOff = offResults.filter(function(f){return !usedIds.has(f.id);});
+      var total = instantResults.length + newOff.length;
 
-      if (instantResults.length > 0 || newOff.length > 0) {
+      if (total > 0) {
         renderSearchResults(instantResults, newOff);
-        _setFoodSourceLine('');
+        var status = total + ' result' + (total === 1 ? '' : 's');
+        _setFoodSourceLine(status);
+        // Store state for load more
+        _lastSearchState = {
+          foodQuery: foodQuery, brandFilter: brandFilter,
+          category: category, brandOnlyMode: brandOnlyMode,
+          instantResults: instantResults, loadedOff: newOff, page: 1
+        };
+        if (offResults.length >= 20) _appendLoadMoreButton();
       } else {
         renderSearchResults([], []);
         _setFoodSourceLine('No results. Try different terms or add a custom food.');
+        _lastSearchState = null;
       }
     })
     .catch(function(err) {
@@ -4409,7 +4422,75 @@ function executeFoodSearch(query) {
       } else {
         _setFoodSourceLine('');
       }
+      _lastSearchState = null;
     });
+}
+
+function _appendLoadMoreButton() {
+  var container = document.getElementById('food-search-results');
+  if (!container) return;
+  var btn = document.createElement('div');
+  btn.id = 'load-more-btn';
+  btn.style.cssText = 'text-align:center;padding:12px;color:#60A5FA;font-size:13px;cursor:pointer;border-top:0.5px solid #22222E;';
+  btn.textContent = 'See more results';
+  btn.onclick = _loadMoreResults;
+  container.appendChild(btn);
+}
+
+function _loadMoreResults() {
+  if (!_lastSearchState) return;
+  var s = _lastSearchState;
+  var btn = document.getElementById('load-more-btn');
+  if (btn) btn.textContent = 'Loading...';
+
+  var nextPage = (s.page || 1) + 1;
+  var signal = null; // don't cancel on load more
+
+  var offPromise;
+  if (s.brandFilter) {
+    offPromise = searchOpenFoodFacts(s.foodQuery, s.brandFilter, signal);
+  } else if (s.category) {
+    offPromise = searchOFFByCategory(s.category, signal, nextPage);
+  } else if (s.brandOnlyMode) {
+    offPromise = Promise.all([
+      searchOpenFoodFacts(s.foodQuery, null, signal),
+      searchOFFByBrand(s.foodQuery, signal)
+    ]).then(function(results) {
+      var seen = new Set();
+      return results[0].concat(results[1]).filter(function(f) {
+        if (seen.has(f.id)) return false; seen.add(f.id); return true;
+      }).slice(0, 25);
+    });
+  } else {
+    offPromise = searchOpenFoodFacts(s.foodQuery, null, signal);
+  }
+
+  offPromise.then(function(offResults) {
+    var usedIds = new Set(
+      s.instantResults.map(function(f){return f.id;}).concat(
+      s.loadedOff.map(function(f){return f.id;}))
+    );
+    var newOff = offResults.filter(function(f){return !usedIds.has(f.id);});
+    if (newOff.length === 0) {
+      if (btn) btn.remove();
+      return;
+    }
+    // Remove old button, append new results
+    if (btn) btn.remove();
+    var container = document.getElementById('food-search-results');
+    if (container) {
+      var frag = document.createElement('div');
+      frag.innerHTML = newOff.map(renderFoodResult).join('');
+      while (frag.firstChild) container.appendChild(frag.firstChild);
+    }
+    s.loadedOff = s.loadedOff.concat(newOff);
+    s.page = nextPage;
+    var total = s.instantResults.length + s.loadedOff.length;
+    _setFoodSourceLine(total + ' result' + (total === 1 ? '' : 's'));
+    if (newOff.length >= 20) _appendLoadMoreButton();
+  }).catch(function(){
+    if (btn) btn.textContent = 'See more results';
+  });
 }
 
 function clearSearchResults() {
