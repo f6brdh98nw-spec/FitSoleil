@@ -3988,62 +3988,82 @@ function searchFood(query) {
   searchTimeout = setTimeout(() => doFoodSearch(q), 500);
 }
 
+function _renderFoodResults(foods, results) {
+  window._foodResults = foods.slice(0, 12).map(f => {
+    const getNut = (name) => {
+      const n = (f.foodNutrients||[]).find(x => x.nutrientName && x.nutrientName.toLowerCase().includes(name.toLowerCase()));
+      return n ? Math.round(n.value || 0) : 0;
+    };
+    return {
+      name: f.description || f.product_name || f.name || '',
+      brand: f.brandOwner || f.brandName || f.brands || '',
+      cals100: getNut('energy') || f.cals100 || 0,
+      protein100: getNut('protein') || f.protein100 || 0,
+      carbs100: getNut('carbohydrate') || f.carbs100 || 0,
+      fat100: getNut('total lipid') || f.fat100 || 0,
+      fiber100: getNut('fiber') || f.fiber100 || 0,
+      serving: 100,
+    };
+  }).filter(i => i.cals100 > 0 && i.name);
+  if (!window._foodResults.length) {
+    results.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3);font-size:13px">No results with nutrition data. Try a different search.</div>';
+    return false;
+  }
+  results.innerHTML = window._foodResults.map((item, idx) => `
+    <div class="search-result-item" onclick="selectFood(${idx})">
+      <div style="font-weight:500;font-size:13px">${item.name}${item.brand ? ' <span style="color:var(--txt3);font-size:11px">· ' + item.brand + '</span>' : ''}</div>
+      <div style="font-size:11px;color:var(--txt2);margin-top:2px">${item.cals100} kcal · P:${item.protein100}g C:${item.carbs100}g F:${item.fat100}g (per 100g)</div>
+    </div>`).join('');
+  return true;
+}
+
+async function _searchOpenFoodFacts(q, results) {
+  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&json=true&page_size=20&fields=product_name,brands,nutriments`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('off_error');
+  const data = await r.json();
+  const foods = (data.products || []).map(p => {
+    const n = p.nutriments || {};
+    return {
+      description: p.product_name || '',
+      brandOwner: p.brands || '',
+      foodNutrients: [
+        { nutrientName: 'Energy', value: n['energy-kcal_100g'] || n['energy_100g'] || 0 },
+        { nutrientName: 'Protein', value: n['proteins_100g'] || 0 },
+        { nutrientName: 'Carbohydrate', value: n['carbohydrates_100g'] || 0 },
+        { nutrientName: 'Total lipid', value: n['fat_100g'] || 0 },
+        { nutrientName: 'Fiber', value: n['fiber_100g'] || 0 },
+      ],
+    };
+  }).filter(p => p.description);
+  return _renderFoodResults(foods, results);
+}
+
 async function doFoodSearch(q) {
   const loading = document.getElementById('food-search-loading');
   const results = document.getElementById('food-search-results');
   loading.style.display = 'flex';
-  // Don't clear results here — keep showing previous results until new ones arrive
   window._foodResults = [];
 
+  // Try USDA first; fall back to Open Food Facts on rate-limit or error
+  let usdaFailed = false;
   try {
     const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&pageSize=20&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded&api_key=DEMO_KEY`;
     const r = await fetch(url);
-    if (r.status === 429) throw new Error('rate_limit');
-    if (!r.ok) throw new Error('api_error');
+    if (r.status === 429 || !r.ok) { usdaFailed = true; throw new Error('usda_failed'); }
     const data = await r.json();
     loading.style.display = 'none';
-
-    if (!data.foods?.length) {
-      results.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3);font-size:13px">No results. Try searching something else or add it manually.</div>';
-      return;
-    }
-
-    try {
-      window._foodResults = data.foods.slice(0,12).map(f => {
-        const getNut = (name) => {
-          const n = (f.foodNutrients||[]).find(x => x.nutrientName && x.nutrientName.toLowerCase().includes(name.toLowerCase()));
-          return n ? Math.round(n.value || 0) : 0;
-        };
-        return {
-          name: f.description,
-          brand: f.brandOwner || f.brandName || '',
-          cals100: getNut('energy'),
-          protein100: getNut('protein'),
-          carbs100: getNut('carbohydrate'),
-          fat100: getNut('total lipid'),
-          fiber100: getNut('fiber'),
-          serving: 100,
-        };
-      }).filter(i => i.cals100 > 0);
-
-      if (!window._foodResults.length) {
-        results.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3);font-size:13px">No results with nutrition data. Try a different search.</div>';
-        return;
-      }
-
-      results.innerHTML = window._foodResults.map((item, idx) => `
-        <div class="search-result-item" onclick="selectFood(${idx})">
-          <div style="font-weight:500;font-size:13px">${item.name}${item.brand ? ' <span style="color:var(--txt3);font-size:11px">· ' + item.brand + '</span>' : ''}</div>
-          <div style="font-size:11px;color:var(--txt2);margin-top:2px">${item.cals100} kcal · P:${item.protein100}g C:${item.carbs100}g F:${item.fat100}g (per 100g)</div>
-        </div>`).join('');
-    } catch(renderErr) {
-      results.innerHTML = '<div style="padding:12px;color:var(--danger);font-size:13px">Search unavailable. Add food manually using the Custom tab.</div>';
-    }
+    if (!data.foods?.length) { usdaFailed = true; throw new Error('usda_empty'); }
+    _renderFoodResults(data.foods, results);
   } catch(e) {
-    loading.style.display = 'none';
-    if (e.message === 'rate_limit') {
-      results.innerHTML = '<div style="padding:12px;color:var(--txt3);font-size:13px">Search limit reached — try again in a moment.</div>';
-    } else {
+    if (!usdaFailed && e.message !== 'usda_failed' && e.message !== 'usda_empty') usdaFailed = true;
+    // Fall back to Open Food Facts
+    try {
+      const ok = await _searchOpenFoodFacts(q, results);
+      loading.style.display = 'none';
+      if (!ok) results.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3);font-size:13px">No results found. Try different terms or add food manually.</div>';
+    } catch(e2) {
+      loading.style.display = 'none';
       results.innerHTML = '<div style="padding:12px;color:var(--txt3);font-size:13px">Search unavailable. Add food manually using the Custom tab.</div>';
     }
   }
