@@ -4163,10 +4163,11 @@ function parseFoodQuery(query) {
   return { food: query.trim(), brand: null };
 }
 
-function searchOpenFoodFacts(query, brandFilter, signal) {
+function searchOpenFoodFacts(query, brandFilter, signal, page) {
+  var pg = page || 1;
   var baseParams = 'search_simple=1&action=process&json=1&page_size=50' +
     '&fields=product_name,nutriments,brands,code,countries_tags' +
-    '&sort_by=unique_scans_n';
+    '&sort_by=unique_scans_n&page=' + pg;
 
   var searchTerms = 'search_terms=' + encodeURIComponent(query);
 
@@ -4414,13 +4415,16 @@ function executeFoodSearch(query) {
       }
     })
     .catch(function(err) {
-      if (err && err.name === 'AbortError') return;
+      if (err && err.name === 'AbortError') {
+        // A newer search superseded this one — don't touch the UI
+        return;
+      }
       activeSearchController = null;
       if (instantResults.length === 0) {
         renderSearchResults([], []);
         _setFoodSourceLine('Search unavailable. Add food manually using the Custom tab.');
       } else {
-        _setFoodSourceLine('');
+        _setFoodSourceLine(instantResults.length + ' result' + (instantResults.length === 1 ? '' : 's'));
       }
       _lastSearchState = null;
     });
@@ -4448,12 +4452,12 @@ function _loadMoreResults() {
 
   var offPromise;
   if (s.brandFilter) {
-    offPromise = searchOpenFoodFacts(s.foodQuery, s.brandFilter, signal);
+    offPromise = searchOpenFoodFacts(s.foodQuery, s.brandFilter, signal, nextPage);
   } else if (s.category) {
     offPromise = searchOFFByCategory(s.category, signal, nextPage);
   } else if (s.brandOnlyMode) {
     offPromise = Promise.all([
-      searchOpenFoodFacts(s.foodQuery, null, signal),
+      searchOpenFoodFacts(s.foodQuery, null, signal, nextPage),
       searchOFFByBrand(s.foodQuery, signal)
     ]).then(function(results) {
       var seen = new Set();
@@ -4462,7 +4466,7 @@ function _loadMoreResults() {
       }).slice(0, 25);
     });
   } else {
-    offPromise = searchOpenFoodFacts(s.foodQuery, null, signal);
+    offPromise = searchOpenFoodFacts(s.foodQuery, null, signal, nextPage);
   }
 
   offPromise.then(function(offResults) {
