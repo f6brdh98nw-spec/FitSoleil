@@ -4189,17 +4189,21 @@ function _parseOffProducts(products) {
     .filter(function(p) {
       if (!p.product_name) return false;
       if (/[^\x00-\x7F]/.test(p.product_name)) return false;
-      if (!p.nutriments || !p.nutriments['energy-kcal_100g']) return false;
+      if (!p.nutriments) return false;
+      const n = p.nutriments;
+      const hasKcal = n['energy-kcal_100g'] || n['energy-kcal'] || (n['energy_100g'] && n['energy_100g'] > 0);
+      if (!hasKcal) return false;
       return true;
     })
     .map(function(p) {
       const n = p.nutriments;
+      const kcal = n['energy-kcal_100g'] || n['energy-kcal'] || Math.round((n['energy_100g'] || 0) / 4.184);
       return {
         description: p.product_name.trim(),
         brandOwner: p.brands ? p.brands.split(',')[0].trim() : '',
         _source: 'Open Food Facts',
         foodNutrients: [
-          {nutrientName:'Energy', value: n['energy-kcal_100g'] || 0},
+          {nutrientName:'Energy', value: kcal},
           {nutrientName:'Protein', value: n['proteins_100g'] || 0},
           {nutrientName:'Carbohydrate, by difference', value: n['carbohydrates_100g'] || 0},
           {nutrientName:'Total lipid (fat)', value: n['fat_100g'] || 0},
