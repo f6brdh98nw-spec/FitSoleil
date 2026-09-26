@@ -4293,10 +4293,14 @@ function searchOFFByCategory(category, signal, page) {
       fetch(nzUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};}),
       fetch(globalUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};})
     ]).then(function(results) {
-      var nz = parseOpenFoodFacts(results[0].products || []);
-      // NZ results trust the category tag — no name filter needed
-      // Global extras get name-filtered to catch OFF miscategorisation
-      var global = _filterByCategory(parseOpenFoodFacts(results[1].products || []), keyword);
+      var rawNz = parseOpenFoodFacts(results[0].products || []);
+      var rawGlobal = parseOpenFoodFacts(results[1].products || []);
+      // For categories with explicit synonyms (small/specific), filter NZ too —
+      // miscategorisation is proportionally high in small categories.
+      // For large generic categories (no synonyms), trust NZ country tag.
+      var hasSynonyms = !!_CATEGORY_SYNONYMS[keyword];
+      var nz = hasSynonyms ? _filterByCategory(rawNz, keyword) : rawNz;
+      var global = _filterByCategory(rawGlobal, keyword);
       var nzIds = new Set(nz.map(function(p){return p.id;}));
       var extra = global.filter(function(p){return !nzIds.has(p.id);});
       return nz.concat(extra).slice(0, 25);
