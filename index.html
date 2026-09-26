@@ -529,12 +529,9 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         </div>
         <div id="ob-pace-banner" style="display:none"></div>
         <div>
-          <span class="ob-toggle-link" onclick="obAddMilestoneExpand('ob-weight-ms','ob-weight-ms-list','weight')">+ Add milestone</span>
-          <div class="ob-collapsible" id="ob-weight-ms">
-            <div class="ob-hint">Break your goal into checkpoints, e.g. every 2.5 or 5 kg</div>
-            <div id="ob-weight-ms-list"></div>
-            <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-weight-ms-list','weight')">+ Add milestone</button>
-          </div>
+          <div id="ob-weight-ms-list"></div>
+          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-weight-ms-list','weight')">+ Add milestone</button>
+          <div class="ob-hint" style="margin-top:6px">Break your goal into checkpoints, e.g. every 2.5 or 5 kg</div>
         </div>
       </div>
 
@@ -546,12 +543,9 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           <input class="ob-input" id="ob-workout-freq" type="number" min="1" max="7" placeholder="e.g. 3" />
         </div>
         <div>
-          <span class="ob-toggle-link" onclick="obAddMilestoneExpand('ob-workout-ms','ob-workout-ms-list','workout')">+ Add milestone</span>
-          <div class="ob-collapsible" id="ob-workout-ms">
-            <div class="ob-hint">e.g. start at 2/week, build to 3/week over a month</div>
-            <div id="ob-workout-ms-list"></div>
-            <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-workout-ms-list','workout')">+ Add milestone</button>
-          </div>
+          <div id="ob-workout-ms-list"></div>
+          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-workout-ms-list','workout')">+ Add milestone</button>
+          <div class="ob-hint" style="margin-top:6px">e.g. start at 2/week, build to 3/week over a month</div>
         </div>
       </div>
 
@@ -624,11 +618,8 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
 
       <div>
-        <span class="ob-toggle-link" onclick="obAddMilestoneExpand('ob-nut-ms','ob-nut-ms-list','nutrition')">+ Add milestone</span>
-        <div class="ob-collapsible" id="ob-nut-ms">
-          <div id="ob-nut-ms-list"></div>
-          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-nut-ms-list','nutrition')">+ Add milestone</button>
-        </div>
+        <div id="ob-nut-ms-list"></div>
+        <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-nut-ms-list','nutrition')">+ Add milestone</button>
       </div>
 
       <div class="ob-skip" onclick="obGo(5)">Skip for now →</div>
@@ -662,12 +653,9 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
 
       <div>
-        <span class="ob-toggle-link" onclick="obAddMilestoneExpand('ob-fast-ms','ob-fast-ms-list','fasting')">+ Add milestone</span>
-        <div class="ob-collapsible" id="ob-fast-ms">
-          <div class="ob-hint">e.g. build from 3 fasts/week to 5 fasts/week over a month</div>
-          <div id="ob-fast-ms-list"></div>
-          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-fast-ms-list','fasting')">+ Add milestone</button>
-        </div>
+        <div id="ob-fast-ms-list"></div>
+        <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-fast-ms-list','fasting')">+ Add milestone</button>
+        <div class="ob-hint" style="margin-top:6px">e.g. build from 3 fasts/week to 5 fasts/week over a month</div>
       </div>
 
       <div class="ob-skip" onclick="obGo(6)">Skip for now →</div>
@@ -691,12 +679,9 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
 
       <div>
-        <span class="ob-toggle-link" onclick="obAddMilestoneExpand('ob-water-ms','ob-water-ms-list','water')">+ Add milestone</span>
-        <div class="ob-collapsible" id="ob-water-ms">
-          <div class="ob-hint">e.g. build from 1L/day to 2L/day over a few weeks</div>
-          <div id="ob-water-ms-list"></div>
-          <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-water-ms-list','water')">+ Add milestone</button>
-        </div>
+        <div id="ob-water-ms-list"></div>
+        <button class="btn btn-secondary btn-sm" onclick="obAddMilestone('ob-water-ms-list','water')">+ Add milestone</button>
+        <div class="ob-hint" style="margin-top:6px">e.g. build from 1L/day to 2L/day over a few weeks</div>
       </div>
 
       <div class="ob-skip" onclick="obGo(7)">Skip for now →</div>
