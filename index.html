@@ -2000,6 +2000,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <input type="text" id="food-search-input" placeholder="Search foods..." />
       </div>
       <div id="food-search-loading" class="hidden" style="display:flex;justify-content:center;padding:16px"><div class="spinner"></div></div>
+      <div id="food-source-line" style="font-size:10px;color:var(--txt3);padding:2px 4px 4px;min-height:14px"></div>
       <div id="food-search-results" class="search-results"></div>
     </div>
 
@@ -3997,6 +3998,11 @@ function _showFoodStatus(msg) {
   if (results) results.innerHTML = '<div style="padding:12px;color:var(--txt3);font-size:13px">' + msg + '</div>';
 }
 
+function _setFoodSourceLine(msg) {
+  var el = document.getElementById('food-source-line');
+  if (el) el.textContent = msg;
+}
+
 function _getNutrient(food, name) {
   const n = (food.foodNutrients || []).find(fn => fn.nutrientName === name);
   return n ? Math.round(n.value * 10) / 10 : 0;
@@ -4260,20 +4266,20 @@ function doFoodSearch(q) {
       currentSearchController = null;
       loading.style.display = 'none';
       var foods = data.foods || [];
-      console.log('[FitSoleil] USDA results:', foods.length, 'for:', q);
+      _setFoodSourceLine('Source: USDA FoodData Central (' + foods.length + ' results)');
       _renderFoodResults(_mergeWithLocal(q, foods.length ? foods : []));
     })
     .catch(function(err) {
       if (err.name === 'AbortError') return;
       currentSearchController = null;
-      console.log('[FitSoleil] USDA failed:', err.message, '— trying OFf');
+      _setFoodSourceLine('USDA unavailable (' + err.message + ') — trying Open Food Facts…');
       // Use a fresh controller for OFf so it isn't affected by a re-typed search
       var offCtrl = new AbortController();
       _searchOpenFoodFacts(q, offCtrl.signal)
         .then(function(offFoods) {
           loading.style.display = 'none';
           const merged = _mergeWithLocal(q, offFoods);
-          if (merged.length) { _renderFoodResults(merged); return; }
+          if (merged.length) { _setFoodSourceLine('Source: Open Food Facts (' + offFoods.length + ' results)'); _renderFoodResults(merged); return; }
           _showFoodStatus(err.message === 'rate_limit'
             ? 'Too many searches — wait a moment and try again.'
             : 'No results found. Try different terms or use the Custom tab.');
@@ -6587,6 +6593,7 @@ function openModal(id) {
     searchInput.value = '';
     document.getElementById('food-search-results').innerHTML = '';
     document.getElementById('food-search-loading').style.display = 'none';
+    var srcLine = document.getElementById('food-source-line'); if (srcLine) srcLine.textContent = '';
     const mealSel = document.getElementById('food-meal-select');
     if (mealSel) mealSel.value = 'Breakfast';
     renderRecipesList();
