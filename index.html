@@ -762,14 +762,14 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
 
       <!-- Today's Plan tile -->
-      <div class="card">
+      <div class="card" style="border-color:rgba(232,197,71,0.2)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div class="card-title" style="margin-bottom:0">Today's Plan</div>
           <button class="isq" onclick="openModal('modal-plan-rows')" title="Edit plan rows" style="font-size:16px"><i class="ti ti-adjustments-horizontal"></i></button>
         </div>
         <!-- Workout row -->
         <div id="plan-row-workout" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--s2)">
-          <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-player-play"></i></div>
+          <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="plan-workout-name">Rest day</div>
             <div style="font-size:11px;color:var(--txt3)" id="plan-workout-sub">No plan scheduled</div>
@@ -780,14 +780,14 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <div id="plan-row-food" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--s2)">
           <div class="isq" style="--acc:#4ADE80;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-salad"></i></div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:12px;color:var(--txt3);margin-bottom:2px" id="plan-meal-names">—</div>
+            <div id="plan-meal-names" style="font-size:12px;color:var(--txt2)">Nothing logged yet</div>
             <div style="font-size:13px;font-weight:600"><span id="plan-cals-eaten">0</span><span style="font-weight:400;color:var(--txt3)"> / <span id="plan-cals-target">2000</span> kcal</span></div>
             <div class="progress-bar" style="margin-top:5px;height:3px"><div class="progress-fill" id="plan-cals-bar" style="background:#4ADE80;width:0%"></div></div>
           </div>
           <button class="isq" onclick="openModal('modal-food')" title="Log food" style="--acc:#4ADE80;font-size:14px"><i class="ti ti-plus"></i></button>
         </div>
-        <!-- Water row (hidden by default) -->
-        <div id="plan-row-water" style="display:none;align-items:center;gap:10px;padding:9px 0">
+        <!-- Water row (always visible) -->
+        <div id="plan-row-water" style="display:flex;align-items:center;gap:10px;padding:9px 0">
           <div class="isq" style="--acc:#60A5FA;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-droplet"></i></div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600;color:#60A5FA"><span id="plan-water-ml">0</span><span style="font-weight:400;color:var(--txt3)"> / <span id="plan-water-target">2000</span> ml</span></div>
@@ -808,56 +808,64 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
         <div class="quick-tile" onclick="openModal('modal-weight')">
           <div class="quick-tile-icon" style="background:rgba(232,197,71,0.15);color:#E8C547"><i class="ti ti-scale"></i></div>
-          <div><div class="quick-tile-title">Log Weight</div><div class="quick-tile-sub">kg</div></div>
+          <div><div class="quick-tile-title">Log Weight</div><div class="quick-tile-sub" id="qt-weight-sub">Not logged today</div></div>
         </div>
         <div class="quick-tile" onclick="navigate('workout')">
           <div class="quick-tile-icon" style="background:rgba(240,124,58,0.15);color:#F07C3A"><i class="ti ti-barbell"></i></div>
-          <div><div class="quick-tile-title">Workout</div><div class="quick-tile-sub">Start session</div></div>
+          <div><div class="quick-tile-title">Workout</div><div class="quick-tile-sub" id="qt-workout-sub">No plan active</div></div>
         </div>
         <div class="quick-tile" onclick="openModal('modal-food')">
           <div class="quick-tile-icon" style="background:rgba(74,222,128,0.15);color:#4ADE80"><i class="ti ti-salad"></i></div>
-          <div><div class="quick-tile-title">Log Food</div><div class="quick-tile-sub">Add meal</div></div>
+          <div><div class="quick-tile-title">Log Food</div><div class="quick-tile-sub" id="qt-food-sub">0 / 0 kcal</div></div>
         </div>
         <div class="quick-tile" onclick="navigate('progress');setTimeout(()=>switchTabById('pr-photos'),50)">
           <div class="quick-tile-icon" style="background:rgba(192,132,252,0.15);color:#C084FC"><i class="ti ti-camera"></i></div>
-          <div><div class="quick-tile-title">Progress Photo</div><div class="quick-tile-sub">4 angles</div></div>
+          <div><div class="quick-tile-title">Progress Photo</div><div class="quick-tile-sub" id="qt-photo-sub">None yet</div></div>
         </div>
       </div>
 
-      <!-- Combined Calories + Macros card -->
-      <div class="card">
-        <div class="row-between" style="margin-bottom:10px">
-          <div style="line-height:1">
-            <span style="font-family:'DM Serif Display',serif;font-style:italic;font-size:52px;color:var(--txt)" id="cals-consumed">0</span>
-            <span style="font-size:13px;color:var(--txt3)"> kcal</span>
+      <!-- Calories card -->
+      <div class="card" style="margin-bottom:8px">
+        <div style="font-size:10px;color:#5A5860;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Calories</div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <div>
+            <span style="font-family:'DM Serif Display',serif;font-style:italic;font-size:34px;color:#F0EEE8;line-height:1" id="cals-consumed">0</span>
+            <span style="font-size:11px;color:#9A98A0" id="cals-of-label"> / 1,800 kcal</span>
           </div>
           <div style="text-align:right">
-            <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.5px">Remaining</div>
-            <div style="font-size:26px;font-weight:700;color:var(--acc)" id="cals-remaining">2000</div>
-            <div style="font-size:11px;color:var(--txt3)">of <span id="cals-goal">2000</span></div>
+            <div style="font-size:10px;color:#9A98A0">Remaining</div>
+            <div style="font-size:19px;font-weight:600;color:var(--acc)" id="cals-remaining">2000</div>
           </div>
         </div>
-        <div class="progress-bar" style="margin-bottom:14px"><div class="progress-fill" id="cals-bar" style="background:var(--acc);width:0%"></div></div>
+        <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" id="cals-bar" style="background:var(--acc);width:0%"></div></div>
+      </div>
+
+      <!-- Macros card -->
+      <div class="card" style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:10px;color:#5A5860;text-transform:uppercase;letter-spacing:0.6px">Macros</div>
+          <button class="isq" onclick="openModal('modal-food')" style="--acc:#4ADE80;width:26px;height:26px;font-size:13px"><i class="ti ti-plus"></i></button>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div class="macro-item">
+          <div style="background:#22222E;border-radius:9px;padding:9px;text-align:center">
             <div class="macro-val" id="m-protein" style="color:#60A5FA">0g</div>
             <div class="macro-label">Protein</div>
             <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-protein" style="background:#60A5FA;width:0%"></div></div>
             <div style="font-size:10px;color:var(--txt3);margin-top:3px"><span id="mv-protein">0</span> / <span id="tgt-protein">120</span>g</div>
           </div>
-          <div class="macro-item">
+          <div style="background:#22222E;border-radius:9px;padding:9px;text-align:center">
             <div class="macro-val" id="m-carbs" style="color:#4ADE80">0g</div>
             <div class="macro-label">Carbs</div>
             <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-carbs" style="background:#4ADE80;width:0%"></div></div>
             <div style="font-size:10px;color:var(--txt3);margin-top:3px"><span id="mv-carbs">0</span> / <span id="tgt-carbs">150</span>g</div>
           </div>
-          <div class="macro-item">
+          <div style="background:#22222E;border-radius:9px;padding:9px;text-align:center">
             <div class="macro-val" id="m-fat" style="color:#E8C547">0g</div>
             <div class="macro-label">Fat</div>
             <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-fat" style="background:#E8C547;width:0%"></div></div>
             <div style="font-size:10px;color:var(--txt3);margin-top:3px"><span id="mv-fat">0</span> / <span id="tgt-fat">55</span>g</div>
           </div>
-          <div class="macro-item">
+          <div style="background:#22222E;border-radius:9px;padding:9px;text-align:center">
             <div class="macro-val" id="m-fiber" style="color:#F07C3A">0g</div>
             <div class="macro-label">Fibre</div>
             <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-fiber" style="background:#F07C3A;width:0%"></div></div>
@@ -866,31 +874,37 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         </div>
       </div>
 
-      <!-- Fasting tile (home mini) -->
-      <div class="card" id="home-fast-card" style="border-color:rgba(45,212,191,0.2)">
+      <!-- Fasting tile -->
+      <div class="card" id="home-fast-card" style="border-color:rgba(45,212,191,0.2);margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:14px">
-          <svg viewBox="0 0 60 60" width="60" height="60" style="flex-shrink:0">
-            <circle cx="30" cy="30" r="24" fill="none" stroke="var(--s2)" stroke-width="5"/>
-            <circle id="home-fast-ring" cx="30" cy="30" r="24" fill="none" stroke="#2DD4BF" stroke-width="5"
-              stroke-dasharray="151" stroke-dashoffset="151"
-              stroke-linecap="round" transform="rotate(-90 30 30)"
+          <svg viewBox="0 0 72 72" width="72" height="72" style="flex-shrink:0">
+            <circle cx="36" cy="36" r="30" fill="none" stroke="#22222E" stroke-width="7"/>
+            <circle id="home-fast-ring" cx="36" cy="36" r="30" fill="none" stroke="#2DD4BF" stroke-width="7"
+              stroke-dasharray="188.5" stroke-dashoffset="188.5"
+              stroke-linecap="round" transform="rotate(-90 36 36)"
               style="transition:stroke-dashoffset 1s linear"/>
+            <text id="home-fast-elapsed" x="36" y="33" text-anchor="middle" font-size="11" font-weight="700" fill="#2DD4BF" font-family="DM Sans,sans-serif">—</text>
+            <text id="home-fast-pct" x="36" y="46" text-anchor="middle" font-size="9" fill="#5A5860" font-family="DM Sans,sans-serif"></text>
           </svg>
-          <div style="flex:1">
-            <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:2px">Fasting</div>
-            <div style="font-size:20px;font-weight:700;color:#2DD4BF;line-height:1.1" id="home-fast-elapsed">—</div>
-            <div style="font-size:11px;color:var(--txt3);margin-top:2px" id="home-fast-label">Tap to start a fast</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'DM Serif Display',serif;font-style:italic;font-size:13px;color:#2DD4BF;margin-bottom:2px" id="home-fast-title">Fasting</div>
+            <div style="font-size:11px;color:var(--txt3);margin-bottom:2px" id="home-fast-label">Tap ▶ to start your fast</div>
+            <div style="font-size:11px;color:var(--txt3)" id="home-fast-streak">Streak: 🔥 0 days</div>
+            <div class="progress-bar" style="margin-top:7px"><div class="progress-fill" id="home-fast-progress" style="background:#2DD4BF;width:0%"></div></div>
           </div>
           <button id="home-fast-btn" class="isq" onclick="startFastFromHome()"
-            style="--acc:#2DD4BF;width:38px;height:38px;font-size:16px"><i class="ti ti-player-play"></i></button>
+            style="--acc:#2DD4BF;width:34px;height:34px;font-size:15px;border-radius:9px"><i class="ti ti-player-play"></i></button>
         </div>
       </div>
 
       <!-- Weight mini chart -->
       <div class="card">
         <div class="row-between" style="margin-bottom:8px">
-          <div class="card-title" style="margin-bottom:0">Weight</div>
-          <span id="current-weight-display" style="font-size:20px;font-weight:700;color:var(--acc)">—</span>
+          <div style="font-size:10px;color:#5A5860;text-transform:uppercase;letter-spacing:0.6px">Weight</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="current-weight-display" style="font-size:15px;font-weight:700;color:#E8C547">—</span>
+            <button class="isq" onclick="openModal('modal-weight')" style="--acc:#E8C547;width:26px;height:26px;font-size:13px"><i class="ti ti-plus"></i></button>
+          </div>
         </div>
         <div id="weight-mini-chart" class="chart-wrap" style="height:80px"></div>
       </div>
@@ -3443,8 +3457,10 @@ function updateGreeting() {
 function updateDateLabel() {
   const d = new Date(state.currentDate + 'T12:00:00');
   const today = new Date().toISOString().split('T')[0];
-  const label = state.currentDate === today ? 'Today' : d.toLocaleDateString('en-NZ', { weekday: 'short', month: 'short', day: 'numeric' });
-  document.getElementById('current-date-label').textContent = label;
+  const dayStr = d.toLocaleDateString('en-NZ', { weekday: 'short', month: 'short', day: 'numeric' });
+  const label = state.currentDate === today ? 'Today — ' + dayStr : dayStr;
+  const el = document.getElementById('current-date-label');
+  if (el) el.textContent = label;
   const ntLabel = document.getElementById('nt-date-label');
   if (ntLabel) ntLabel.textContent = label;
 }
@@ -3452,6 +3468,8 @@ function updateDateLabel() {
 function changeDay(delta) {
   const d = new Date(state.currentDate + 'T12:00:00');
   d.setDate(d.getDate() + delta);
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (d.toISOString().split('T')[0] > todayStr) return; // cap at today
   state.currentDate = d.toISOString().split('T')[0];
   updateDateLabel();
   renderDashboard();
@@ -3463,13 +3481,18 @@ function renderDashboard() {
   const tgt = state.targets;
 
   // ── Calories card ──
-  setEl('cals-consumed', totals.calories);
+  setEl('cals-consumed', totals.calories.toLocaleString ? totals.calories.toLocaleString() : totals.calories);
+  setEl('cals-of-label', ' / ' + (tgt.calories||2000).toLocaleString() + ' kcal');
   setEl('cals-goal', tgt.calories || 2000);
   const calsRem = (tgt.calories||2000) - totals.calories;
-  setEl('cals-remaining', Math.abs(calsRem));
+  setEl('cals-remaining', calsRem < 0 ? calsRem : calsRem);
   const remEl = document.getElementById('cals-remaining');
   if (remEl) remEl.style.color = calsRem < 0 ? '#F87171' : 'var(--acc)';
-  setWidth('cals-bar', Math.min(100, (totals.calories / (tgt.calories||1)) * 100));
+  const calsBar = document.getElementById('cals-bar');
+  if (calsBar) {
+    calsBar.style.width = Math.min(100, (totals.calories / (tgt.calories||1)) * 100) + '%';
+    calsBar.style.background = calsRem < 0 ? '#F87171' : 'var(--acc)';
+  }
 
   // ── Macros 2×2 ──
   const macroData = [
@@ -3484,6 +3507,21 @@ function renderDashboard() {
     setEl('tgt-'+m.key, m.tgt);
     setWidth('p-'+m.key, Math.min(100, (m.val/(m.tgt||1))*100));
   });
+
+  // ── Quick tile subtitles ──
+  const todayLog = getDayLog();
+  const todayWt = (state.weightLog||[]).find(w => w.date === state.currentDate);
+  setEl('qt-weight-sub', todayWt ? todayWt.kg + ' kg today' : 'Not logged today');
+  setEl('qt-workout-sub', getTodayPlanName() || 'No plan active');
+  setEl('qt-food-sub', totals.calories + ' / ' + (tgt.calories||2000) + ' kcal');
+  const photos = state.progressPhotos || [];
+  if (photos.length) {
+    const lastDate = new Date(photos[photos.length-1].date);
+    const daysAgo = Math.floor((Date.now() - lastDate) / 86400000);
+    setEl('qt-photo-sub', daysAgo === 0 ? 'Today' : daysAgo + ' days ago');
+  } else {
+    setEl('qt-photo-sub', 'None yet');
+  }
 
   // ── Today's Plan tile ──
   setEl('plan-cals-eaten', totals.calories);
@@ -3509,23 +3547,22 @@ function renderDashboard() {
     const playBtn = document.getElementById('plan-workout-play-btn');
     if (playBtn) { playBtn.style.setProperty('--acc','#F07C3A'); playBtn.innerHTML='<i class="ti ti-player-play"></i>'; playBtn.onclick=()=>todayPlanId?startPlan(todayPlanId):navigate('workout'); }
   }
-  // Meal plan names for today — prefer date-keyed, fall back to day-name key
-  const mp = state.mealPlan || {};
-  const todayDate = state.currentDate;
-  const dayNamesFull = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const todayDayKey = dayNamesFull[new Date().getDay()];
-  const todayPlan = mp[todayDate] || mp[todayDayKey] || {};
-  const mealNameParts = [];
-  if (todayPlan.Breakfast) mealNameParts.push('B: '+todayPlan.Breakfast);
-  if (todayPlan.Lunch) mealNameParts.push('L: '+todayPlan.Lunch);
-  if (todayPlan.Dinner) mealNameParts.push('D: '+todayPlan.Dinner);
-  setEl('plan-meal-names', mealNameParts.length ? mealNameParts.join(' · ') : '—');
-  // Plan row visibility from planRows state
+  // Meals row — show logged food names from food log
+  const mealTypes = ['Breakfast','Lunch','Dinner','Snack'];
+  const loggedParts = [];
+  mealTypes.forEach(type => {
+    const items = (log.meals||[]).filter(m => m.meal === type);
+    if (items.length) loggedParts.push(type + ' — ' + items[0].name);
+  });
+  const mealNamesEl = document.getElementById('plan-meal-names');
+  if (mealNamesEl) mealNamesEl.innerHTML = loggedParts.length
+    ? loggedParts.map(p => `<div>${p}</div>`).join('')
+    : '<div style="color:#5A5860">Nothing logged yet</div>';
+  // Plan row visibility from planRows state (water always shown)
   const pr = state.planRows || {workout:true,food:true,water:false,fast:false};
   const toggleRow = (id, show) => { const el=document.getElementById(id); if(el) el.style.display=show?'flex':'none'; };
   toggleRow('plan-row-workout', pr.workout !== false);
   toggleRow('plan-row-food', pr.food !== false);
-  toggleRow('plan-row-water', !!pr.water);
   toggleRow('plan-row-fast', !!pr.fast);
 
   // ── Nutrition screen sync ──
@@ -3542,7 +3579,7 @@ function renderDashboard() {
   renderWaterGrid();
   renderMealsList();
   renderWeightMiniChart();
-  updateHomeFastTile();
+  renderFastingState();
 }
 
 function getTodayPlanName() {
@@ -3639,18 +3676,27 @@ function resetWater() {
   renderWaterGrid();
 }
 
-function updateHomeFastTile() {
+function renderFastingState() {
   const ring = document.getElementById('home-fast-ring');
-  const elapsed = document.getElementById('home-fast-elapsed');
+  const elapsedEl = document.getElementById('home-fast-elapsed');
+  const pctEl = document.getElementById('home-fast-pct');
+  const titleEl = document.getElementById('home-fast-title');
   const label = document.getElementById('home-fast-label');
+  const streakEl = document.getElementById('home-fast-streak');
+  const progressEl = document.getElementById('home-fast-progress');
   const btn = document.getElementById('home-fast-btn');
   if (!ring) return;
-  const CIRCUMFERENCE = 151;
+  const CIRCUMFERENCE = 188.5;
+  // Update streak
+  if (streakEl) streakEl.textContent = 'Streak: 🔥 ' + (state.fastStreak||0) + ' days';
   if (!state.activeFast) {
     ring.style.strokeDashoffset = CIRCUMFERENCE;
+    if (elapsedEl) elapsedEl.textContent = '—';
+    if (pctEl) pctEl.textContent = '';
+    if (titleEl) titleEl.textContent = 'Fasting';
+    if (progressEl) progressEl.style.width = '0%';
     // Show last fast info
     const lastFast = (state.fastLog||[]).slice(-1)[0];
-    if (elapsed) elapsed.textContent = '—';
     if (label) {
       if (lastFast) {
         const lastEnd = new Date(lastFast.end);
@@ -3660,7 +3706,7 @@ function updateHomeFastTile() {
         const ago = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : daysAgo + ' days ago';
         label.textContent = `Last fast: ${h}h ${String(m).padStart(2,'0')}m · ${ago}`;
       } else {
-        label.textContent = 'Tap to start a fast';
+        label.textContent = 'Tap ▶ to start your fast';
       }
     }
     if (btn) {
@@ -3686,18 +3732,32 @@ function updateHomeFastTile() {
   const hh = Math.floor(totalSec / 3600);
   const mm = Math.floor((totalSec % 3600) / 60);
   const ss = totalSec % 60;
-  if (elapsed) elapsed.textContent = String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0') + ':' + String(ss).padStart(2,'0');
+  if (elapsedEl) elapsedEl.textContent = String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0') + ':' + String(ss).padStart(2,'0');
+  if (pctEl) pctEl.textContent = Math.round(progress*100) + '%';
+  const protocol = state.activeFast.protocol || (goalH + ':' + (24-goalH));
+  if (titleEl) titleEl.textContent = protocol + ' fast';
+  if (progressEl) progressEl.style.width = (progress*100) + '%';
   const remaining = goalMs - elapsedMs;
-  if (label) label.textContent = remaining > 0
-    ? Math.floor(remaining/3600000) + 'h ' + Math.floor((remaining%3600000)/60000) + 'm remaining'
-    : 'Goal reached! 🎉';
-  if (btn) { btn.innerHTML = '<i class="ti ti-player-stop"></i>'; btn.style.setProperty('--acc','#F87171'); btn.onclick = () => { endFastNow(); updateHomeFastTile(); }; }
+  if (label) {
+    if (remaining > 0) {
+      const endTime = new Date(start.getTime() + goalMs);
+      const endHH = String(endTime.getHours()).padStart(2,'0');
+      const endMM = String(endTime.getMinutes()).padStart(2,'0');
+      const remH = Math.floor(remaining/3600000);
+      const remM = Math.floor((remaining%3600000)/60000);
+      label.textContent = `Ends at ${endHH}:${endMM} · ${remH}h ${remM}m remaining`;
+    } else {
+      label.textContent = 'Goal reached! 🎉';
+    }
+  }
+  if (btn) { btn.innerHTML = '<i class="ti ti-player-stop"></i>'; btn.style.setProperty('--acc','#F87171'); btn.onclick = () => { endFastNow(); renderFastingState(); }; }
   // Update plan-row-fast
   const pfStatus = document.getElementById('plan-fast-status');
   const pfBar = document.getElementById('plan-fast-bar');
   if (pfStatus) pfStatus.textContent = String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0') + ' / ' + goalH + 'h';
   if (pfBar) pfBar.style.width = (progress*100) + '%';
 }
+function updateHomeFastTile() { renderFastingState(); }
 
 function startFastFromHome() {
   const protocol = state.activeFast?.protocol || state.lastFastProtocol || '16:8';
