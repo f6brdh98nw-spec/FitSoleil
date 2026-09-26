@@ -5227,7 +5227,7 @@ function drawLineChart(container, vals, color, opts = {}) {
     container.innerHTML = '<div style="color:var(--txt3);font-size:11px;text-align:center;padding:16px">No data</div>';
     return;
   }
-  const W = opts.width || 300, H = 100, PL = opts.noYAxis ? 4 : 32, PB = 18, PT = 8, PR = opts.noYAxis ? 4 : 8;
+  const W = opts.width || 300, H = 100, PL = opts.noYAxis ? 4 : 32, PB = 18, PT = 8, PR = opts.noYAxis ? 4 : 20;
   const cW = W-PL-PR, cH = H-PB-PT;
   const minV = Math.min(...nonNull.map(p=>p.v));
   const maxV = Math.max(...nonNull.map(p=>p.v));
