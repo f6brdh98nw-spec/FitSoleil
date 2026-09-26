@@ -2514,23 +2514,14 @@ function loadTestData() {
   ];
 
   // Meal plan — date-keyed for 2 weeks + legacy day-keyed fallback
-  const mealPlan = {
-    Monday:{Breakfast:'Oats with banana',Lunch:'Chicken & Rice Bowl',Dinner:'Salmon & Veg Stir-fry'},
-    Tuesday:{Breakfast:'Greek yogurt & berries',Lunch:'Tuna salad wrap',Dinner:'Beef & sweet potato'},
-    Wednesday:{Breakfast:'Protein smoothie',Lunch:'Lentil soup',Dinner:'Chicken pasta'},
-    Thursday:{Breakfast:'Eggs on toast',Lunch:'Chicken & Rice Bowl',Dinner:'Tofu Buddha bowl'},
-    Friday:{Breakfast:'Oats with banana',Lunch:'Turkey sandwich',Dinner:'Salmon & Veg Stir-fry'},
-  };
-  // Add date-keyed entries for current + next week
   const bfNames = ['Oats with banana','Greek yogurt & berries','Eggs on toast','Protein smoothie'];
   const lnNames = ['Chicken & Rice Bowl','Tuna salad wrap','Lentil soup','Turkey sandwich'];
   const dnNames = ['Salmon & Veg Stir-fry','Beef & sweet potato','Chicken pasta','Tofu Buddha bowl'];
+  const mealPlan = {};
   for (let i = -7; i <= 13; i++) {
     const d = new Date(); d.setDate(d.getDate() + i);
     const ds = localStr(d);
-    const dow = d.getDay(); // 0=Sun
-    // no weekend skip — meals are planned every day
-    const idx = Math.abs(i) % 4;
+    const idx = ((i % 4) + 4) % 4;
     mealPlan[ds] = {Breakfast: bfNames[idx], Lunch: lnNames[(idx+1)%4], Dinner: dnNames[(idx+2)%4]};
   }
 
