@@ -2019,6 +2019,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     <!-- CUSTOM FOOD -->
     <div id="ft-custom" class="hidden">
       <div class="input-group"><label class="input-label">Food name</label><input id="custom-food-name" type="text" placeholder="e.g. Mum's Lasagne"/></div>
+      <div class="input-group"><label class="input-label">Brand / restaurant <span style="color:var(--txt3);font-weight:400">(optional)</span></label><input id="custom-brand" type="text" placeholder="e.g. Countdown, McDonald's"/></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="input-group"><label class="input-label">Calories</label><input id="custom-cals" type="number" placeholder="kcal" oninput="updateCustomFoodCheck()"/></div>
         <div class="input-group"><label class="input-label">Serving size (g)</label><input id="custom-serving" type="number" placeholder="g"/></div>
@@ -4276,6 +4277,7 @@ function updateCustomFoodCheck() {
 function addCustomFood() {
   var name = (document.getElementById('custom-food-name') || {}).value || '';
   if (!name.trim()) { showToast('Food name required'); return; }
+  var brand = ((document.getElementById('custom-brand') || {}).value || '').trim();
   var cals = parseFloat((document.getElementById('custom-cals') || {}).value) || 0;
   var prot = parseFloat((document.getElementById('custom-protein') || {}).value) || 0;
   var carbs = parseFloat((document.getElementById('custom-carbs') || {}).value) || 0;
@@ -4291,7 +4293,7 @@ function addCustomFood() {
     state.customFoods.unshift({
       id: 'CF_' + Date.now(),
       name: name.trim(),
-      brand: '',
+      brand: brand,
       source: 'Custom',
       per100g: { calories: cals, protein: prot, carbs: carbs, fat: fat, fibre: fiber }
     });
@@ -6529,7 +6531,7 @@ function openModal(id) {
     var mealSel = document.getElementById('food-meal-select');
     if (mealSel) mealSel.value = 'Breakfast';
     renderRecipesList();
-    ['custom-food-name','custom-cals','custom-protein','custom-carbs','custom-fat','custom-fiber','custom-serving'].forEach(function(fid) { var el = document.getElementById(fid); if(el) el.value=''; });
+    ['custom-food-name','custom-brand','custom-cals','custom-protein','custom-carbs','custom-fat','custom-fiber','custom-serving'].forEach(function(fid) { var el = document.getElementById(fid); if(el) el.value=''; });
     var searchTab = document.querySelector('#modal-food .tabs .tab');
     if (searchTab) searchTab.click();
     initFoodSearch();
