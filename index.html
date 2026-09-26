@@ -4047,8 +4047,6 @@ function _renderFoodResults(foods) {
 
 // USDA-verified per-100g values (FoodData Central SR Legacy / Foundation Foods)
 const _LOCAL_FOODS = [
-  // TEST ITEM — remove after confirming USDA badge renders correctly
-  {name:'Test USDA item (search "test usda")',cals100:100,protein100:10,carbs100:10,fat100:3,fiber100:1,_testOnly:true},
   // FDC ID 172470 — Peanut butter, smooth style, without salt
   {name:'Peanut butter (smooth)',cals100:597,protein100:22.2,carbs100:22.3,fat100:51.4,fiber100:5.0},
   // FDC ID 172430 — Peanuts, all types, dry-roasted, without salt
@@ -4100,7 +4098,7 @@ const _LOCAL_FOODS = [
   // Typical whey protein concentrate (no direct USDA entry; widely reported)
   {name:'Protein powder (whey)',cals100:373,protein100:74.0,carbs100:9.0,fat100:7.0,fiber100:0},
 ].map(f => ({
-  description: f.name, brandOwner: '', brands: '', _source: f._testOnly ? 'USDA' : 'Built-in',
+  description: f.name, brandOwner: '', brands: '', _source: 'Built-in',
   foodNutrients: [
     {nutrientName:'Energy', value:f.cals100},
     {nutrientName:'Protein', value:f.protein100},
