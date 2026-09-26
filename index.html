@@ -4243,7 +4243,7 @@ function doFoodSearch(q) {
 
   // Show local matches immediately while API loads
   const immediateLocal = _searchLocalFoods(q);
-  if (immediateLocal.length) _renderFoodResults(immediateLocal);
+  if (immediateLocal.length) { loading.style.display = 'none'; _renderFoodResults(immediateLocal); }
 
   const usdaUrl = 'https://api.nal.usda.gov/fdc/v1/foods/search?query=' +
     encodeURIComponent(q) +
@@ -4251,21 +4251,27 @@ function doFoodSearch(q) {
 
   fetch(usdaUrl, {signal})
     .then(function(r) {
+      console.log('[FitSoleil] USDA status:', r.status, 'query:', q);
       if (r.status === 429) throw new Error('rate_limit');
       if (!r.ok) throw new Error('api_error_' + r.status);
       return r.json();
     })
     .then(function(data) {
       currentSearchController = null;
+      loading.style.display = 'none';
       var foods = data.foods || [];
-      if (!foods.length) throw new Error('no_results');
-      _renderFoodResults(_mergeWithLocal(q, foods));
+      console.log('[FitSoleil] USDA results:', foods.length, 'for:', q);
+      _renderFoodResults(_mergeWithLocal(q, foods.length ? foods : []));
     })
     .catch(function(err) {
       if (err.name === 'AbortError') return;
       currentSearchController = null;
-      _searchOpenFoodFacts(q, signal)
+      console.log('[FitSoleil] USDA failed:', err.message, '— trying OFf');
+      // Use a fresh controller for OFf so it isn't affected by a re-typed search
+      var offCtrl = new AbortController();
+      _searchOpenFoodFacts(q, offCtrl.signal)
         .then(function(offFoods) {
+          loading.style.display = 'none';
           const merged = _mergeWithLocal(q, offFoods);
           if (merged.length) { _renderFoodResults(merged); return; }
           _showFoodStatus(err.message === 'rate_limit'
@@ -4274,6 +4280,7 @@ function doFoodSearch(q) {
         })
         .catch(function(e2) {
           if (e2.name === 'AbortError') return;
+          loading.style.display = 'none';
           const local = _searchLocalFoods(q);
           if (local.length) { _renderFoodResults(local); }
           else { _showFoodStatus('Search unavailable. Use the Custom tab to add food manually.'); }
