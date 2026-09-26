@@ -6917,31 +6917,39 @@ function addSwipe(el, onLeft, onRight, threshold=50) {
   },{passive:true});
 }
 
+var _foodModalOpen = false; // true while the food modal is open
+
 function initFoodSearch() {
-  // Clear pending debounce but do NOT abort an in-flight OFF fetch —
-  // openModal can fire on mobile viewport shifts while search is running.
+  _foodModalOpen = true;
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   searchDebounceTimer = null;
+  // Don't abort activeSearchController here — if openModal fires a second time
+  // due to mobile keyboard/viewport shifts, it would kill the in-flight fetch.
+  // Abort only happens in closeFoodModal() when the modal actually closes.
 
+  // Always clone the input to strip old event listeners and reset value
   var input = document.getElementById('food-search-input');
-  // Only re-wire the input if it has no listener yet (avoid duplicate listeners)
-  if (!input._foodSearchWired) {
-    var fresh = input.cloneNode(true);
-    input.parentNode.replaceChild(fresh, input);
-    fresh.value = '';
-    input = fresh;
-    input._foodSearchWired = true;
-    var hint = document.getElementById('search-hint');
-    if (hint) hint.style.display = 'block';
-    input.addEventListener('input', function() {
-      var h = document.getElementById('search-hint');
-      if (h) h.style.display = this.value.length === 0 ? 'block' : 'none';
-      runFoodSearch(this.value.trim());
-    });
-    clearSearchResults();
-    document.getElementById('food-search-loading').style.display = 'none';
-  }
-  input.focus();
+  var fresh = input.cloneNode(true);
+  input.parentNode.replaceChild(fresh, input);
+  fresh.value = '';
+  var hint = document.getElementById('search-hint');
+  if (hint) hint.style.display = 'block';
+  fresh.addEventListener('input', function() {
+    var h = document.getElementById('search-hint');
+    if (h) h.style.display = this.value.length === 0 ? 'block' : 'none';
+    runFoodSearch(this.value.trim());
+  });
+  clearSearchResults();
+  document.getElementById('food-search-loading').style.display = 'none';
+  fresh.focus();
+}
+
+function closeFoodModal() {
+  _foodModalOpen = false;
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  if (activeSearchController) activeSearchController.abort();
+  searchDebounceTimer = null;
+  activeSearchController = null;
 }
 
 function openModal(id) {
@@ -6969,14 +6977,7 @@ function openModal(id) {
 }
 function closeModal(id) {
   document.getElementById(id)?.classList.remove('open');
-  if (id === 'modal-food') {
-    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-    if (activeSearchController) activeSearchController.abort();
-    searchDebounceTimer = null;
-    activeSearchController = null;
-    var inp = document.getElementById('food-search-input');
-    if (inp) inp._foodSearchWired = false;
-  }
+  if (id === 'modal-food') closeFoodModal();
 }
 
 // Close modal on overlay click
@@ -6984,13 +6985,7 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', e => {
     if (e.target === el) {
       el.classList.remove('open');
-      if (el.id === 'modal-food') {
-        if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-        if (activeSearchController) activeSearchController.abort();
-        searchDebounceTimer = null; activeSearchController = null;
-        var inp = document.getElementById('food-search-input');
-        if (inp) inp._foodSearchWired = false;
-      }
+      if (el.id === 'modal-food') closeFoodModal();
     }
   });
 });
