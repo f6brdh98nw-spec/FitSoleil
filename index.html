@@ -4271,16 +4271,45 @@ function getCategoryForQuery(query) {
 }
 
 function searchOFFByCategory(category, signal) {
-  var url = 'https://world.openfoodfacts.org/category/' +
-    category + '/1.json?' +
-    'fields=product_name,nutriments,brands,code&' +
-    'sort_by=unique_scans_n&' +
-    'page_size=20&' +
-    'tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
-  return fetch(url, { signal: signal })
-    .then(function(r) { return r.json(); })
-    .then(function(data) { return parseOpenFoodFacts(data.products || []); })
-    .catch(function() { return []; });
+  var base = 'fields=product_name,nutriments,brands,code&sort_by=unique_scans_n&page_size=20';
+  var nzUrl = 'https://world.openfoodfacts.org/category/' + category + '/1.json?' +
+    base + '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
+  var globalUrl = 'https://world.openfoodfacts.org/category/' + category + '/1.json?' + base;
+  return Promise.all([
+    fetch(nzUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};}),
+    fetch(globalUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};})
+  ]).then(function(results) {
+    var nz = parseOpenFoodFacts(results[0].products || []);
+    var global = parseOpenFoodFacts(results[1].products || []);
+    var nzIds = new Set(nz.map(function(p){return p.id;}));
+    var extra = global.filter(function(p){return !nzIds.has(p.id);});
+    return nz.concat(extra).slice(0, 25);
+  });
+}
+
+function searchUSDA(query) {
+  var words = query.toLowerCase().trim().split(/\s+/).filter(function(w){return w.length > 1;});
+  if (words.length === 0) return [];
+  var firstWord = words[0];
+  return USDA_DB
+    .filter(function(food) {
+      var name = food.name.toLowerCase();
+      return words.every(function(w){return name.includes(w);});
+    })
+    .map(function(food) {
+      var name = food.name.toLowerCase();
+      var score = 0;
+      if (name.startsWith(firstWord)) score += 100;
+      if (name.split(',')[0].trim() === firstWord) score += 50;
+      var pos = name.indexOf(firstWord);
+      if (pos >= 0) score += Math.max(0, 50 - pos);
+      if (/\braw\b/.test(name)) score += 5;
+      score -= name.length * 0.1;
+      return {food: food, score: score};
+    })
+    .sort(function(a,b){return b.score - a.score;})
+    .map(function(r){return r.food;})
+    .slice(0, 8);
 }
 
 function executeFoodSearch(query) {
@@ -4293,8 +4322,10 @@ function executeFoodSearch(query) {
   activeSearchController = new AbortController();
   var signal = activeSearchController.signal;
 
-  // Instant: custom foods only — FOODfiles hidden from display for now
-  var instantResults = searchCustomFoods(foodQuery);
+  // Instant: custom foods + USDA bundled entries (FOODfiles hidden from display)
+  var instantResults = searchCustomFoods(foodQuery).concat(
+    brandFilter ? [] : searchUSDA(foodQuery)
+  );
 
   if (instantResults.length > 0) {
     renderSearchResults(instantResults, []);
