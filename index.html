@@ -3607,7 +3607,7 @@ function renderDashboard() {
     todayPlans.forEach(plan => {
       if (completedPlanIds.includes(plan.id)) return;
       if (activeWO && activeWO.planId === plan.id) return;
-      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${plan.name} (planned)</div>`);
+      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${plan.name}</div>`);
     });
 
     const hasUnstarted = todayPlans.some(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
