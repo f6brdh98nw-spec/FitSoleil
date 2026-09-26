@@ -4353,27 +4353,14 @@ function searchOFFByCategory(category, signal, page) {
   return fetch(url, {signal: signal})
     .then(function(r){return r.json();})
     .catch(function(){return {products:[]};})
-    .then(function(data){return _filterByCategory(parseOpenFoodFacts(data.products || [], true), keyword).slice(0, 25);});
+    .then(function(data){return _filterByCategory(parseOpenFoodFacts(data.products || [], false), keyword).slice(0, 25);});
 }
 
 // Extra synonyms for categories where the OFF slug doesn't match common product names
+// Synonyms only needed where OFF category is broad OR product names use different terms
+// Categories not listed here: trust the OFF category tag (no name filter applied)
 var _CATEGORY_SYNONYMS = {
-  'cheddar': ['cheddar'],
-  'brie': ['brie'],
-  'mozzarella': ['mozzarella', 'mozza'],
-  'parmesan': ['parmesan', 'parmigiano'],
-  'ricotta': ['ricotta'],
-  'cottage-cheese': ['cottage'],
   'shrimps': ['prawn', 'shrimp'],
-  'milks': ['milk'],
-  'cheeses': ['cheese'],
-  'yogurts': ['yogurt', 'yoghurt'],
-  'butters': ['butter'],
-  'creams': ['cream'],
-  'flours': ['flour'],
-  'oils': ['oil'],
-  'lettuces': ['lettuce'],
-  'cucumbers': ['cucumber'],
   'bell-peppers': ['capsicum', 'pepper'],
   'sweet-potatoes': ['kumara', 'sweet potato', 'sweetpotato'],
   'chia-seeds': ['chia'],
@@ -4383,8 +4370,9 @@ var _CATEGORY_SYNONYMS = {
 
 // Keep only products whose name contains at least one word from the category keyword
 function _filterByCategory(products, keyword) {
-  var synonyms = _CATEGORY_SYNONYMS[keyword] || keyword.toLowerCase().split(/\W+/).filter(function(w){return w.length > 2;});
-  if (synonyms.length === 0) return products;
+  var synonyms = _CATEGORY_SYNONYMS[keyword];
+  // No explicit synonyms: trust the OFF category tag, don't filter by name
+  if (!synonyms) return products;
   return products.filter(function(p) {
     var n = p.name.toLowerCase();
     return synonyms.some(function(w){return n.includes(w);});
