@@ -434,6 +434,11 @@
   .quick-tile-title { font-size: 13px; font-weight: 600; }
   .quick-tile-sub { font-size: 11px; color: var(--txt3); margin-top: 1px; }
 
+/* Placeholder — must be last */
+input::placeholder { color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
+textarea::placeholder { color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
+#ob-name::placeholder, #ob-weight::placeholder, #ob-height::placeholder,
+#ob-dob-d::placeholder, #ob-dob-m::placeholder, #ob-dob-y::placeholder { color: #5A5860 !important; font-style: italic !important; }
 </style>
 </head>
 <body>
@@ -1568,23 +1573,33 @@
       </div>
       <div class="card">
         <div class="card-title">Daily Targets</div>
-        <div class="input-group"><label class="input-label">Calories</label><input type="number" id="s-cals" oninput="recalcMacros()"/></div>
+        <div class="input-group"><label class="input-label">Calories</label><input type="number" id="s-cals" oninput="settingsRecalcMacros()"/></div>
         <div class="input-group">
           <label class="input-label">Macro mode</label>
-          <div class="ob-pill-group" id="s-macro-mode-pills">
-            <div class="ob-pill active" id="s-mode-auto" onclick="setSettingsMacroMode('auto',this)">Auto</div>
-            <div class="ob-pill" id="s-mode-prot" onclick="setSettingsMacroMode('prot',this)">Fix protein first</div>
-            <div class="ob-pill" id="s-mode-keto" onclick="setSettingsMacroMode('keto',this)">Keto</div>
-            <div class="ob-pill" id="s-mode-cust" onclick="setSettingsMacroMode('cust',this)">Custom</div>
+          <div class="ob-pill-group" id="s-macro-pills">
+            <div class="ob-pill s-macro-pill active" id="sm-auto" onclick="settingsSetMacroMode('auto',this)" data-mode="auto">Auto</div>
+            <div class="ob-pill s-macro-pill" id="sm-prot" onclick="settingsSetMacroMode('prot',this)" data-mode="prot">Fix protein first</div>
+            <div class="ob-pill s-macro-pill" id="sm-keto" onclick="settingsSetMacroMode('keto',this)" data-mode="keto">Keto</div>
+            <div class="ob-pill s-macro-pill" id="sm-cust" onclick="settingsSetMacroMode('cust',this)" data-mode="cust">Custom</div>
+          </div>
+        </div>
+        <div id="s-split-row" style="display:none">
+          <div id="s-split-label" class="input-label" style="margin-bottom:8px">Carb / fat split</div>
+          <div class="ob-pill-group">
+            <div class="ob-pill ob-split-pill active" id="ss-balanced" onclick="settingsSplitChange('balanced',this)">Balanced</div>
+            <div class="ob-pill ob-split-pill" id="ss-highcarb" onclick="settingsSplitChange('highcarb',this)">High carb</div>
+            <div class="ob-pill ob-split-pill" id="ss-lowcarb" onclick="settingsSplitChange('lowcarb',this)">Low carb</div>
           </div>
         </div>
         <div id="macro-inputs">
-          <div class="input-group"><label class="input-label">Protein (g)</label><input type="number" id="s-protein" oninput="updateMacroCalc()"/></div>
-          <div class="input-group"><label class="input-label">Carbs (g)</label><input type="number" id="s-carbs" oninput="updateMacroCalc()"/></div>
-          <div class="input-group"><label class="input-label">Fat (g)</label><input type="number" id="s-fat" oninput="updateMacroCalc()"/></div>
+          <div class="input-group"><label class="input-label">Protein (g)</label><input type="number" id="s-protein" oninput="settingsRecalcMacros()"/></div>
+          <div class="input-group"><label class="input-label">Carbs (g)</label><input type="number" id="s-carbs" oninput="settingsRecalcMacros()"/></div>
+          <div class="input-group"><label class="input-label">Fat (g)</label><input type="number" id="s-fat" oninput="settingsRecalcMacros()"/></div>
           <div class="input-group"><label class="input-label">Fibre (g)</label><input type="number" id="s-fibre" placeholder="e.g. 25"/></div>
         </div>
-        <button id="s-macro-reset" class="btn btn-secondary btn-sm" onclick="resetSettingsMacros()" style="font-size:11px;color:#5A5860;padding:4px 10px;margin-bottom:8px">Reset macros</button>
+        <button id="s-macro-reset" onclick="settingsResetMacros()" style="align-self:flex-start;font-size:11px;padding:5px 12px;border-radius:8px;background:rgba(232,197,71,0.08);border:0.5px solid rgba(232,197,71,0.3);color:#E8C547;cursor:pointer;margin-bottom:8px">Reset macros</button>
+        <div id="s-kcal-check" class="ob-kcal-check" style="display:none;margin-top:8px"></div>
+        <div id="s-kcal-note" class="ob-hint" style="display:none;margin-top:4px"></div>
         <div id="macro-calc-hint" style="font-size:11px;color:var(--txt2);margin-bottom:12px;padding:8px;background:var(--s2);border-radius:8px"></div>
         <div class="input-group"><label class="input-label">Water target (ml)</label><input type="number" id="s-water" placeholder="e.g. 2000"/></div>
         <button class="btn btn-primary" onclick="saveTargets()">Save</button>
@@ -2778,7 +2793,7 @@ function obSetupNutrition() {
   if (!calEl.value) calEl.value = Math.max(1200, target);
   suggest.textContent = `Suggested: ${Math.max(1200, target)} kcal/day ${paceText}. Adjust as needed.`;
   suggest.style.display = '';
-  obRecalcMacros();
+  obSetMacroMode(obMacroMode || 'auto', document.getElementById('ob-mode-' + (obMacroMode || 'auto')));
 }
 
 let _obOldCalories = 0; // tracks previous calories for keto proportional scaling
@@ -2818,24 +2833,35 @@ function obValidateDob() {
   return valid;
 }
 
+function validateTargetDate(dd, mm, yyyy) {
+  var d = parseInt(dd), m = parseInt(mm), y = parseInt(yyyy);
+  if (!d || !m || !y || d < 1 || d > 31 || m < 1 || m > 12 || y < 2024 || y > 2040) {
+    return { valid: false, message: 'Please enter a valid date' };
+  }
+  var date = new Date(y, m - 1, d);
+  if (date.getDate() !== d || date.getMonth() !== m - 1) {
+    return { valid: false, message: 'Please enter a valid date' };
+  }
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (date <= today) {
+    return { valid: false, message: 'Target date must be in the future' };
+  }
+  return { valid: true, message: '' };
+}
+
 function obValidateGoalDate() {
-  const str = obGetGoalDateStr();
-  const err = document.getElementById('ob-gd-err');
-  if (!str) { if (err) err.style.display = 'none'; return true; }
-  const dt = new Date(str);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const yr = parseInt(document.getElementById('ob-gd-y')?.value);
-  const maxYr = new Date().getFullYear() + 10;
-  if (isNaN(dt) || yr < new Date().getFullYear() || yr > maxYr) {
-    if (err) { err.textContent = 'Please enter a valid date'; err.style.display = ''; }
-    return false;
+  var dd = document.getElementById('ob-gd-d')?.value || '';
+  var mm = document.getElementById('ob-gd-m')?.value || '';
+  var yyyy = document.getElementById('ob-gd-y')?.value || '';
+  var err = document.getElementById('ob-gd-err');
+  if (!dd && !mm && !yyyy) { if (err) err.style.display = 'none'; return true; }
+  var result = validateTargetDate(dd, mm, yyyy);
+  if (err) {
+    if (!result.valid) { err.textContent = result.message; err.style.display = ''; }
+    else { err.style.display = 'none'; }
   }
-  if (dt <= today) {
-    if (err) { err.textContent = 'Target date must be in the future'; err.style.display = ''; }
-    return false;
-  }
-  if (err) err.style.display = 'none';
-  return true;
+  return result.valid;
 }
 
 // ── SPLIT RATIOS ────────────────────────────────────────────────
@@ -5498,9 +5524,9 @@ function loadSettingsFields() {
   document.getElementById('modal-weight-date').value = state.currentDate;
   // Set macro mode pills
   const mode = state.targets?.macroMode || state.macroMode || 'auto';
-  const modeEl = document.getElementById('s-mode-' + (mode === 'prot' ? 'prot' : mode === 'keto' ? 'keto' : mode === 'cust' ? 'cust' : 'auto'));
-  if (modeEl) setSettingsMacroMode(mode, modeEl);
-  else recalcMacros();
+  _settingsMacroMode = mode;
+  const modeEl = document.getElementById('sm-' + (mode === 'prot' ? 'prot' : mode === 'keto' ? 'keto' : mode === 'cust' ? 'cust' : 'auto'));
+  settingsSetMacroMode(mode, modeEl);
 }
 
 function loadSettingsFromState() {
@@ -5521,44 +5547,116 @@ function loadSettingsFromState() {
     const dayEl = document.getElementById('s-review-day');
     if (dayEl) dayEl.value = dayVal;
   }
-  const mode = t.macroMode || state.macroMode || 'auto';
-  const modeEl = document.getElementById('s-mode-' + (mode === 'prot' ? 'prot' : mode === 'keto' ? 'keto' : mode === 'cust' ? 'cust' : 'auto'));
-  if (modeEl) setSettingsMacroMode(mode, modeEl);
+  var mode = t.macroMode || state.macroMode || 'auto';
+  _settingsMacroMode = mode;
+  var modeEl = document.getElementById('sm-' + (mode === 'prot' ? 'prot' : mode === 'keto' ? 'keto' : mode === 'cust' ? 'cust' : 'auto'));
+  settingsSetMacroMode(mode, modeEl);
 }
 
-let _sSettingsMacroMode = 'auto';
+var _settingsMacroMode = 'auto';
+var _settingsSplit = 'balanced';
 
-function setSettingsMacroMode(mode, el) {
-  _sSettingsMacroMode = mode;
-  document.querySelectorAll('#s-macro-mode-pills .ob-pill').forEach(p => p.classList.remove('active'));
+function settingsSetMacroMode(mode, el) {
+  _settingsMacroMode = mode;
+  document.querySelectorAll('.s-macro-pill').forEach(function(p) { p.classList.remove('active'); });
   if (el) el.classList.add('active');
-  const protEl = document.getElementById('s-protein');
-  const carbEl = document.getElementById('s-carbs');
-  const fatEl = document.getElementById('s-fat');
-  if (!protEl) return;
-  protEl.readOnly = false; carbEl.readOnly = false; fatEl.readOnly = false;
-  protEl.style.opacity = '1'; carbEl.style.opacity = '1'; fatEl.style.opacity = '1';
+  var sProtEl = document.getElementById('s-protein');
+  var sCarbEl = document.getElementById('s-carbs');
+  var sFatEl = document.getElementById('s-fat');
+  [sProtEl, sCarbEl, sFatEl].forEach(function(e) {
+    if (e) { e.readOnly = false; e.style.opacity = '1'; e.style.cursor = ''; }
+  });
   if (mode === 'auto') {
-    protEl.readOnly = true; carbEl.readOnly = true; fatEl.readOnly = true;
-    protEl.style.opacity = '0.55'; carbEl.style.opacity = '0.55'; fatEl.style.opacity = '0.55';
+    [sProtEl, sCarbEl, sFatEl].forEach(function(e) { if (e) { e.readOnly = true; e.style.opacity = '0.55'; e.style.cursor = 'not-allowed'; } });
   } else if (mode === 'prot') {
-    carbEl.readOnly = true; fatEl.readOnly = true;
-    carbEl.style.opacity = '0.55'; fatEl.style.opacity = '0.55';
+    [sCarbEl, sFatEl].forEach(function(e) { if (e) { e.readOnly = true; e.style.opacity = '0.55'; e.style.cursor = 'not-allowed'; } });
   } else if (mode === 'keto') {
-    fatEl.readOnly = true; fatEl.style.opacity = '0.55';
+    if (sFatEl) { sFatEl.readOnly = true; sFatEl.style.opacity = '0.55'; sFatEl.style.cursor = 'not-allowed'; }
   }
-  recalcMacros();
+  var splitRow = document.getElementById('s-split-row');
+  if (splitRow) splitRow.style.display = (mode === 'auto' || mode === 'prot') ? '' : 'none';
+  var splitLabel = document.getElementById('s-split-label');
+  if (splitLabel) splitLabel.textContent = mode === 'prot' ? 'Remaining calorie split' : 'Carb / fat split';
+  var resetBtn = document.getElementById('s-macro-reset');
+  if (resetBtn) resetBtn.style.display = mode === 'cust' ? 'none' : '';
+  settingsRecalcMacros();
 }
 
-function resetSettingsMacros() {
-  const protEl = document.getElementById('s-protein');
-  const carbEl = document.getElementById('s-carbs');
-  const fatEl = document.getElementById('s-fat');
-  if (protEl) protEl.value = '';
-  if (carbEl) carbEl.value = '';
-  if (fatEl) fatEl.value = '';
-  recalcMacros();
+function settingsSplitChange(split, el) {
+  _settingsSplit = split;
+  document.querySelectorAll('#s-split-row .ob-split-pill').forEach(function(p) { p.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  settingsRecalcMacros();
 }
+
+function settingsRecalcMacros() {
+  var calEl = document.getElementById('s-cals');
+  var sProtEl = document.getElementById('s-protein');
+  var sCarbEl = document.getElementById('s-carbs');
+  var sFatEl = document.getElementById('s-fat');
+  var cal = Math.round(parseFloat(calEl && calEl.value) || 0);
+  if (!cal) return;
+  var p, c, f;
+  if (_settingsMacroMode === 'auto') {
+    var r = calcAuto(cal, _settingsSplit);
+    p = r.p; c = r.c; f = r.f;
+    if (sProtEl) sProtEl.value = p;
+    if (sCarbEl) sCarbEl.value = c;
+    if (sFatEl) sFatEl.value = f;
+  } else if (_settingsMacroMode === 'prot') {
+    var pv = parseInt(sProtEl && sProtEl.value) || Math.round(cal * 0.30 / 4);
+    var r2 = calcFixProtein(cal, pv, _settingsSplit);
+    p = r2.p; c = r2.c; f = r2.f;
+    if (sProtEl && !sProtEl.value) sProtEl.value = p;
+    if (sCarbEl) sCarbEl.value = c;
+    if (sFatEl) sFatEl.value = f;
+  } else if (_settingsMacroMode === 'keto') {
+    var prevC = parseInt(sCarbEl && sCarbEl.value) || 0;
+    var prevP = parseInt(sProtEl && sProtEl.value) || 0;
+    var k = (!prevC && !prevP) ? calcKetoInitial(cal) : { p: prevP || Math.round(cal*0.20/4), c: prevC || Math.round(cal*0.05/4), f: 0 };
+    k.f = calcKetoFat(cal, k.p, k.c);
+    p = k.p; c = k.c; f = k.f;
+    if (!prevP || !sProtEl.value) { if (sProtEl) sProtEl.value = p; }
+    if (!prevC || !sCarbEl.value) { if (sCarbEl) sCarbEl.value = c; }
+    if (sFatEl) sFatEl.value = f;
+  } else {
+    p = parseInt(sProtEl && sProtEl.value) || 0;
+    c = parseInt(sCarbEl && sCarbEl.value) || 0;
+    f = parseInt(sFatEl && sFatEl.value) || 0;
+  }
+  // Update kcal check
+  p = parseInt(sProtEl && sProtEl.value) || 0;
+  c = parseInt(sCarbEl && sCarbEl.value) || 0;
+  f = parseInt(sFatEl && sFatEl.value) || 0;
+  var result = updateKcalCheck(cal, p, c, f, _settingsMacroMode);
+  var kcalEl = document.getElementById('s-kcal-check');
+  if (kcalEl) {
+    kcalEl.style.display = '';
+    kcalEl.style.color = result.state === 'ok' ? '#4ADE80' : '#E8C547';
+    kcalEl.textContent = result.msg;
+  }
+  var noteEl = document.getElementById('s-kcal-note');
+  if (noteEl) {
+    if (result.note) { noteEl.textContent = result.note; noteEl.style.display = ''; }
+    else { noteEl.style.display = 'none'; }
+  }
+  updateMacroCalc();
+}
+
+function settingsResetMacros() {
+  var sProtEl = document.getElementById('s-protein');
+  var sCarbEl = document.getElementById('s-carbs');
+  var sFatEl = document.getElementById('s-fat');
+  if (sProtEl) sProtEl.value = '';
+  if (sCarbEl) sCarbEl.value = '';
+  if (sFatEl) sFatEl.value = '';
+  settingsRecalcMacros();
+}
+
+// Legacy aliases kept for backward compatibility
+function setSettingsMacroMode(mode, el) { settingsSetMacroMode(mode, el); }
+function resetSettingsMacros() { settingsResetMacros(); }
+var _sSettingsMacroMode = 'auto';
 
 function saveSettings() {
   state.profile.name = document.getElementById('s-name').value;
@@ -5570,7 +5668,7 @@ function saveSettings() {
 }
 
 function saveTargets() {
-  state.macroMode = _sSettingsMacroMode || 'auto';
+  state.macroMode = _settingsMacroMode || 'auto';
   state.targets = {
     calories: +document.getElementById('s-cals').value || state.targets.calories,
     protein: +document.getElementById('s-protein').value || state.targets.protein,
@@ -5578,7 +5676,7 @@ function saveTargets() {
     fat: +document.getElementById('s-fat').value || state.targets.fat,
     fibre: +(document.getElementById('s-fibre')?.value) || state.targets.fibre || 25,
     water: +document.getElementById('s-water').value || state.targets.water,
-    macroMode: _sSettingsMacroMode || 'auto',
+    macroMode: _settingsMacroMode || 'auto',
     nutritionDaysPerWeek: state.targets?.nutritionDaysPerWeek || 5,
   };
   saveState();
@@ -5587,9 +5685,10 @@ function saveTargets() {
   showToast('Targets updated ✓');
 }
 
-function recalcMacros() {
+function recalcMacros() { settingsRecalcMacros(); }
+function _recalcMacrosLegacy() {
   const cals = +document.getElementById('s-cals').value || 0;
-  const mode = _sSettingsMacroMode || 'auto';
+  const mode = _settingsMacroMode || _sSettingsMacroMode || 'auto';
   if (mode === 'auto' && cals) {
     const protG = Math.round(cals * 0.30 / 4);
     const fatG = Math.round(cals * 0.30 / 9);
