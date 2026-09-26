@@ -3617,7 +3617,8 @@ function renderDashboard() {
         playBtnEl.style.display = 'inline-flex';
         playBtnEl.style.setProperty('--acc', '#F07C3A');
         playBtnEl.innerHTML = '<i class="ti ti-player-play"></i>';
-        playBtnEl.onclick = () => navigate('workout');
+        const firstUnstarted = todayPlans.find(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
+        playBtnEl.onclick = () => firstUnstarted ? startPlanInline(firstUnstarted.id) : navigate('workout');
       } else if (allDone) {
         playBtnEl.style.display = 'inline-flex';
         playBtnEl.style.setProperty('--acc', '#4ADE80');
@@ -3913,6 +3914,7 @@ function renderFastingForDate() {
 function startPlanInline(planId) {
   state.activeWorkout = { planId, startTime: new Date().toISOString(), date: state.currentDate };
   saveState();
+  renderDashboard();
   navigate('workout');
 }
 
