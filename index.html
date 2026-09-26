@@ -4215,32 +4215,31 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
     var globalProducts = parseOpenFoodFacts(results[1].products || [], false);
     var nzIds = new Set(nzProducts.map(function(p){return p.id;}));
     var extra = globalProducts.filter(function(p){return !nzIds.has(p.id);});
-    return nzProducts.concat(extra).sort(function(a,b){return a.countryRank - b.countryRank;}).slice(0, 25);
+    return nzProducts.concat(extra).slice(0, 25);
   });
 }
 
-// Re-sort OFF results by how closely the product name matches the query.
-// NZ scan-popularity order is a poor proxy for relevance — "mince & cheese pie"
-// outranks "chicken mince" by scans but not by intent.
-function _sortByRelevance(products, query) {
+// Sort OFF results: primary by country priority (NZ→AU→UK→US→other),
+// secondary by keyword relevance within each country group.
+function _sortByCountryAndRelevance(products, query) {
   var words = query.toLowerCase().trim().split(/\s+/).filter(function(w){return w.length > 1;});
-  if (words.length === 0) return products;
   return products.map(function(p) {
     var n = p.name.toLowerCase();
-    var score = 0;
-    // All query words in name → strong signal
-    if (words.every(function(w){return n.includes(w);})) score += 50;
-    // Name starts with first query word → boost
-    if (n.startsWith(words[0])) score += 30;
-    // Each query word that appears early → position bonus
-    words.forEach(function(w) {
-      var pos = n.indexOf(w);
-      if (pos >= 0) score += Math.max(0, 20 - pos);
-    });
-    // Penalise names that are clearly something else (query word deep in long name)
-    score -= n.length * 0.1;
-    return {p: p, score: score};
-  }).sort(function(a, b){return b.score - a.score;}).map(function(r){return r.p;});
+    var rel = 0;
+    if (words.length > 0) {
+      if (words.every(function(w){return n.includes(w);})) rel += 50;
+      if (n.startsWith(words[0])) rel += 30;
+      words.forEach(function(w){
+        var pos = n.indexOf(w);
+        if (pos >= 0) rel += Math.max(0, 20 - pos);
+      });
+      rel -= n.length * 0.05;
+    }
+    return {p: p, country: p.countryRank !== undefined ? p.countryRank : 99, rel: rel};
+  }).sort(function(a, b){
+    if (a.country !== b.country) return a.country - b.country;
+    return b.rel - a.rel;
+  }).map(function(r){return r.p;});
 }
 
 var searchDebounceTimer = null;
@@ -4343,7 +4342,7 @@ function searchOFFByCategory(category, signal, page) {
       var global = _filterByCategory(rawGlobal, keyword);
       var nzIds = new Set(nz.map(function(p){return p.id;}));
       var extra = global.filter(function(p){return !nzIds.has(p.id);});
-      return nz.concat(extra).sort(function(a,b){return a.countryRank - b.countryRank;}).slice(0, 25);
+      return nz.concat(extra).slice(0, 25);
     });
   }
   // Page 2+: single global fetch at the requested page
@@ -4493,7 +4492,10 @@ function executeFoodSearch(query) {
     .then(function(offResults) {
       activeSearchController = null;
       var usedIds = new Set(instantResults.map(function(f){return f.id;}));
-      var newOff = offResults.filter(function(f){return !usedIds.has(f.id);});
+      var newOff = _sortByCountryAndRelevance(
+        offResults.filter(function(f){return !usedIds.has(f.id);}),
+        foodQuery
+      );
       var total = instantResults.length + newOff.length;
 
       if (total > 0) {
@@ -4656,23 +4658,8 @@ function renderSearchResults(wholeFoods, brandedFoods) {
   var html = '';
   if (wholeFoods.length > 0) html += wholeFoods.map(renderFoodResult).join('');
   if (brandedFoods && brandedFoods.length > 0) {
-    var _rankLabel = function(rank) {
-      if (rank === 0) return 'NZ Products';
-      if (rank === 1) return 'Australia';
-      if (rank === 2) return 'UK';
-      if (rank === 3) return 'US';
-      return 'International';
-    };
-    var _sep = '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#5A5860;padding:8px 11px 4px;border-top:0.5px solid #22222E;margin-top:4px">';
-    var lastRank = -1;
-    brandedFoods.forEach(function(f) {
-      var rank = f.countryRank !== undefined ? f.countryRank : 99;
-      if (rank !== lastRank) {
-        html += _sep + _rankLabel(rank) + '</div>';
-        lastRank = rank;
-      }
-      html += renderFoodResult(f);
-    });
+    html += '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#5A5860;padding:8px 11px 4px;border-top:0.5px solid #22222E;margin-top:4px">Branded Products</div>';
+    html += brandedFoods.map(renderFoodResult).join('');
   }
   container.innerHTML = html || '<div style="padding:16px;text-align:center;color:#5A5860;font-size:13px">No results</div>';
   document.getElementById('food-search-loading').style.display = 'none';
