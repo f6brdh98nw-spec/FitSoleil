@@ -903,7 +903,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
             <button class="isq" onclick="openModal('modal-weight')" style="--acc:#E8C547;width:26px;height:26px;font-size:13px"><i class="ti ti-plus"></i></button>
           </div>
         </div>
-        <div id="weight-mini-chart" class="chart-wrap" style="height:auto;width:100%"></div>
+        <div id="weight-mini-chart" class="chart-wrap" style="height:auto;width:100%;padding-bottom:8px"></div>
       </div>
 
       <!-- Water card (250 ml per bubble) -->
@@ -4433,8 +4433,9 @@ function deleteWeightEntry() {
 function renderWeightMiniChart() {
   const el = document.getElementById('weight-mini-chart');
   if (!el) return;
+  // If layout hasn't settled yet (element hidden or not yet painted), defer
+  if (el.clientWidth === 0) { requestAnimationFrame(renderWeightMiniChart); return; }
   const today = new Date();
-  const todayStr = localDateStr(today);
   // Build 7-day window: 4 past + today + 2 future
   const pts = [];
   for (let i = -4; i <= 2; i++) {
@@ -4451,7 +4452,7 @@ function renderWeightMiniChart() {
     const sd = new Date(today); sd.setDate(sd.getDate() + (si - 4));
     if (localDateStr(sd) === state.currentDate) { selectedIdx = si; break; }
   }
-  drawLineChart(el, pts, '#C084FC', {todayIdx, selectedIdx, gradientId:'mini-wt', futureFrom: 5, width: el.clientWidth || 300});
+  drawLineChart(el, pts, '#C084FC', {todayIdx, selectedIdx, gradientId:'mini-wt', futureFrom: 5, width: el.clientWidth, height: 120});
   // Gold kg value
   const wl = state.weightLog || [];
   const latest = wl.length ? wl[wl.length-1].kg : null;
@@ -4459,6 +4460,7 @@ function renderWeightMiniChart() {
   if (kgEl && latest) { kgEl.textContent = latest + 'kg'; kgEl.style.color = '#E8C547'; }
   setEl('current-weight-display', latest ? latest + 'kg' : '—');
 }
+window.addEventListener('resize', renderWeightMiniChart);
 
 function renderWeightChart() {
   const el = document.getElementById('weight-chart');
@@ -5227,7 +5229,7 @@ function drawLineChart(container, vals, color, opts = {}) {
     container.innerHTML = '<div style="color:var(--txt3);font-size:11px;text-align:center;padding:16px">No data</div>';
     return;
   }
-  const W = opts.width || 300, H = 100, PL = opts.noYAxis ? 4 : 32, PB = 18, PT = 8, PR = opts.noYAxis ? 4 : 20;
+  const W = opts.width || 300, H = opts.height || 100, PL = opts.noYAxis ? 4 : 32, PB = 18, PT = 8, PR = opts.noYAxis ? 4 : 20;
   const cW = W-PL-PR, cH = H-PB-PT;
   const minV = Math.min(...nonNull.map(p=>p.v));
   const maxV = Math.max(...nonNull.map(p=>p.v));
