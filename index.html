@@ -4132,10 +4132,20 @@ function renderFoodResult(food) {
   var c = SOURCE_BADGE_COLOURS[food.source] || {bg:'rgba(45,212,191,0.15)', text:'#2DD4BF'};
   var p = food.per100g;
   var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(food))));
+  // Extract brand: Custom foods have .brand; OFf names contain ' — Brand'; FOODfiles has none
+  var displayName = food.name;
+  var brand = food.brand || '';
+  if (!brand && food.name.includes(' — ')) {
+    var parts = food.name.split(' — ');
+    displayName = parts[0].trim();
+    brand = parts.slice(1).join(' — ').trim();
+  }
+  var badge = '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;flex-shrink:0;background:' + c.bg + ';color:' + c.text + '">' + food.source + '</span>';
   return '<div class="search-result-item" onclick="selectFood(\'' + encoded + '\')">' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px">' +
-      '<span style="font-size:13px;font-weight:500;color:#F0EEE8;flex:1">' + food.name + '</span>' +
-      '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;flex-shrink:0;background:' + c.bg + ';color:' + c.text + '">' + food.source + '</span>' +
+    (brand ? '<div style="font-size:10px;font-weight:700;color:#9A98A0;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:1px">' + brand + '</div>' : '') +
+    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">' +
+      '<span style="font-size:13px;font-weight:500;color:#F0EEE8">' + displayName + '</span>' +
+      badge +
     '</div>' +
     '<div style="font-size:11px;color:#9A98A0">Cal: ' + p.calories + ' \xb7 P: ' + p.protein + 'g \xb7 C: ' + p.carbs + 'g \xb7 F: ' + p.fat + 'g <span style="color:#5A5860">(per 100g)</span></div>' +
   '</div>';
