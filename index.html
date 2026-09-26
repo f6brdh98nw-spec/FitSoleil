@@ -113,6 +113,8 @@
   .card-title { font-size: 10px; font-weight: 600; color: var(--txt3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
 
   /* BUTTONS */
+  button { display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; }
+  button * { pointer-events: none; }
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     padding: 12px 20px; border-radius: var(--r-sm); border: none;
@@ -758,13 +760,13 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       <div class="row-between" style="margin-bottom:14px">
         <button class="btn btn-secondary btn-sm btn-icon" onclick="changeDay(-1)">‹</button>
         <span id="current-date-label" style="font-weight:600;font-size:14px"></span>
-        <button class="btn btn-secondary btn-sm btn-icon" onclick="changeDay(1)">›</button>
+        <button id="date-nav-forward" class="btn btn-secondary btn-sm btn-icon" onclick="changeDay(1)">›</button>
       </div>
 
       <!-- Today's Plan tile -->
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div class="card-title" style="margin-bottom:0">Today's Plan</div>
+          <div class="card-title" style="margin-bottom:0">Today</div>
           <button class="isq" onclick="openModal('modal-plan-rows')" title="Edit plan rows" style="font-size:16px"><i class="ti ti-adjustments-horizontal"></i></button>
         </div>
         <!-- Workout row -->
@@ -870,14 +872,14 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       <!-- Fasting tile -->
       <div class="card" id="home-fast-card" style="margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:14px">
-          <svg viewBox="0 0 72 72" width="72" height="72" style="flex-shrink:0">
-            <circle cx="36" cy="36" r="30" fill="none" stroke="#22222E" stroke-width="7"/>
-            <circle id="home-fast-ring" cx="36" cy="36" r="30" fill="none" stroke="#2DD4BF" stroke-width="7"
-              stroke-dasharray="188.5" stroke-dashoffset="188.5"
-              stroke-linecap="round" transform="rotate(-90 36 36)"
+          <svg viewBox="0 0 90 90" width="90" height="90" style="flex-shrink:0">
+            <circle cx="45" cy="45" r="38" fill="none" stroke="#22222E" stroke-width="7"/>
+            <circle id="home-fast-ring" cx="45" cy="45" r="38" fill="none" stroke="#2DD4BF" stroke-width="7"
+              stroke-dasharray="238.8" stroke-dashoffset="238.8"
+              stroke-linecap="round" transform="rotate(-90 45 45)"
               style="transition:stroke-dashoffset 1s linear"/>
-            <text id="home-fast-elapsed" x="36" y="33" text-anchor="middle" font-size="11" font-weight="700" fill="#2DD4BF" font-family="DM Sans,sans-serif">—</text>
-            <text id="home-fast-pct" x="36" y="46" text-anchor="middle" font-size="9" fill="#5A5860" font-family="DM Sans,sans-serif"></text>
+            <text id="home-fast-elapsed" x="45" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#2DD4BF" font-family="DM Sans,sans-serif">—</text>
+            <text id="home-fast-pct" x="45" y="56" text-anchor="middle" font-size="9" fill="#5A5860" font-family="DM Sans,sans-serif"></text>
           </svg>
           <div style="flex:1;min-width:0">
             <div style="font-family:'DM Serif Display',serif;font-style:italic;font-size:13px;color:#2DD4BF;margin-bottom:2px" id="home-fast-title">Fasting</div>
@@ -891,15 +893,15 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
 
       <!-- Weight mini chart -->
-      <div class="card">
-        <div class="row-between" style="margin-bottom:8px">
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px">
           <div style="font-size:10px;color:#5A5860;text-transform:uppercase;letter-spacing:0.6px">Weight</div>
           <div style="display:flex;align-items:center;gap:8px">
             <span id="current-weight-display" style="font-size:15px;font-weight:700;color:#E8C547">—</span>
             <button class="isq" onclick="openModal('modal-weight')" style="--acc:#E8C547;width:26px;height:26px;font-size:13px"><i class="ti ti-plus"></i></button>
           </div>
         </div>
-        <div id="weight-mini-chart" class="chart-wrap" style="height:auto;margin:0 -16px;width:calc(100% + 32px);overflow:hidden"></div>
+        <div id="weight-mini-chart" class="chart-wrap" style="height:auto;width:100%"></div>
       </div>
 
       <!-- Water card (250 ml per bubble) -->
@@ -1973,6 +1975,14 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">Log Food</div>
+    <div class="input-group" style="margin-bottom:12px">
+      <label class="input-label">Meal</label>
+      <select id="food-meal-select">
+        <option>Breakfast</option><option>Morning Snack</option>
+        <option>Lunch</option><option>Afternoon Snack</option>
+        <option>Dinner</option><option>Evening Snack</option>
+      </select>
+    </div>
     <div class="tabs">
       <div class="tab active" onclick="switchTab(this,'ft-search')">Search</div>
       <div class="tab" onclick="switchTab(this,'ft-scan')">Scan</div>
@@ -1982,14 +1992,6 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
 
     <!-- SEARCH -->
     <div id="ft-search">
-      <div class="input-group">
-        <label class="input-label">Meal</label>
-        <select id="food-meal-select">
-          <option>Breakfast</option><option>Morning Snack</option>
-          <option>Lunch</option><option>Afternoon Snack</option>
-          <option>Dinner</option><option>Evening Snack</option>
-        </select>
-      </div>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
         <input type="text" id="food-search-input" placeholder="Search foods..." oninput="searchFood()" />
@@ -2042,6 +2044,17 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     <div class="modal-title">Log Weight</div>
     <div class="input-group"><label class="input-label">Weight (kg)</label><input type="number" id="modal-weight-input" placeholder="e.g. 71.5" step="0.1"/></div>
     <div class="input-group"><label class="input-label">Date</label><input type="date" id="modal-weight-date"/></div>
+    <div class="input-group">
+      <label class="input-label">Time of day</label>
+      <select id="modal-weight-tod">
+        <option value="morning">Morning (fasted) 🌅</option>
+        <option value="midday">Midday ☀️</option>
+        <option value="evening">Evening 🌙</option>
+      </select>
+    </div>
+    <div id="modal-weight-delete-row" style="display:none;margin-top:8px;text-align:center">
+      <span style="color:#F87171;font-size:12px;cursor:pointer" onclick="deleteWeightEntry()">Delete today's entry</span>
+    </div>
     <div style="font-size:11px;color:var(--txt3);margin-bottom:12px">💡 This will be synced to Apple Health</div>
     <button class="btn btn-primary" onclick="logWeightModal()">Save</button>
     <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-weight')">Cancel</button>
@@ -3401,6 +3414,7 @@ function navigate(screen) {
   if (screen === 'home') {
     const homeEl = document.getElementById('screen-home');
     if (homeEl && !homeEl._swipe) { addSwipe(homeEl, () => changeDay(1), () => changeDay(-1)); homeEl._swipe = true; }
+    renderDashboard(); updateGreeting();
   }
   if (screen === 'progress') { renderWeightChart(); renderTrends(); renderGoals(); }
   if (screen === 'nutrition') {
@@ -3466,6 +3480,8 @@ function updateDateLabel() {
   if (el) el.textContent = label;
   const ntLabel = document.getElementById('nt-date-label');
   if (ntLabel) ntLabel.textContent = label;
+  const fwdBtn = document.getElementById('date-nav-forward');
+  if (fwdBtn) fwdBtn.style.visibility = (state.currentDate === localDateStr(new Date())) ? 'hidden' : 'visible';
 }
 
 function changeDay(delta) {
@@ -3541,11 +3557,16 @@ function renderDashboard() {
   // Workout row — show today's active plan if exists
   const todayName = getTodayPlanName();
   const todayPlanId = getTodayPlanId();
-  const todayCompleted = state.workouts.some(w=>w.date===state.currentDate);
+  const todayPlan = todayPlanId ? (state.plans||[]).find(p=>p.id===todayPlanId) : null;
+  const todayCompleted = (state.workouts||[]).some(w=>w.date===state.currentDate);
+  const nameEl = document.getElementById('plan-workout-name');
+  const subEl = document.getElementById('plan-workout-sub');
+  const playBtn = document.getElementById('plan-workout-play-btn');
   if (todayCompleted) {
-    setEl('plan-workout-name', '✓ Completed');
-    setEl('plan-workout-sub', todayName || 'Workout done');
-    const playBtn = document.getElementById('plan-workout-play-btn');
+    if (nameEl) {
+      nameEl.innerHTML = todayName ? `<span onclick="navigate('workout')" style="cursor:pointer">${todayName}</span>` : 'Workout';
+    }
+    if (subEl) { subEl.textContent = 'Completed'; subEl.style.color = '#4ADE80'; }
     if (playBtn) {
       playBtn.style.setProperty('--acc','#4ADE80');
       playBtn.innerHTML='<i class="ti ti-check"></i>';
@@ -3555,23 +3576,59 @@ function renderDashboard() {
         else navigate('workout');
       };
     }
+  } else if (state.activeWorkout && state.activeWorkout.date === state.currentDate) {
+    if (nameEl) {
+      nameEl.innerHTML = todayName ? `<span onclick="navigate('workout')" style="cursor:pointer">${todayName}</span>` : 'Workout';
+    }
+    if (subEl) { subEl.textContent = 'In progress ●'; subEl.style.color = '#F07C3A'; }
+    if (playBtn) {
+      playBtn.style.setProperty('--acc','#F87171');
+      playBtn.innerHTML='<i class="ti ti-player-stop"></i>';
+      playBtn.onclick=()=>navigate('workout');
+    }
+  } else if (todayName) {
+    const exCount = todayPlan ? (todayPlan.exercises||[]).length : 0;
+    if (nameEl) {
+      nameEl.innerHTML = `<span onclick="navigate('workout')" style="cursor:pointer">${todayName}</span>`;
+    }
+    if (subEl) { subEl.textContent = 'Scheduled · ' + exCount + ' exercises'; subEl.style.color = ''; }
+    if (playBtn) {
+      playBtn.style.setProperty('--acc','#F07C3A');
+      playBtn.innerHTML='<i class="ti ti-player-play"></i>';
+      playBtn.onclick=()=>{
+        if (todayPlanId) {
+          state.activeWorkout = { planId: todayPlanId, startTime: new Date().toISOString(), date: state.currentDate };
+          saveState();
+          if (subEl) { subEl.textContent = 'In progress ●'; subEl.style.color = '#F07C3A'; }
+          if (playBtn) { playBtn.style.setProperty('--acc','#F87171'); playBtn.innerHTML='<i class="ti ti-player-stop"></i>'; playBtn.onclick=()=>navigate('workout'); }
+        } else { navigate('workout'); }
+      };
+    }
   } else {
-    setEl('plan-workout-name', todayName || 'Rest day');
-    setEl('plan-workout-sub', todayName ? 'Tap to start' : 'No plan scheduled');
-    const playBtn = document.getElementById('plan-workout-play-btn');
-    if (playBtn) { playBtn.style.setProperty('--acc','#F07C3A'); playBtn.innerHTML='<i class="ti ti-player-play"></i>'; playBtn.onclick=()=>todayPlanId?startPlan(todayPlanId):navigate('workout'); }
+    if (nameEl) { nameEl.innerHTML = 'Rest day'; }
+    if (subEl) { subEl.textContent = 'Tap Plans to schedule'; subEl.style.color = ''; }
+    if (playBtn) { playBtn.style.setProperty('--acc','#F07C3A'); playBtn.innerHTML='<i class="ti ti-player-play"></i>'; playBtn.onclick=()=>navigate('workout'); }
   }
-  // Meals row — show logged food names from food log
-  const mealTypes = ['Breakfast','Lunch','Dinner','Snack'];
-  const loggedParts = [];
-  mealTypes.forEach(type => {
-    const items = (log.meals||[]).filter(m => m.meal === type);
-    if (items.length) loggedParts.push(type + ' — ' + items[0].name);
+  // Meals row — logged > planned priority, max 3 rows
+  const mealTypesRow = ['breakfast','lunch','dinner','snack'];
+  const mealRows = [];
+  mealTypesRow.forEach(mealType => {
+    if (mealRows.length >= 3) return;
+    const label = mealType.charAt(0).toUpperCase() + mealType.slice(1);
+    const logged = (getDayLog().meals||[]).filter(m => (m.meal||'').toLowerCase() === mealType);
+    if (logged.length) {
+      mealRows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${label} — ${logged[0].name}</div>`);
+    } else {
+      const planned = (state.mealPlan && state.mealPlan[state.currentDate] && state.mealPlan[state.currentDate][label]);
+      if (planned) {
+        mealRows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${label} — ${planned} (planned)</div>`);
+      }
+    }
   });
   const mealNamesEl = document.getElementById('plan-meal-names');
-  if (mealNamesEl) mealNamesEl.innerHTML = loggedParts.length
-    ? loggedParts.map(p => `<div>${p}</div>`).join('')
-    : '<div style="color:#5A5860">Nothing logged yet</div>';
+  if (mealNamesEl) mealNamesEl.innerHTML = mealRows.length
+    ? mealRows.join('')
+    : '<div style="color:#5A5860">Nothing planned yet</div>';
   // Plan row visibility from planRows state (water always shown)
   const pr = state.planRows || {workout:true,food:true,water:false,fast:false};
   const toggleRow = (id, show) => { const el=document.getElementById(id); if(el) el.style.display=show?'flex':'none'; };
@@ -3593,7 +3650,7 @@ function renderDashboard() {
   renderWaterGrid();
   renderMealsList();
   renderWeightMiniChart();
-  renderFastingState();
+  renderFastingForDate();
 }
 
 function getTodayPlanName() {
@@ -3641,6 +3698,11 @@ function renderWaterGrid() {
   const grid = document.getElementById('water-grid');
   if (!grid) return;
   grid.innerHTML = '';
+  const wInput = document.getElementById('water-custom-ml');
+  if (wInput && !wInput._enterBound) {
+    wInput.addEventListener('keydown', e => { if (e.key==='Enter') addWaterCustom(); });
+    wInput._enterBound = true;
+  }
   for (let i = 0; i < bubbleCount; i++) {
     const b = document.createElement('div');
     b.className = 'water-bubble' + (i < filledBubbles ? ' filled' : '');
@@ -3662,9 +3724,9 @@ function toggleWater(idx) {
   const targetMl = state.targets.water || 2000;
   const filledBubbles = Math.floor((log.water || 0) / WATER_STEP);
   if (idx < filledBubbles) {
-    log.water = idx * WATER_STEP;
+    log.water = Math.max(0, (log.water||0) - 250);
   } else {
-    log.water = Math.min(targetMl, (idx + 1) * WATER_STEP);
+    log.water = (log.water||0) + 250;
   }
   saveState();
   renderWaterGrid();
@@ -3700,7 +3762,7 @@ function renderFastingState() {
   const progressEl = document.getElementById('home-fast-progress');
   const btn = document.getElementById('home-fast-btn');
   if (!ring) return;
-  const CIRCUMFERENCE = 188.5;
+  const CIRCUMFERENCE = 238.8;
   // Update streak
   if (streakEl) streakEl.textContent = 'Streak: 🔥 ' + (state.fastStreak||0) + ' days';
   if (!state.activeFast) {
@@ -3755,16 +3817,14 @@ function renderFastingState() {
   if (label) {
     if (remaining > 0) {
       const endTime = new Date(start.getTime() + goalMs);
-      const endHH = String(endTime.getHours()).padStart(2,'0');
-      const endMM = String(endTime.getMinutes()).padStart(2,'0');
       const remH = Math.floor(remaining/3600000);
       const remM = Math.floor((remaining%3600000)/60000);
-      label.textContent = `Ends at ${endHH}:${endMM} · ${remH}h ${remM}m remaining`;
+      label.textContent = `Ends at ${format12hr(endTime)} · ${remH}h ${remM}m remaining`;
     } else {
       label.textContent = 'Goal reached! 🎉';
     }
   }
-  if (btn) { btn.innerHTML = '<i class="ti ti-player-stop"></i>'; btn.style.setProperty('--acc','#F87171'); btn.onclick = () => { endFastNow(); renderFastingState(); }; }
+  if (btn) { btn.innerHTML = '<i class="ti ti-player-stop"></i>'; btn.style.setProperty('--acc','#F87171'); btn.onclick = () => { endFast(); }; }
   // Update plan-row-fast
   const pfStatus = document.getElementById('plan-fast-status');
   const pfBar = document.getElementById('plan-fast-bar');
@@ -3772,6 +3832,60 @@ function renderFastingState() {
   if (pfBar) pfBar.style.width = (progress*100) + '%';
 }
 function updateHomeFastTile() { renderFastingState(); }
+
+function format12hr(date) {
+  var h = date.getHours(), m = date.getMinutes().toString().padStart(2,'0');
+  var ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+  return h + ':' + m + ' ' + ampm;
+}
+
+function endFast() {
+  if (!state.activeFast) return;
+  const start = new Date(state.activeFast.start);
+  const end = new Date();
+  const durationMs = end - start;
+  const durationHours = durationMs / 3600000;
+  if (!state.fastLog) state.fastLog = [];
+  state.fastLog.push({
+    id: Date.now().toString(),
+    start: state.activeFast.start,
+    end: end.toISOString(),
+    protocol: state.activeFast.protocol,
+    hours: Math.round(durationHours * 10) / 10
+  });
+  state.activeFast = null;
+  if (fastTimer) { clearInterval(fastTimer); fastTimer = null; }
+  saveState();
+  renderFastingState();
+}
+
+function renderFastingForDate() {
+  const isToday = state.currentDate === localDateStr(new Date());
+  if (isToday) {
+    renderFastingState();
+  } else {
+    const pastFast = (state.fastLog||[]).find(f => f.start && f.start.startsWith(state.currentDate));
+    const ringEl = document.getElementById('home-fast-ring');
+    const elapsedEl = document.getElementById('home-fast-elapsed');
+    const titleEl = document.getElementById('home-fast-title');
+    const labelEl = document.getElementById('home-fast-label');
+    const progressEl = document.getElementById('home-fast-progress');
+    const btnEl = document.getElementById('home-fast-btn');
+    if (ringEl) ringEl.setAttribute('stroke-dashoffset', '238.8');
+    if (btnEl) { btnEl.style.display='none'; }
+    if (pastFast) {
+      if (titleEl) titleEl.textContent = pastFast.protocol + ' fast';
+      if (elapsedEl) elapsedEl.textContent = pastFast.hours + 'h';
+      if (labelEl) labelEl.textContent = 'Completed · ' + pastFast.hours + 'h';
+      if (progressEl) { const pct = Math.min(100, (pastFast.hours / (pastFast.lengthHours||16))*100); progressEl.style.width = pct+'%'; }
+    } else {
+      if (titleEl) titleEl.textContent = 'Fasting';
+      if (elapsedEl) elapsedEl.textContent = '—';
+      if (labelEl) labelEl.textContent = 'No fast logged';
+      if (progressEl) progressEl.style.width='0%';
+    }
+  }
+}
 
 function startFastFromHome() {
   const protocol = state.activeFast?.protocol || state.lastFastProtocol || '16:8';
@@ -4216,20 +4330,33 @@ function logWeight() {
 function logWeightModal() {
   const v = parseFloat(document.getElementById('modal-weight-input').value);
   const d = document.getElementById('modal-weight-date').value || state.currentDate;
+  const tod = document.getElementById('modal-weight-tod')?.value || 'morning';
   if (!v) { showToast('Please enter a weight'); return; }
-  _logWeight(v, d);
+  _logWeight(v, d, tod);
   closeModal('modal-weight');
 }
 
-function _logWeight(kg, date) {
+function _logWeight(kg, date, timeOfDay) {
   state.weightLog = state.weightLog.filter(w => w.date !== date);
-  state.weightLog.push({ date, kg });
+  state.weightLog.push({ date, kg, timeOfDay: timeOfDay || 'morning' });
   state.weightLog.sort((a,b) => a.date.localeCompare(b.date));
   saveState();
   renderWeightChart();
   renderWeightMiniChart();
+  renderDashboard();
+  setEl('qt-weight-sub', kg + ' kg today');
   updateWeightStats();
   showToast(`Weight logged: ${kg}kg ✓`);
+}
+
+function deleteWeightEntry() {
+  const d = document.getElementById('modal-weight-date')?.value || state.currentDate;
+  state.weightLog = (state.weightLog||[]).filter(w => w.date !== d);
+  saveState();
+  renderWeightMiniChart();
+  renderDashboard();
+  closeModal('modal-weight');
+  showToast('Weight entry deleted');
 }
 
 function renderWeightMiniChart() {
@@ -4247,7 +4374,7 @@ function renderWeightMiniChart() {
     pts.push({x: lbl, v: entry ? entry.kg : null, isFuture: i > 0, isToday: i === 0});
   }
   const todayIdx = 4; // index of today in pts array
-  drawLineChart(el, pts, '#C084FC', {todayIdx, gradientId:'mini-wt', futureFrom: 5, noYAxis: true});
+  drawLineChart(el, pts, '#C084FC', {todayIdx, gradientId:'mini-wt', futureFrom: 5});
   // Gold kg value
   const wl = state.weightLog || [];
   const latest = wl.length ? wl[wl.length-1].kg : null;
@@ -4532,12 +4659,22 @@ function renderWorkoutPlans() {
           <div style="font-weight:600">${p.name}</div>
           <div style="font-size:12px;color:var(--txt2)">${p.days.join(', ')||'No scheduled days'} · ${p.exercises?.length||0} exercises</div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();startPlan(${p.id})">Start</button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();startPlan(${p.id})">Start</button>
+          <button onclick="event.stopPropagation();deletePlan(${p.id})" style="color:#F87171;background:none;border:none;font-size:12px;padding:4px 8px;cursor:pointer">Delete</button>
+        </div>
       </div>
     </div>
   `).join('') : '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No plans yet</div>';
   if (el) el.innerHTML = html;
   if (sel) sel.innerHTML = html;
+}
+
+function deletePlan(id) {
+  state.plans = (state.plans||[]).filter(p => p.id !== id);
+  saveState();
+  renderWorkoutPlans();
+  showToast('Plan deleted');
 }
 
 function startPlan(id) {
@@ -5046,7 +5183,7 @@ function drawLineChart(container, vals, color, opts = {}) {
     if (i % step !== 0 && i !== vals.length-1 && i !== todayIdx) return '';
     const isFuture = opts.futureFrom != null && i >= opts.futureFrom;
     const isToday = i === todayIdx;
-    const fill = isToday ? '#C084FC' : isFuture ? '#2C2C3A' : '#5A5860';
+    const fill = isToday ? '#C084FC' : isFuture ? '#5A5860' : '#5A5860';
     return `<text x="${toX(i).toFixed(1)}" y="${H-2}" text-anchor="middle" font-size="8" fill="${fill}" font-family="DM Sans,sans-serif">${p.x}</text>`;
   }).join('');
   // dots
@@ -6074,6 +6211,18 @@ function openModal(id) {
     document.getElementById('food-search-input').value = '';
     document.getElementById('food-search-results').innerHTML = '';
     renderRecipesList();
+    // Reset custom form
+    ['custom-food-name','custom-cals','custom-protein','custom-carbs','custom-fat','custom-fiber','custom-serving'].forEach(fid => { const el = document.getElementById(fid); if(el) el.value=''; });
+    // Switch to search tab
+    const searchTab = document.querySelector('#modal-food .tabs .tab');
+    if (searchTab) searchTab.click();
+  }
+  if (id === 'modal-weight') {
+    const dateEl = document.getElementById('modal-weight-date');
+    if (dateEl && !dateEl.value) dateEl.value = state.currentDate;
+    const hasEntry = (state.weightLog||[]).some(w => w.date === (dateEl?.value || state.currentDate));
+    const delRow = document.getElementById('modal-weight-delete-row');
+    if (delRow) delRow.style.display = hasEntry ? 'block' : 'none';
   }
   if (id === 'modal-add-exercise') renderExerciseList('', state.selectedMuscle);
   if (id === 'modal-create-plan') { state.planBeingBuilt = { name: '', days: [], exercises: [] }; renderPlanBeingBuilt(); }
