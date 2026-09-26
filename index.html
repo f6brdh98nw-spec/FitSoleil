@@ -769,9 +769,11 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           <div class="card-title" style="margin-bottom:0">Today</div>
           <button class="isq" onclick="openModal('modal-plan-rows')" title="Edit plan rows" style="font-size:16px"><i class="ti ti-adjustments-horizontal"></i></button>
         </div>
-        <!-- Workout row(s) — dynamically populated by renderDashboard -->
-        <div id="plan-row-workout" style="padding:4px 0;border-bottom:0.5px solid var(--s2)">
-          <div id="plan-workout-rows"></div>
+        <!-- Workout row — matches food row layout -->
+        <div id="plan-row-workout" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--s2)">
+          <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
+          <div id="plan-workout-rows" style="flex:1;min-width:0;font-size:12px"></div>
+          <button id="plan-workout-play" class="isq" onclick="navigate('workout')" style="--acc:#F07C3A;font-size:14px;width:30px;height:30px;flex-shrink:0;display:none"><i class="ti ti-player-play"></i></button>
         </div>
         <!-- Meals row -->
         <div id="plan-row-food" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--s2)">
@@ -3611,13 +3613,12 @@ function renderDashboard() {
     });
 
     const hasUnstarted = todayPlans.some(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
-    const playBtn = hasUnstarted ? `<button class="isq" onclick="navigate('workout')" style="--acc:#F07C3A;font-size:14px;width:30px;height:30px;flex-shrink:0;float:right;margin-top:-2px"><i class="ti ti-player-play"></i></button>` : '';
+    const playBtnEl = document.getElementById('plan-workout-play');
+    if (playBtnEl) playBtnEl.style.display = hasUnstarted ? 'inline-flex' : 'none';
 
-    if (!rows.length) {
-      workoutRowsEl.innerHTML = `<div style="color:#5A5860">Rest day — tap to schedule</div>`;
-    } else {
-      workoutRowsEl.innerHTML = playBtn + rows.join('');
-    }
+    workoutRowsEl.innerHTML = rows.length
+      ? rows.join('')
+      : `<div style="color:#5A5860">Rest day — tap to schedule</div>`;
   }
   // Meals row — logged > planned priority, max 3 rows
   const mealTypesRow = ['breakfast','lunch','dinner','snack'];
