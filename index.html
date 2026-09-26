@@ -3919,22 +3919,23 @@ function renderFastingForDate() {
     const progressEl = document.getElementById('home-fast-progress');
     const btnEl = document.getElementById('home-fast-btn');
     if (btnEl) btnEl.style.display = 'none';
+    if (progressEl) progressEl.parentElement.style.display = 'none';
+    const streakEl = document.getElementById('home-fast-streak');
     if (pastFast) {
-      // Full teal ring
-      if (ringEl) ringEl.setAttribute('stroke-dashoffset', '0');
+      if (ringEl) ringEl.style.strokeDashoffset = '0';
       const hrs = Math.floor(pastFast.hours);
       const mins = Math.round((pastFast.hours - hrs) * 60);
       const durStr = mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
       if (elapsedEl) elapsedEl.textContent = durStr;
       if (titleEl) titleEl.textContent = pastFast.protocol || '16:8';
       if (labelEl) labelEl.textContent = 'Completed ✓';
-      if (progressEl) progressEl.style.width = '100%';
+      if (streakEl) streakEl.style.display = '';
     } else {
-      if (ringEl) ringEl.setAttribute('stroke-dashoffset', '238.8');
+      if (ringEl) ringEl.style.strokeDashoffset = '238.8';
       if (elapsedEl) elapsedEl.textContent = '—';
       if (titleEl) titleEl.textContent = 'Fasting';
       if (labelEl) labelEl.textContent = 'No fast logged';
-      if (progressEl) progressEl.style.width = '0%';
+      if (streakEl) streakEl.style.display = 'none';
     }
   }
 }
