@@ -4127,7 +4127,7 @@ function _offKcal(n) {
 function parseOpenFoodFacts(products) {
   return (products || []).filter(function(p) {
     if (!p.product_name || p.product_name.trim().length < 2) return false;
-    if (/[^\x00-\x7F]/.test(p.product_name)) return false;
+    if (/[^\x00-\xFF]/.test(p.product_name)) return false;
     if (_OFF_REJECT.test(p.product_name)) return false;
     if (!p.nutriments) return false;
     if (_offKcal(p.nutriments) <= 0) return false;
@@ -4164,7 +4164,7 @@ function parseFoodQuery(query) {
 }
 
 function searchOpenFoodFacts(query, brandFilter, signal) {
-  var baseParams = 'search_simple=1&action=process&json=1&page_size=20' +
+  var baseParams = 'search_simple=1&action=process&json=1&page_size=50' +
     '&fields=product_name,nutriments,brands,code,countries_tags' +
     '&sort_by=unique_scans_n';
 
@@ -4274,7 +4274,7 @@ function getCategoryForQuery(query) {
 function searchOFFByCategory(category, signal, page) {
   // Use search API with category tag — /category/ endpoint ignores tag filter params
   var base = 'action=process&json=1&fields=product_name,nutriments,brands,code' +
-    '&sort_by=unique_scans_n&page_size=20' +
+    '&sort_by=unique_scans_n&page_size=50' +
     '&tagtype_0=categories&tag_contains_0=contains&tag_0=' + encodeURIComponent(category);
   var pg = page || 1;
   var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + base +
@@ -4319,7 +4319,7 @@ function searchUSDA(query) {
 
 function searchOFFByBrand(brand, signal) {
   var url = 'https://world.openfoodfacts.org/cgi/search.pl?' +
-    'search_simple=1&action=process&json=1&page_size=20' +
+    'search_simple=1&action=process&json=1&page_size=50' +
     '&fields=product_name,nutriments,brands,code' +
     '&sort_by=unique_scans_n' +
     '&tagtype_0=brands&tag_contains_0=contains&tag_0=' + encodeURIComponent(brand);
@@ -4406,7 +4406,7 @@ function executeFoodSearch(query) {
           category: category, brandOnlyMode: brandOnlyMode,
           instantResults: instantResults, loadedOff: newOff, page: 1
         };
-        if (offResults.length >= 20) _appendLoadMoreButton();
+        if (offResults.length >= 25) _appendLoadMoreButton();
       } else {
         renderSearchResults([], []);
         _setFoodSourceLine('No results. Try different terms or add a custom food.');
@@ -4487,7 +4487,7 @@ function _loadMoreResults() {
     s.page = nextPage;
     var total = s.instantResults.length + s.loadedOff.length;
     _setFoodSourceLine(total + ' result' + (total === 1 ? '' : 's'));
-    if (newOff.length >= 20) _appendLoadMoreButton();
+    if (newOff.length >= 25) _appendLoadMoreButton();
   }).catch(function(){
     if (btn) btn.textContent = 'See more results';
   });
