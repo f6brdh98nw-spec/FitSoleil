@@ -4178,7 +4178,10 @@ const _LOCAL_FOODS = [
 
 function _searchLocalFoods(q) {
   const terms = q.toLowerCase().split(/\s+/);
-  return _LOCAL_FOODS.filter(f => terms.every(t => f.description.toLowerCase().includes(t)));
+  return _LOCAL_FOODS.filter(f => {
+    const desc = f.description.toLowerCase();
+    return terms.every(t => desc.includes(t) || (t.length > 3 && desc.includes(t.slice(0, -1))));
+  });
 }
 
 function _parseOffProducts(products) {
