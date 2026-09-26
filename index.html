@@ -4039,33 +4039,73 @@ async function _searchOpenFoodFacts(q, results) {
   return _renderFoodResults(foods, results);
 }
 
+const _LOCAL_FOODS = [
+  {name:'Peanut butter',cals100:597,protein100:22,carbs100:20,fat100:51,fiber100:6},
+  {name:'Peanuts (roasted)',cals100:585,protein100:24,carbs100:16,fat100:50,fiber100:8},
+  {name:'Chicken breast (cooked)',cals100:165,protein100:31,carbs100:0,fat100:4,fiber100:0},
+  {name:'Chicken thigh (cooked)',cals100:209,protein100:26,carbs100:0,fat100:11,fiber100:0},
+  {name:'Brown rice (cooked)',cals100:112,protein100:2,carbs100:23,fat100:1,fiber100:2},
+  {name:'White rice (cooked)',cals100:130,protein100:3,carbs100:28,fat100:0,fiber100:0},
+  {name:'Oats (dry)',cals100:389,protein100:17,carbs100:66,fat100:7,fiber100:11},
+  {name:'Whole milk',cals100:61,protein100:3,carbs100:5,fat100:3,fiber100:0},
+  {name:'Egg (whole)',cals100:155,protein100:13,carbs100:1,fat100:11,fiber100:0},
+  {name:'Banana',cals100:89,protein100:1,carbs100:23,fat100:0,fiber100:3},
+  {name:'Apple',cals100:52,protein100:0,carbs100:14,fat100:0,fiber100:2},
+  {name:'Salmon (cooked)',cals100:206,protein100:20,carbs100:0,fat100:13,fiber100:0},
+  {name:'Tuna (canned in water)',cals100:128,protein100:29,carbs100:0,fat100:1,fiber100:0},
+  {name:'Greek yogurt (plain)',cals100:59,protein100:10,carbs100:4,fat100:1,fiber100:0},
+  {name:'Broccoli',cals100:34,protein100:3,carbs100:7,fat100:0,fiber100:3},
+  {name:'Sweet potato (baked)',cals100:90,protein100:2,carbs100:21,fat100:0,fiber100:3},
+  {name:'Avocado',cals100:160,protein100:2,carbs100:9,fat100:15,fiber100:7},
+  {name:'Almonds',cals100:579,protein100:21,carbs100:22,fat100:50,fiber100:13},
+  {name:'Cottage cheese (low fat)',cals100:72,protein100:12,carbs100:3,fat100:1,fiber100:0},
+  {name:'Bread (whole wheat)',cals100:247,protein100:13,carbs100:41,fat100:4,fiber100:7},
+  {name:'Pasta (cooked)',cals100:158,protein100:6,carbs100:31,fat100:1,fiber100:2},
+  {name:'Beef mince (lean, cooked)',cals100:215,protein100:26,carbs100:0,fat100:12,fiber100:0},
+  {name:'Cheddar cheese',cals100:403,protein100:25,carbs100:1,fat100:33,fiber100:0},
+  {name:'Orange juice',cals100:45,protein100:1,carbs100:10,fat100:0,fiber100:0},
+  {name:'Protein powder (whey)',cals100:400,protein100:80,carbs100:8,fat100:5,fiber100:2},
+].map(f => ({...f, brand:'', serving:100, foodNutrients:[
+  {nutrientName:'Energy',value:f.cals100},{nutrientName:'Protein',value:f.protein100},
+  {nutrientName:'Carbohydrate',value:f.carbs100},{nutrientName:'Total lipid',value:f.fat100},
+  {nutrientName:'Fiber',value:f.fiber100},
+]}));
+
+function _searchLocalFoods(q) {
+  const terms = q.toLowerCase().split(/\s+/);
+  return _LOCAL_FOODS.filter(f => terms.every(t => f.name.toLowerCase().includes(t)));
+}
+
 async function doFoodSearch(q) {
   const loading = document.getElementById('food-search-loading');
   const results = document.getElementById('food-search-results');
   loading.style.display = 'flex';
   window._foodResults = [];
 
-  // Try USDA first; fall back to Open Food Facts on rate-limit or error
-  let usdaFailed = false;
   try {
     const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&pageSize=20&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded&api_key=DEMO_KEY`;
     const r = await fetch(url);
-    if (r.status === 429 || !r.ok) { usdaFailed = true; throw new Error('usda_failed'); }
+    if (r.status === 429 || !r.ok) throw new Error('usda_failed');
     const data = await r.json();
+    if (!data.foods?.length) throw new Error('usda_empty');
     loading.style.display = 'none';
-    if (!data.foods?.length) { usdaFailed = true; throw new Error('usda_empty'); }
     _renderFoodResults(data.foods, results);
-  } catch(e) {
-    if (!usdaFailed && e.message !== 'usda_failed' && e.message !== 'usda_empty') usdaFailed = true;
-    // Fall back to Open Food Facts
-    try {
-      const ok = await _searchOpenFoodFacts(q, results);
-      loading.style.display = 'none';
-      if (!ok) results.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3);font-size:13px">No results found. Try different terms or add food manually.</div>';
-    } catch(e2) {
-      loading.style.display = 'none';
-      results.innerHTML = '<div style="padding:12px;color:var(--txt3);font-size:13px">Search unavailable. Add food manually using the Custom tab.</div>';
-    }
+    return;
+  } catch(e) {}
+
+  try {
+    const ok = await _searchOpenFoodFacts(q, results);
+    loading.style.display = 'none';
+    if (ok) return;
+  } catch(e2) {}
+
+  // Local fallback — always works offline
+  loading.style.display = 'none';
+  const local = _searchLocalFoods(q);
+  if (local.length) {
+    _renderFoodResults(local, results);
+  } else {
+    results.innerHTML = '<div style="padding:12px;color:var(--txt3);font-size:13px">No matches found. Try different terms or use the Custom tab.</div>';
   }
 }
 
@@ -4084,6 +4124,8 @@ function selectFood(idx) {
   state.currentFoodItem = item;
   document.getElementById('fd-name').textContent = item.name;
   document.getElementById('fd-serving').value = item.serving || 100;
+  const mealSel = document.getElementById('food-meal-select');
+  if (mealSel) document.getElementById('fd-meal').value = mealSel.value;
   renderFoodDetailMacros();
   closeModal('modal-food');
   openModal('modal-food-detail');
