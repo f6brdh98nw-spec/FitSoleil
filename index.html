@@ -4261,7 +4261,7 @@ var FOOD_CATEGORIES = {
   'snapper': 'en:fish', 'hoki': 'en:fish', 'cod': 'en:fish',
   'prawns': 'en:shrimps', 'shrimp': 'en:shrimps',
   'mussels': 'en:mussels',
-  'milk': 'en:milks', 'cheese': 'en:cheeses', 'feta': 'en:feta',
+  'milk': 'en:milks', 'cheese': 'en:cheeses',
   'cheddar': 'en:cheddar', 'brie': 'en:brie', 'mozzarella': 'en:mozzarella',
   'parmesan': 'en:parmesan', 'ricotta': 'en:ricotta', 'cottage cheese': 'en:cottage-cheese',
   'yoghurt': 'en:yogurts', 'yogurt': 'en:yogurts',
@@ -4311,13 +4311,16 @@ var FOOD_CATEGORIES = {
 function getCategoryForQuery(query) {
   var q = query.toLowerCase().trim();
   if (FOOD_CATEGORIES[q]) return FOOD_CATEGORIES[q];
-  var firstWord = q.split(/\s+/)[0];
-  return FOOD_CATEGORIES[firstWord] || null;
+  // Only use first-word fallback for single-word queries — multi-word queries
+  // with no exact match (e.g. "beef mince") should use keyword search
+  var words = q.split(/\s+/);
+  if (words.length === 1) return FOOD_CATEGORIES[words[0]] || null;
+  return null;
 }
 
 function searchOFFByCategory(category, signal, page) {
   // Use search API with category tag — /category/ endpoint ignores tag filter params
-  var base = 'action=process&json=1&fields=product_name,nutriments,brands,code' +
+  var base = 'action=process&json=1&fields=product_name,nutriments,brands,code,countries_tags' +
     '&sort_by=unique_scans_n&page_size=50' +
     '&tagtype_0=categories&tag_contains_0=contains&tag_0=' + encodeURIComponent(category);
   var pg = page || 1;
@@ -4355,7 +4358,7 @@ function searchOFFByCategory(category, signal, page) {
 
 // Extra synonyms for categories where the OFF slug doesn't match common product names
 var _CATEGORY_SYNONYMS = {
-  'feta': ['feta'],
+  'feta': ['feta', 'fetta'],
   'cheddar': ['cheddar'],
   'brie': ['brie'],
   'mozzarella': ['mozzarella', 'mozza'],
@@ -4658,7 +4661,7 @@ function renderSearchResults(wholeFoods, brandedFoods) {
   var html = '';
   if (wholeFoods.length > 0) html += wholeFoods.map(renderFoodResult).join('');
   if (brandedFoods && brandedFoods.length > 0) {
-    html += '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#5A5860;padding:8px 11px 4px;border-top:0.5px solid #22222E;margin-top:4px">Branded Products</div>';
+    html += '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#5A5860;padding:8px 11px 4px;border-top:0.5px solid #22222E;margin-top:4px">Products</div>';
     html += brandedFoods.map(renderFoodResult).join('');
   }
   container.innerHTML = html || '<div style="padding:16px;text-align:center;color:#5A5860;font-size:13px">No results</div>';
