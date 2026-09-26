@@ -2019,13 +2019,14 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     <div id="ft-custom" class="hidden">
       <div class="input-group"><label class="input-label">Food name</label><input id="custom-food-name" type="text" placeholder="e.g. Mum's Lasagne"/></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="input-group"><label class="input-label">Calories</label><input id="custom-cals" type="number" placeholder="kcal"/></div>
+        <div class="input-group"><label class="input-label">Calories</label><input id="custom-cals" type="number" placeholder="kcal" oninput="updateCustomFoodCheck()"/></div>
         <div class="input-group"><label class="input-label">Serving size (g)</label><input id="custom-serving" type="number" placeholder="g"/></div>
-        <div class="input-group"><label class="input-label">Protein (g)</label><input id="custom-protein" type="number"/></div>
-        <div class="input-group"><label class="input-label">Carbs (g)</label><input id="custom-carbs" type="number"/></div>
-        <div class="input-group"><label class="input-label">Fat (g)</label><input id="custom-fat" type="number"/></div>
+        <div class="input-group"><label class="input-label">Protein (g)</label><input id="custom-protein" type="number" oninput="updateCustomFoodCheck()"/></div>
+        <div class="input-group"><label class="input-label">Carbs (g)</label><input id="custom-carbs" type="number" oninput="updateCustomFoodCheck()"/></div>
+        <div class="input-group"><label class="input-label">Fat (g)</label><input id="custom-fat" type="number" oninput="updateCustomFoodCheck()"/></div>
         <div class="input-group"><label class="input-label">Fibre (g)</label><input id="custom-fiber" type="number"/></div>
       </div>
+      <div id="custom-kcal-check" style="font-size:11px;color:var(--txt2);padding:4px 0 8px;display:none"></div>
       <button class="btn btn-primary" onclick="addCustomFood()">Add Food</button>
     </div>
 
@@ -4001,6 +4002,17 @@ function _getNutrient(food, name) {
   return n ? Math.round(n.value * 10) / 10 : 0;
 }
 
+function _sourceBadge(source) {
+  var colours = {
+    'USDA':           {bg:'rgba(74,222,128,0.12)', text:'#4ADE80'},
+    'Open Food Facts':{bg:'rgba(96,165,250,0.15)', text:'#60A5FA'},
+    'Built-in':       {bg:'rgba(90,88,96,0.3)',    text:'#9A98A0'},
+    'Custom':         {bg:'rgba(232,197,71,0.15)', text:'#E8C547'},
+  };
+  var c = colours[source] || colours['Built-in'];
+  return '<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;margin-left:6px;background:' + c.bg + ';color:' + c.text + '">' + source + '</span>';
+}
+
 function _renderFoodResults(foods) {
   const results = document.getElementById('food-search-results');
   window._foodResults = foods.slice(0, 12).map(f => {
@@ -4008,6 +4020,7 @@ function _renderFoodResults(foods) {
     return {
       name: f.description || f.name || '',
       brand: f.brandOwner || f.brandName || f.brands || '',
+      source: f._source || 'USDA',
       cals100: kcal,
       protein100: _getNutrient(f, 'Protein') || f.protein100 || 0,
       carbs100: _getNutrient(f, 'Carbohydrate, by difference') || f.carbs100 || 0,
@@ -4023,7 +4036,7 @@ function _renderFoodResults(foods) {
   document.getElementById('food-search-loading').style.display = 'none';
   results.innerHTML = window._foodResults.map((item, idx) => `
     <div class="search-result-item" onclick="selectFood(${idx})">
-      <div style="font-weight:500;font-size:13px">${item.name}${item.brand ? ' <span style="color:var(--txt3);font-size:11px">· ' + item.brand + '</span>' : ''}</div>
+      <div style="font-weight:500;font-size:13px">${item.name}${item.brand ? ' <span style="color:var(--txt3);font-size:11px">· ' + item.brand + '</span>' : ''}${_sourceBadge(item.source)}</div>
       <div style="font-size:11px;color:var(--txt2);margin-top:2px">${item.cals100} kcal · P:${item.protein100}g C:${item.carbs100}g F:${item.fat100}g (per 100g)</div>
     </div>`).join('');
 }
@@ -4081,7 +4094,7 @@ const _LOCAL_FOODS = [
   // Typical whey protein concentrate (no direct USDA entry; widely reported)
   {name:'Protein powder (whey)',cals100:373,protein100:74.0,carbs100:9.0,fat100:7.0,fiber100:0},
 ].map(f => ({
-  description: f.name, brandOwner: '', brands: '',
+  description: f.name, brandOwner: '', brands: '', _source: 'Built-in',
   foodNutrients: [
     {nutrientName:'Energy', value:f.cals100},
     {nutrientName:'Protein', value:f.protein100},
@@ -4097,24 +4110,37 @@ function _searchLocalFoods(q) {
 }
 
 async function _searchOpenFoodFacts(q, signal) {
-  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&json=true&page_size=20&fields=product_name,brands,nutriments`;
+  const url = 'https://world.openfoodfacts.org/cgi/search.pl?' +
+    'search_terms=' + encodeURIComponent(q) +
+    '&search_simple=1&action=process&json=1&page_size=20' +
+    '&fields=product_name,nutriments,brands,code,countries_tags' +
+    '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand' +
+    '&language=en&sort_by=unique_scans_n';
   const r = await fetch(url, {signal});
   if (!r.ok) throw new Error('off_error');
   const data = await r.json();
-  return (data.products || []).map(p => {
-    const n = p.nutriments || {};
-    return {
-      description: p.product_name || '',
-      brandOwner: p.brands || '',
-      foodNutrients: [
-        {nutrientName:'Energy', value: n['energy-kcal_100g'] || n['energy_100g'] || 0},
-        {nutrientName:'Protein', value: n['proteins_100g'] || 0},
-        {nutrientName:'Carbohydrate, by difference', value: n['carbohydrates_100g'] || 0},
-        {nutrientName:'Total lipid (fat)', value: n['fat_100g'] || 0},
-        {nutrientName:'Fiber, total dietary', value: n['fiber_100g'] || 0},
-      ],
-    };
-  }).filter(p => p.description);
+  return (data.products || [])
+    .filter(function(p) {
+      if (!p.product_name) return false;
+      if (/[^\x00-\x7F]/.test(p.product_name)) return false; // skip non-Latin names
+      if (!p.nutriments || !p.nutriments['energy-kcal_100g']) return false;
+      return true;
+    })
+    .map(function(p) {
+      const n = p.nutriments;
+      return {
+        description: p.product_name.trim(),
+        brandOwner: p.brands ? p.brands.split(',')[0].trim() : '',
+        _source: 'Open Food Facts',
+        foodNutrients: [
+          {nutrientName:'Energy', value: n['energy-kcal_100g'] || 0},
+          {nutrientName:'Protein', value: n['proteins_100g'] || 0},
+          {nutrientName:'Carbohydrate, by difference', value: n['carbohydrates_100g'] || 0},
+          {nutrientName:'Total lipid (fat)', value: n['fat_100g'] || 0},
+          {nutrientName:'Fiber, total dietary', value: n['fiber_100g'] || 0},
+        ],
+      };
+    });
 }
 
 function doFoodSearch(q) {
@@ -4240,6 +4266,20 @@ function confirmAddFood() {
   closeModal('modal-food-detail');
   showToast(`Added ${item.name} ✓`);
   updateStreak();
+}
+
+function updateCustomFoodCheck() {
+  var cal = parseFloat((document.getElementById('custom-cals') || {}).value) || 0;
+  var p   = parseFloat((document.getElementById('custom-protein') || {}).value) || 0;
+  var c   = parseFloat((document.getElementById('custom-carbs') || {}).value) || 0;
+  var f   = parseFloat((document.getElementById('custom-fat') || {}).value) || 0;
+  var el  = document.getElementById('custom-kcal-check');
+  if (!el) return;
+  if (!cal && !p && !c && !f) { el.style.display = 'none'; return; }
+  var check = updateKcalCheck(cal, p, c, f, 'custom');
+  el.textContent = check.msg;
+  el.style.color = check.state === 'ok' ? '#4ADE80' : '#E8C547';
+  el.style.display = '';
 }
 
 function addCustomFood() {
@@ -5969,75 +6009,85 @@ function completeReview() {
 // ============================================================
 // SETTINGS
 // ============================================================
+// ── Settings non-macro fields (profile, review schedule) ──────────
 function loadSettingsFields() {
-  document.getElementById('s-name').value = state.profile?.name || '';
-  document.getElementById('s-height').value = state.profile?.height || '';
-  if (document.getElementById('s-dob')) document.getElementById('s-dob').value = state.profile?.dob || '';
-  document.getElementById('s-cals').value = state.targets?.calories || '';
-  document.getElementById('s-protein').value = state.targets?.protein || '';
-  document.getElementById('s-carbs').value = state.targets?.carbs || '';
-  document.getElementById('s-fat').value = state.targets?.fat || '';
-  if (document.getElementById('s-fibre')) document.getElementById('s-fibre').value = state.targets?.fibre || 25;
-  document.getElementById('s-water').value = state.targets?.water || '';
-  if (document.getElementById('s-goal-weight')) document.getElementById('s-goal-weight').value = state.goalWeight || '';
-  if (document.getElementById('s-goal-date')) document.getElementById('s-goal-date').value = state.goalDate || '';
-  if (document.getElementById('s-review-day')) {
-    const _s2f = {Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'};
-    var _rd = state.reviewSchedule?.weeklyDay || state.reviewSchedule?.day || 'Sunday';
-    document.getElementById('s-review-day').value = _s2f[_rd] || _rd;
+  var s = {profile:{}, reviewSchedule:{}, ...(state||{})};
+  var el = function(id) { return document.getElementById(id); };
+  if (el('s-name')) el('s-name').value = s.profile.name || '';
+  if (el('s-height')) el('s-height').value = s.profile.height || '';
+  if (el('s-dob')) el('s-dob').value = s.profile.dob || '';
+  if (el('s-goal-weight')) el('s-goal-weight').value = s.goalWeight || '';
+  if (el('s-goal-date')) el('s-goal-date').value = s.goalDate || '';
+  var rs = s.reviewSchedule || {};
+  if (el('s-review-day')) {
+    var _s2f = {Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'};
+    el('s-review-day').value = _s2f[rs.weeklyDay || rs.day] || rs.weeklyDay || rs.day || 'Sunday';
   }
-  if (document.getElementById('s-monthly-review-day')) document.getElementById('s-monthly-review-day').value = state.reviewSchedule?.monthlyDay || 1;
-  if (document.getElementById('s-review-time')) document.getElementById('s-review-time').value = state.reviewSchedule?.weeklyTime || state.reviewSchedule?.time || '19:00';
-  if (document.getElementById('s-monthly-time')) document.getElementById('s-monthly-time').value = state.reviewSchedule?.monthlyTime || '19:00';
-  document.getElementById('modal-weight-date').value = state.currentDate;
-  // Set macro mode pills
-  const mode = state.targets?.macroMode || state.macroMode || 'auto';
-  _settingsMacroMode = mode;
-  const modeEl = document.getElementById('sm-' + (mode === 'prot' ? 'prot' : mode === 'keto' ? 'keto' : mode === 'cust' ? 'cust' : 'auto'));
-  settingsSetMacroMode(mode, modeEl);
+  if (el('s-monthly-review-day')) el('s-monthly-review-day').value = rs.monthlyDay || 1;
+  if (el('s-review-time')) el('s-review-time').value = rs.weeklyTime || rs.time || '19:00';
+  if (el('s-monthly-time')) el('s-monthly-time').value = rs.monthlyTime || '19:00';
+  if (el('modal-weight-date')) el('modal-weight-date').value = s.currentDate || '';
+  initSettingsMacros();
 }
 
+// Single entry point — called every time Settings screen opens.
+// Reads fresh from localStorage so it always reflects latest saved state.
 function loadSettingsFromState() {
-  const t = state.targets || {};
-  const rs = state.reviewSchedule || {};
-  const setVal = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; };
-  setVal('s-cals', t.calories);
-  setVal('s-protein', t.protein);
-  setVal('s-carbs', t.carbs);
-  setVal('s-fat', t.fat);
-  setVal('s-fibre', t.fibre || 25);
-  setVal('s-water', t.water);
-  setVal('s-review-time', rs.weeklyTime || rs.time);
-  setVal('s-monthly-review-day', rs.monthlyDay);
-  setVal('s-monthly-time', rs.monthlyTime);
-  if (rs.weeklyDay || rs.day) {
-    const shortToFull = {Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'};
-    var dayVal = rs.weeklyDay || rs.day;
-    dayVal = shortToFull[dayVal] || dayVal;
-    const dayEl = document.getElementById('s-review-day');
-    if (dayEl) dayEl.value = dayVal;
+  loadSettingsFields();
+}
+
+function initSettingsMacros() {
+  // Read fresh from localStorage — state in memory may lag after external saves
+  var st = JSON.parse(localStorage.getItem('fitsol_v2') || '{}');
+  var t = st.targets || {};
+  var el = function(id) { return document.getElementById(id); };
+
+  // Populate all fields from targets
+  if (el('s-cals')) el('s-cals').value = t.calories || '';
+  if (el('s-water')) el('s-water').value = t.water || '';
+  if (el('s-fibre')) el('s-fibre').value = t.fibre || 25;
+
+  // Set mode and split state
+  _settingsMacroMode = t.macroMode || 'auto';
+  _settingsSplit = t.macroSplit || t.split || 'balanced';
+
+  // For 'prot' and 'cust' modes, pre-populate protein/carbs/fat from saved targets
+  // (auto and keto will recalculate these)
+  if (_settingsMacroMode === 'prot' || _settingsMacroMode === 'cust') {
+    if (el('s-protein')) el('s-protein').value = t.protein || '';
+    if (el('s-carbs')) el('s-carbs').value = t.carbs || '';
+    if (el('s-fat')) el('s-fat').value = t.fat || '';
+  } else {
+    if (el('s-protein')) el('s-protein').value = '';
+    if (el('s-carbs')) el('s-carbs').value = '';
+    if (el('s-fat')) el('s-fat').value = '';
   }
-  var mode = t.macroMode || state.macroMode || 'auto';
-  _settingsMacroMode = mode;
-  _settingsSplit = t.macroSplit || 'balanced';
-  var modeEl = document.getElementById('sm-' + (mode === 'prot' ? 'prot' : mode === 'keto' ? 'keto' : mode === 'cust' ? 'cust' : 'auto'));
-  // highlight saved split pill
+
+  // Activate mode pill
+  document.querySelectorAll('.s-macro-pill').forEach(function(p) { p.classList.remove('active'); });
+  var modeIdMap = {auto:'sm-auto', prot:'sm-prot', keto:'sm-keto', cust:'sm-cust'};
+  var modeEl = el(modeIdMap[_settingsMacroMode] || 'sm-auto');
+  if (modeEl) modeEl.classList.add('active');
+
+  // Activate split pill
   document.querySelectorAll('#s-split-row .ob-split-pill').forEach(function(p) { p.classList.remove('active'); });
-  var splitEl = document.getElementById('ss-' + _settingsSplit);
+  var splitEl = el('ss-' + _settingsSplit);
   if (splitEl) splitEl.classList.add('active');
-  settingsSetMacroMode(mode, modeEl);
+
+  // Apply UI (readonly states, split row visibility)
+  _applySettingsModeUI(_settingsMacroMode);
+
+  // Run calculations using shared functions
+  settingsRecalcMacros();
 }
 
 var _settingsMacroMode = 'auto';
 var _settingsSplit = 'balanced';
 
-function settingsSetMacroMode(mode, el) {
-  _settingsMacroMode = mode;
-  document.querySelectorAll('.s-macro-pill').forEach(function(p) { p.classList.remove('active'); });
-  if (el) el.classList.add('active');
+function _applySettingsModeUI(mode) {
   var sProtEl = document.getElementById('s-protein');
   var sCarbEl = document.getElementById('s-carbs');
-  var sFatEl = document.getElementById('s-fat');
+  var sFatEl  = document.getElementById('s-fat');
   [sProtEl, sCarbEl, sFatEl].forEach(function(e) {
     if (e) { e.readOnly = false; e.style.opacity = '1'; e.style.cursor = ''; }
   });
@@ -6054,6 +6104,13 @@ function settingsSetMacroMode(mode, el) {
   if (splitLabel) splitLabel.textContent = mode === 'prot' ? 'Remaining calorie split' : 'Carb / Fat split';
   var resetBtn = document.getElementById('s-macro-reset');
   if (resetBtn) resetBtn.style.display = mode === 'cust' ? 'none' : '';
+}
+
+function settingsSetMacroMode(mode, el) {
+  _settingsMacroMode = mode;
+  document.querySelectorAll('.s-macro-pill').forEach(function(p) { p.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  _applySettingsModeUI(mode);
   settingsRecalcMacros();
 }
 
@@ -6065,44 +6122,39 @@ function settingsSplitChange(split, el) {
 }
 
 function settingsRecalcMacros() {
-  var calEl = document.getElementById('s-cals');
+  var cal = parseFloat((document.getElementById('s-cals') || {}).value) || 0;
+  if (!cal) return;
   var sProtEl = document.getElementById('s-protein');
   var sCarbEl = document.getElementById('s-carbs');
-  var sFatEl = document.getElementById('s-fat');
-  var cal = Math.round(parseFloat(calEl && calEl.value) || 0);
-  if (!cal) return;
-  var p, c, f;
+  var sFatEl  = document.getElementById('s-fat');
+
   if (_settingsMacroMode === 'auto') {
     var r = calcAuto(cal, _settingsSplit);
-    p = r.p; c = r.c; f = r.f;
-    if (sProtEl) sProtEl.value = p;
-    if (sCarbEl) sCarbEl.value = c;
-    if (sFatEl) sFatEl.value = f;
+    if (sProtEl) sProtEl.value = r.p;
+    if (sCarbEl) sCarbEl.value = r.c;
+    if (sFatEl)  sFatEl.value  = r.f;
   } else if (_settingsMacroMode === 'prot') {
-    var pv = parseInt(sProtEl && sProtEl.value) || Math.round(cal * 0.30 / 4);
+    var pv = parseFloat(sProtEl && sProtEl.value) || Math.round(cal * 0.30 / 4);
     var r2 = calcFixProtein(cal, pv, _settingsSplit);
-    p = r2.p; c = r2.c; f = r2.f;
-    if (sProtEl && !sProtEl.value) sProtEl.value = p;
-    if (sCarbEl) sCarbEl.value = c;
-    if (sFatEl) sFatEl.value = f;
+    if (sProtEl && !sProtEl.value) sProtEl.value = r2.p;
+    if (sCarbEl) sCarbEl.value = r2.c;
+    if (sFatEl)  sFatEl.value  = r2.f;
   } else if (_settingsMacroMode === 'keto') {
-    var prevC = parseInt(sCarbEl && sCarbEl.value) || 0;
-    var prevP = parseInt(sProtEl && sProtEl.value) || 0;
-    var k = (!prevC && !prevP) ? calcKetoInitial(cal) : { p: prevP || Math.round(cal*0.20/4), c: prevC || Math.round(cal*0.05/4), f: 0 };
+    var prevP = parseFloat(sProtEl && sProtEl.value) || 0;
+    var prevC = parseFloat(sCarbEl && sCarbEl.value) || 0;
+    var k = (prevP || prevC)
+      ? { p: prevP || Math.round(cal * 0.20 / 4), c: prevC || Math.round(cal * 0.05 / 4) }
+      : calcKetoInitial(cal);
     k.f = calcKetoFat(cal, k.p, k.c);
-    p = k.p; c = k.c; f = k.f;
-    if (!prevP || !sProtEl.value) { if (sProtEl) sProtEl.value = p; }
-    if (!prevC || !sCarbEl.value) { if (sCarbEl) sCarbEl.value = c; }
-    if (sFatEl) sFatEl.value = f;
-  } else {
-    p = parseInt(sProtEl && sProtEl.value) || 0;
-    c = parseInt(sCarbEl && sCarbEl.value) || 0;
-    f = parseInt(sFatEl && sFatEl.value) || 0;
+    if (!prevP && sProtEl) sProtEl.value = k.p;
+    if (!prevC && sCarbEl) sCarbEl.value = k.c;
+    if (sFatEl) sFatEl.value = k.f;
   }
-  // Update kcal check
-  p = parseInt(sProtEl && sProtEl.value) || 0;
-  c = parseInt(sCarbEl && sCarbEl.value) || 0;
-  f = parseInt(sFatEl && sFatEl.value) || 0;
+  // 'cust': don't touch fields — user sets them manually
+
+  var p = parseFloat(sProtEl && sProtEl.value) || 0;
+  var c = parseFloat(sCarbEl && sCarbEl.value) || 0;
+  var f = parseFloat(sFatEl  && sFatEl.value)  || 0;
   var result = updateKcalCheck(cal, p, c, f, _settingsMacroMode);
   var kcalEl = document.getElementById('s-kcal-check');
   if (kcalEl) {
@@ -6112,23 +6164,20 @@ function settingsRecalcMacros() {
   }
   var noteEl = document.getElementById('s-kcal-note');
   if (noteEl) {
-    if (result.note) { noteEl.textContent = result.note; noteEl.style.display = ''; }
-    else { noteEl.style.display = 'none'; }
+    noteEl.textContent = result.note || '';
+    noteEl.style.display = result.note ? '' : 'none';
   }
-  updateMacroCalc();
+  if (typeof updateMacroCalc === 'function') updateMacroCalc();
 }
 
 function settingsResetMacros() {
-  var sProtEl = document.getElementById('s-protein');
-  var sCarbEl = document.getElementById('s-carbs');
-  var sFatEl = document.getElementById('s-fat');
-  if (sProtEl) sProtEl.value = '';
-  if (sCarbEl) sCarbEl.value = '';
-  if (sFatEl) sFatEl.value = '';
+  ['s-protein','s-carbs','s-fat'].forEach(function(id) {
+    var e = document.getElementById(id); if (e) e.value = '';
+  });
   settingsRecalcMacros();
 }
 
-// Legacy aliases kept for backward compatibility
+// Legacy aliases
 function setSettingsMacroMode(mode, el) { settingsSetMacroMode(mode, el); }
 function resetSettingsMacros() { settingsResetMacros(); }
 var _sSettingsMacroMode = 'auto';
