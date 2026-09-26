@@ -4312,11 +4312,33 @@ function searchUSDA(query) {
     .slice(0, 8);
 }
 
+function searchOFFByBrand(brand, signal) {
+  var url = 'https://world.openfoodfacts.org/cgi/search.pl?' +
+    'search_simple=1&action=process&json=1&page_size=20' +
+    '&fields=product_name,nutriments,brands,code' +
+    '&sort_by=unique_scans_n' +
+    '&tagtype_0=brands&tag_contains_0=contains&tag_0=' + encodeURIComponent(brand);
+  return fetch(url, {signal: signal})
+    .then(function(r){return r.json();})
+    .catch(function(){return {products:[]};})
+    .then(function(data){return parseOpenFoodFacts(data.products || []).slice(0, 25);});
+}
+
 function executeFoodSearch(query) {
   var parsed = parseFoodQuery(query);
   var foodQuery = parsed.food;
   var brandFilter = parsed.brand;
-  var category = !brandFilter ? getCategoryForQuery(foodQuery) : null;
+
+  // Detect brand-only mode: single query word, no comma, no category match
+  var category = null;
+  var brandOnlyMode = false;
+  if (!brandFilter) {
+    category = getCategoryForQuery(foodQuery);
+    // If no category and single token, treat as possible brand search
+    if (!category && foodQuery.indexOf(' ') === -1) {
+      brandOnlyMode = true;
+    }
+  }
 
   if (activeSearchController) activeSearchController.abort();
   activeSearchController = new AbortController();
@@ -4336,19 +4358,39 @@ function executeFoodSearch(query) {
       : 'Searching...');
   }
 
-  var offPromise = category
-    ? searchOFFByCategory(category, signal)
-    : searchOpenFoodFacts(foodQuery, brandFilter, signal);
+  // Choose OFF strategy
+  var offPromise;
+  if (brandFilter) {
+    // Explicit comma-brand: "chicken, nescafe"
+    offPromise = searchOpenFoodFacts(foodQuery, brandFilter, signal);
+  } else if (category) {
+    // Whole food: category search gives cleaner results
+    offPromise = searchOFFByCategory(category, signal);
+  } else if (brandOnlyMode) {
+    // Single word, no category: run keyword + brand tag in parallel and merge
+    offPromise = Promise.all([
+      searchOpenFoodFacts(foodQuery, null, signal),
+      searchOFFByBrand(foodQuery, signal)
+    ]).then(function(results) {
+      var seen = new Set();
+      return results[0].concat(results[1]).filter(function(f) {
+        if (seen.has(f.id)) return false;
+        seen.add(f.id);
+        return true;
+      }).slice(0, 25);
+    });
+  } else {
+    // Multi-word keyword search
+    offPromise = searchOpenFoodFacts(foodQuery, null, signal);
+  }
 
   offPromise
     .then(function(offResults) {
       activeSearchController = null;
-      var usedNames = new Set(instantResults.map(function(f) {
-        return f.name.split(/[,—]/)[0].toLowerCase().trim();
-      }));
-      var newOff = offResults.filter(function(f) {
-        return !usedNames.has(f.name.split(/[,—]/)[0].toLowerCase().trim());
-      });
+      // Dedup by full name only — first-segment dedup incorrectly filters
+      // OFF results when USDA entries share a short first word (e.g. "chicken")
+      var usedIds = new Set(instantResults.map(function(f){return f.id;}));
+      var newOff = offResults.filter(function(f){return !usedIds.has(f.id);});
 
       if (instantResults.length > 0 || newOff.length > 0) {
         renderSearchResults(instantResults, newOff);
