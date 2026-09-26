@@ -4036,7 +4036,11 @@ function _renderFoodResults(foods) {
   document.getElementById('food-search-loading').style.display = 'none';
   results.innerHTML = window._foodResults.map((item, idx) => `
     <div class="search-result-item" onclick="selectFood(${idx})">
-      <div style="font-weight:500;font-size:13px">${item.name}${item.brand ? ' <span style="color:var(--txt3);font-size:11px">· ' + item.brand + '</span>' : ''}${_sourceBadge(item.source)}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        ${item.brand ? `<span style="font-size:10px;font-weight:700;color:#9A98A0;text-transform:uppercase;letter-spacing:0.04em">${item.brand}</span>` : ''}
+        ${_sourceBadge(item.source)}
+      </div>
+      <div style="font-weight:500;font-size:13px;margin-top:1px">${item.name}</div>
       <div style="font-size:11px;color:var(--txt2);margin-top:2px">${item.cals100} kcal · P:${item.protein100}g C:${item.carbs100}g F:${item.fat100}g (per 100g)</div>
     </div>`).join('');
 }
@@ -4109,20 +4113,11 @@ function _searchLocalFoods(q) {
   return _LOCAL_FOODS.filter(f => terms.every(t => f.description.toLowerCase().includes(t)));
 }
 
-async function _searchOpenFoodFacts(q, signal) {
-  const url = 'https://world.openfoodfacts.org/cgi/search.pl?' +
-    'search_terms=' + encodeURIComponent(q) +
-    '&search_simple=1&action=process&json=1&page_size=20' +
-    '&fields=product_name,nutriments,brands,code,countries_tags' +
-    '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand' +
-    '&language=en&sort_by=unique_scans_n';
-  const r = await fetch(url, {signal});
-  if (!r.ok) throw new Error('off_error');
-  const data = await r.json();
-  return (data.products || [])
+function _parseOffProducts(products) {
+  return (products || [])
     .filter(function(p) {
       if (!p.product_name) return false;
-      if (/[^\x00-\x7F]/.test(p.product_name)) return false; // skip non-Latin names
+      if (/[^\x00-\x7F]/.test(p.product_name)) return false;
       if (!p.nutriments || !p.nutriments['energy-kcal_100g']) return false;
       return true;
     })
@@ -4141,6 +4136,31 @@ async function _searchOpenFoodFacts(q, signal) {
         ],
       };
     });
+}
+
+async function _searchOpenFoodFacts(q, signal) {
+  const base = 'https://world.openfoodfacts.org/cgi/search.pl?' +
+    'search_terms=' + encodeURIComponent(q) +
+    '&search_simple=1&action=process&json=1&page_size=20' +
+    '&fields=product_name,nutriments,brands,code&sort_by=unique_scans_n';
+
+  // Try NZ-scoped first for local products; fall back to global for brands like Doritos
+  const nzUrl = base + '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
+  const r1 = await fetch(nzUrl, {signal});
+  if (!r1.ok) throw new Error('off_error');
+  const d1 = await r1.json();
+  const nzResults = _parseOffProducts(d1.products);
+  if (nzResults.length >= 3) return nzResults;
+
+  // NZ returned too few — try global search
+  const r2 = await fetch(base, {signal});
+  if (!r2.ok) return nzResults; // return what we have
+  const d2 = await r2.json();
+  const globalResults = _parseOffProducts(d2.products);
+  // Merge: NZ first, then global results not already in NZ list
+  const seen = new Set(nzResults.map(f => f.description.toLowerCase()));
+  const merged = nzResults.concat(globalResults.filter(f => !seen.has(f.description.toLowerCase())));
+  return merged;
 }
 
 function doFoodSearch(q) {
