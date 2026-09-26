@@ -4504,12 +4504,11 @@ function _loadMoreResults() {
       s.loadedOff.map(function(f){return f.id;}))
     );
     var newOff = offResults.filter(function(f){return !usedIds.has(f.id);});
-    if (newOff.length === 0) {
-      if (btn) btn.remove();
+    if (btn) btn.remove();
+    if (newOff.length < 3) {
+      // Too few new results — we've hit the bottom, don't show another page button
       return;
     }
-    // Remove old button, append new results
-    if (btn) btn.remove();
     var container = document.getElementById('food-search-results');
     if (container) {
       var frag = document.createElement('div');
