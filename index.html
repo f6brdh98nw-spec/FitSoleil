@@ -762,7 +762,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
 
       <!-- Today's Plan tile -->
-      <div class="card" style="border-color:rgba(232,197,71,0.2)">
+      <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div class="card-title" style="margin-bottom:0">Today's Plan</div>
           <button class="isq" onclick="openModal('modal-plan-rows')" title="Edit plan rows" style="font-size:16px"><i class="ti ti-adjustments-horizontal"></i></button>
@@ -808,7 +808,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
         <div class="quick-tile" onclick="openModal('modal-weight')">
           <div class="quick-tile-icon" style="background:rgba(232,197,71,0.15);color:#E8C547"><i class="ti ti-scale"></i></div>
-          <div><div class="quick-tile-title">Log Weight</div><div class="quick-tile-sub" id="qt-weight-sub">Not logged today</div></div>
+          <div><div class="quick-tile-title">Weight</div><div class="quick-tile-sub" id="qt-weight-sub">Not logged today</div></div>
         </div>
         <div class="quick-tile" onclick="navigate('workout')">
           <div class="quick-tile-icon" style="background:rgba(240,124,58,0.15);color:#F07C3A"><i class="ti ti-barbell"></i></div>
@@ -824,7 +824,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         </div>
       </div>
 
-      <!-- Calories card -->
+      <!-- Calories + Macros card -->
       <div class="card" style="margin-bottom:8px">
         <div style="font-size:10px;color:#5A5860;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Calories</div>
         <div style="display:flex;align-items:baseline;justify-content:space-between">
@@ -837,15 +837,8 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
             <div style="font-size:19px;font-weight:600;color:var(--acc)" id="cals-remaining">2000</div>
           </div>
         </div>
-        <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" id="cals-bar" style="background:var(--acc);width:0%"></div></div>
-      </div>
-
-      <!-- Macros card -->
-      <div class="card" style="margin-bottom:8px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:10px;color:#5A5860;text-transform:uppercase;letter-spacing:0.6px">Macros</div>
-          <button class="isq" onclick="openModal('modal-food')" style="--acc:#4ADE80;width:26px;height:26px;font-size:13px"><i class="ti ti-plus"></i></button>
-        </div>
+        <div class="progress-bar" style="margin-top:8px;margin-bottom:14px"><div class="progress-fill" id="cals-bar" style="background:var(--acc);width:0%"></div></div>
+        <div style="font-size:10px;color:#5A5860;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px">Macros</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div style="background:#22222E;border-radius:9px;padding:9px;text-align:center">
             <div class="macro-val" id="m-protein" style="color:#60A5FA">0g</div>
@@ -875,7 +868,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
 
       <!-- Fasting tile -->
-      <div class="card" id="home-fast-card" style="border-color:rgba(45,212,191,0.2);margin-bottom:8px">
+      <div class="card" id="home-fast-card" style="margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:14px">
           <svg viewBox="0 0 72 72" width="72" height="72" style="flex-shrink:0">
             <circle cx="36" cy="36" r="30" fill="none" stroke="#22222E" stroke-width="7"/>
@@ -906,7 +899,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
             <button class="isq" onclick="openModal('modal-weight')" style="--acc:#E8C547;width:26px;height:26px;font-size:13px"><i class="ti ti-plus"></i></button>
           </div>
         </div>
-        <div id="weight-mini-chart" class="chart-wrap" style="height:80px;margin:0 -16px;width:calc(100% + 32px)"></div>
+        <div id="weight-mini-chart" class="chart-wrap" style="height:auto;margin:0 -16px;width:calc(100% + 32px)"></div>
       </div>
 
       <!-- Water card (250 ml per bubble) -->
@@ -2662,6 +2655,8 @@ function initApp() {
   updateGreeting();
   updateDateLabel();
   renderDashboard();
+  const homeEl = document.getElementById('screen-home');
+  if (homeEl && !homeEl._swipe) { addSwipe(homeEl, () => changeDay(1), () => changeDay(-1)); homeEl._swipe = true; }
   renderWaterGrid();
   renderMealSections();
   renderExerciseList();
@@ -3403,6 +3398,10 @@ function navigate(screen) {
   // Update nav accent for active tab
   const navAcc = SECTION_ACCENTS[screen] || '#E8C547';
   document.getElementById('app').style.setProperty('--nav-acc', navAcc);
+  if (screen === 'home') {
+    const homeEl = document.getElementById('screen-home');
+    if (homeEl && !homeEl._swipe) { addSwipe(homeEl, () => changeDay(1), () => changeDay(-1)); homeEl._swipe = true; }
+  }
   if (screen === 'progress') { renderWeightChart(); renderTrends(); renderGoals(); }
   if (screen === 'nutrition') {
     renderMealSections(); renderRecipesList(); renderMealPlanGrid();
@@ -3454,11 +3453,15 @@ function updateGreeting() {
   document.getElementById('greeting-sub').textContent = `${greet}, ${name} ✨`;
 }
 
+function localDateStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
 function updateDateLabel() {
   const d = new Date(state.currentDate + 'T12:00:00');
-  const today = new Date().toISOString().split('T')[0];
+  const todayStr = localDateStr(new Date());
   const dayStr = d.toLocaleDateString('en-NZ', { weekday: 'short', month: 'short', day: 'numeric' });
-  const label = state.currentDate === today ? 'Today — ' + dayStr : dayStr;
+  const label = state.currentDate === todayStr ? 'Today — ' + dayStr : dayStr;
   const el = document.getElementById('current-date-label');
   if (el) el.textContent = label;
   const ntLabel = document.getElementById('nt-date-label');
@@ -3468,9 +3471,10 @@ function updateDateLabel() {
 function changeDay(delta) {
   const d = new Date(state.currentDate + 'T12:00:00');
   d.setDate(d.getDate() + delta);
-  const todayStr = new Date().toISOString().split('T')[0];
-  if (d.toISOString().split('T')[0] > todayStr) return; // cap at today
-  state.currentDate = d.toISOString().split('T')[0];
+  const newStr = localDateStr(d);
+  const todayStr = localDateStr(new Date());
+  if (newStr > todayStr) return; // cap at today
+  state.currentDate = newStr;
   updateDateLabel();
   renderDashboard();
 }
