@@ -4118,6 +4118,7 @@ function searchCustomFoods(query) {
 // that almost always indicate French/German/Spanish products.
 var _OFF_REJECT = /\b(de|du|le|la|les|un|une|avec|pour|au|aux|et|von|der|die|das|und|mit|van|voor|met|del|della|con|para|los|las|sin)\b/i;
 var _OFF_REJECT_ACCENT = /[àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿœ]/i;
+var _OFF_BRAND_WHITELIST = /\b(nestl[eé]|danon[e]?|lur[a]?pak|anchor|calci[a]?|tip\s*top)\b/i;
 
 function _offKcal(n) {
   var k = n['energy-kcal_100g'] || n['energy-kcal'];
@@ -4136,7 +4137,8 @@ function parseOpenFoodFacts(products) {
     if (!p.product_name || p.product_name.trim().length < 2) return false;
     if (/[^\x00-\xFF]/.test(p.product_name)) return false;
     if (_OFF_REJECT.test(p.product_name)) return false;
-    if (_OFF_REJECT_ACCENT.test(p.product_name)) return false;
+    var brandStr = (p.brands || '') + ' ' + (p.product_name || '');
+    if (_OFF_REJECT_ACCENT.test(p.product_name) && !_OFF_BRAND_WHITELIST.test(brandStr)) return false;
     if (!p.nutriments) return false;
     if (_offKcal(p.nutriments) <= 0) return false;
     return true;
