@@ -2348,49 +2348,47 @@ const EXERCISES = {
 // TEST DATA
 // ============================================================
 function loadTestData() {
-  // Generate dates helper
-  function daysAgo(n) {
-    const d = new Date(); d.setDate(d.getDate()-n);
-    return d.toISOString().split('T')[0];
+  // Generate dates helper — uses local date to avoid NZ/UTC timezone bugs
+  function localStr(d) {
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   }
-  function daysFromNow(n) {
-    const d = new Date(); d.setDate(d.getDate()+n);
-    return d.toISOString().split('T')[0];
-  }
-  function monthsFromNow(n) {
-    const d = new Date(); d.setMonth(d.getMonth()+n);
-    return d.toISOString().split('T')[0];
-  }
+  function daysAgo(n) { const d=new Date(); d.setDate(d.getDate()-n); return localStr(d); }
+  function daysFromNow(n) { const d=new Date(); d.setDate(d.getDate()+n); return localStr(d); }
+  function monthsFromNow(n) { const d=new Date(); d.setMonth(d.getMonth()+n); return localStr(d); }
+  const todayStr = localStr(new Date());
 
-  // Weight log — 90 days, 75.8 → 72.4 with ±0.3 noise
+  // Weight log — 90 days, 75.8 → 72.4 with ±0.3 noise, includes timeOfDay
   const weightLog = [];
+  const tods = ['morning','morning','midday','evening'];
   for (let i=89; i>=0; i--) {
     const trend = 75.8 - (3.4*(89-i)/89);
     const noise = (Math.random()-0.5)*0.6;
-    weightLog.push({ date: daysAgo(i), kg: Math.round((trend+noise)*10)/10 });
+    weightLog.push({ date: daysAgo(i), kg: Math.round((trend+noise)*10)/10, timeOfDay: tods[i%4] });
   }
 
-  // Food log — 90 days
+  // Food log — 90 days; meal field lowercase for H11.05 compatibility
+  // Today: only breakfast logged, lunch planned only → tests H3.08 planned/logged mix
   const logs = {};
   const breakfasts = [
-    {name:'Oats with banana',calories:380,protein:14,carbs:68,fat:7,fiber:6},
-    {name:'Greek yogurt & berries',calories:210,protein:18,carbs:24,fat:4,fiber:3},
-    {name:'Eggs on toast',calories:340,protein:22,carbs:28,fat:12,fiber:2},
-    {name:'Protein smoothie',calories:290,protein:30,carbs:32,fat:5,fiber:4},
+    {name:'Oats with banana',calories:380,protein:14,carbs:68,fat:7,fibre:6},
+    {name:'Greek yogurt & berries',calories:210,protein:18,carbs:24,fat:4,fibre:3},
+    {name:'Eggs on toast',calories:340,protein:22,carbs:28,fat:12,fibre:2},
+    {name:'Protein smoothie',calories:290,protein:30,carbs:32,fat:5,fibre:4},
   ];
   const lunches = [
-    {name:'Chicken & rice bowl',calories:520,protein:45,carbs:58,fat:9,fiber:3},
-    {name:'Tuna salad wrap',calories:410,protein:38,carbs:36,fat:10,fiber:4},
-    {name:'Lentil soup',calories:320,protein:18,carbs:48,fat:5,fiber:9},
-    {name:'Turkey sandwich',calories:450,protein:35,carbs:42,fat:11,fiber:3},
+    {name:'Chicken & rice bowl',calories:520,protein:45,carbs:58,fat:9,fibre:3},
+    {name:'Tuna salad wrap',calories:410,protein:38,carbs:36,fat:10,fibre:4},
+    {name:'Lentil soup',calories:320,protein:18,carbs:48,fat:5,fibre:9},
+    {name:'Turkey sandwich',calories:450,protein:35,carbs:42,fat:11,fibre:3},
   ];
   const dinners = [
-    {name:'Salmon & veg stir-fry',calories:480,protein:40,carbs:30,fat:18,fiber:7},
-    {name:'Beef & sweet potato',calories:560,protein:42,carbs:50,fat:14,fiber:5},
-    {name:'Chicken pasta',calories:540,protein:38,carbs:62,fat:10,fiber:4},
-    {name:'Tofu Buddha bowl',calories:420,protein:22,carbs:55,fat:12,fiber:8},
+    {name:'Salmon & veg stir-fry',calories:480,protein:40,carbs:30,fat:18,fibre:7},
+    {name:'Beef & sweet potato',calories:560,protein:42,carbs:50,fat:14,fibre:5},
+    {name:'Chicken pasta',calories:540,protein:38,carbs:62,fat:10,fibre:4},
+    {name:'Tofu Buddha bowl',calories:420,protein:22,carbs:55,fat:12,fibre:8},
   ];
-  for (let i=89; i>=0; i--) {
+  // Past 89 days — full meals logged
+  for (let i=89; i>=1; i--) {
     const d = daysAgo(i);
     const bfood = breakfasts[i%4];
     const lfood = lunches[(i+1)%4];
@@ -2398,17 +2396,24 @@ function loadTestData() {
     const water = 1600 + Math.floor(Math.random()*600);
     logs[d] = {
       meals: [
-        {...bfood, meal:'Breakfast'},
-        {...lfood, meal:'Lunch'},
-        {...dfood, meal:'Dinner'},
+        {...bfood, meal:'breakfast'},
+        {...lfood, meal:'lunch'},
+        {...dfood, meal:'dinner'},
       ],
       water,
     };
   }
+  // Today: only breakfast logged (tests H3.08 — lunch shows planned, dinner shows planned)
+  logs[todayStr] = {
+    meals: [
+      {...breakfasts[0], meal:'breakfast'},
+    ],
+    water: 750,
+  };
 
-  // Workouts — ~3-4/week over 12 weeks
+  // Workouts — ~3-4/week over 12 weeks; yesterday marked complete to test H3.06
   const workouts = [];
-  const exercises = [
+  const exLib = [
     {name:'Bench Press',sets:[{reps:8,weight:60,done:true},{reps:8,weight:62.5,done:true},{reps:8,weight:65,done:true}]},
     {name:'Squat',sets:[{reps:8,weight:80,done:true},{reps:8,weight:82.5,done:true},{reps:8,weight:85,done:true}]},
     {name:'Deadlift',sets:[{reps:5,weight:100,done:true},{reps:5,weight:100,done:true}]},
@@ -2424,24 +2429,37 @@ function loadTestData() {
           id: Date.now()-week*100000-dayOfWeek*1000,
           date: d,
           name: dayOfWeek===2?'Push Day A':dayOfWeek===4?'Leg Day':'Pull Day',
-          exercises: [exercises[dayOfWeek%5],exercises[(dayOfWeek+1)%5]],
+          exercises: [exLib[dayOfWeek%5],exLib[(dayOfWeek+1)%5]],
           duration: 45+Math.floor(Math.random()*20),
-          started: new Date(d).getTime(),
+          started: new Date(d+'T08:00:00').getTime(),
         });
       }
     });
   }
+  // Yesterday completed — tests H3.06 (completed workout state)
+  workouts.push({
+    id: Date.now()-1000,
+    date: daysAgo(1),
+    name: 'Push Day A',
+    exercises: [exLib[0], exLib[3], exLib[4]],
+    duration: 52,
+    started: new Date(daysAgo(1)+'T07:30:00').getTime(),
+  });
 
-  // Fast log — ~4-5/week over 90 days
+  // Fast log — ~4-5/week over 90 days; all entries have id + lengthHours for H12.02
   const fastLog = [];
   for (let i=89; i>=1; i--) {
     if ([0,3,4].includes(i%7) || Math.random()>0.6) {
       const hours = 14 + Math.floor(Math.random()*7);
+      const startHour = String(20).padStart(2,'0');
+      const endHour = String(8+Math.floor(Math.random()*4)).padStart(2,'0');
       fastLog.push({
-        start: daysAgo(i)+'T20:00:00.000Z',
-        end: daysAgo(i-1)+'T'+(String(8+Math.floor(Math.random()*4)).padStart(2,'0'))+':00:00.000Z',
+        id: String(Date.now()-i*100000),
+        start: daysAgo(i)+'T'+startHour+':00:00.000',
+        end: daysAgo(i-1)+'T'+endHour+':00:00.000',
         protocol:'16:8',
         hours,
+        lengthHours: 16,
       });
     }
   }
@@ -2512,19 +2530,22 @@ function loadTestData() {
   const dnNames = ['Salmon & Veg Stir-fry','Beef & sweet potato','Chicken pasta','Tofu Buddha bowl'];
   for (let i = -7; i <= 13; i++) {
     const d = new Date(); d.setDate(d.getDate() + i);
-    const ds = d.toISOString().split('T')[0];
+    const ds = localStr(d);
     const dow = d.getDay(); // 0=Sun
     if (dow === 0 || dow === 6) continue; // skip weekends
     const idx = Math.abs(i) % 4;
     mealPlan[ds] = {Breakfast: bfNames[idx], Lunch: lnNames[(idx+1)%4], Dinner: dnNames[(idx+2)%4]};
   }
 
-  // Plans
+  // Plans — today's day included in Push Day A so H3.03/H3.04 show a scheduled workout
+  const todayDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
+  const pushDays = ['Monday','Thursday'];
+  if (!pushDays.includes(todayDayName)) pushDays.push(todayDayName);
   const plans = [
     {
       id:101,
       name:'Push Day A',
-      days:['Monday','Thursday'],
+      days: pushDays,
       exercises:[
         {name:'Bench Press',sets:3,reps:8},
         {name:'Overhead Press',sets:3,reps:10},
@@ -2599,9 +2620,9 @@ function loadTestData() {
     },
   ];
 
-  // Active fast (started 10 hours ago)
+  // Active fast (started 10 hours ago) — field is startTime per H7.10/H7.11
   const tenHoursAgo = new Date(Date.now() - 10*3600000).toISOString();
-  const activeFast = { start: tenHoursAgo, hours: 16, protocol: '16:8' };
+  const activeFast = { startTime: tenHoursAgo, protocol: '16:8', lengthHours: 16 };
 
   // Build state
   state = {
@@ -2615,6 +2636,7 @@ function loadTestData() {
     workouts,
     fastLog,
     activeFast,
+    fastingProtocol: '16:8',
     lastFastProtocol: '16:8',
     cycleLog,
     recipes,
@@ -2627,7 +2649,7 @@ function loadTestData() {
     fastStreak: 3,
     macroMode: 'auto',
     planRows: { workout:true, food:true, water:false, fast:false },
-    currentDate: new Date().toISOString().split('T')[0],
+    currentDate: todayStr,
     cycleViewDate: new Date(),
     reviewStep: 1,
     trendPeriod: 30,
