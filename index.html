@@ -1570,7 +1570,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
       <div class="card">
         <div class="card-title">Daily Targets</div>
-        <div class="input-group"><label class="input-label">Calories</label><input type="number" id="s-cals" oninput="settingsRecalcMacros()"/></div>
+        <div class="input-group"><label class="input-label">Calories</label><input type="text" inputmode="decimal" id="s-cals" oninput="this.value=this.value.replace(/[^0-9.]/g,'');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
         <div class="input-group">
           <label class="input-label">Macro mode</label>
           <div class="ob-pill-group" id="s-macro-pills">
@@ -1589,16 +1589,16 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           </div>
         </div>
         <div id="macro-inputs" style="margin-top:20px">
-          <div class="input-group"><label class="input-label">Protein (g)</label><input type="number" id="s-protein" oninput="settingsRecalcMacros()"/></div>
-          <div class="input-group"><label class="input-label">Carbs (g)</label><input type="number" id="s-carbs" oninput="settingsRecalcMacros()"/></div>
-          <div class="input-group"><label class="input-label">Fat (g)</label><input type="number" id="s-fat" oninput="settingsRecalcMacros()"/></div>
-          <div class="input-group"><label class="input-label">Fibre (g)</label><input type="number" id="s-fibre" placeholder="e.g. 25"/></div>
+          <div class="input-group"><label class="input-label">Protein (g)</label><input type="text" inputmode="decimal" id="s-protein" oninput="this.value=this.value.replace(/[^0-9.]/g,'');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
+          <div class="input-group"><label class="input-label">Carbs (g)</label><input type="text" inputmode="decimal" id="s-carbs" oninput="this.value=this.value.replace(/[^0-9.]/g,'');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
+          <div class="input-group"><label class="input-label">Fat (g)</label><input type="text" inputmode="decimal" id="s-fat" oninput="this.value=this.value.replace(/[^0-9.]/g,'');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
+          <div class="input-group"><label class="input-label">Fibre (g)</label><input type="text" inputmode="decimal" id="s-fibre" placeholder="e.g. 25" oninput="this.value=this.value.replace(/[^0-9.]/g,'')" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
         </div>
         <button id="s-macro-reset" onclick="settingsResetMacros()" style="align-self:flex-start;font-size:11px;padding:5px 12px;border-radius:8px;background:rgba(232,197,71,0.08);border:0.5px solid rgba(232,197,71,0.3);color:#E8C547;cursor:pointer;margin-bottom:8px">Reset macros</button>
         <div id="s-kcal-check" class="ob-kcal-check" style="display:none;margin-top:8px"></div>
         <div id="s-kcal-note" class="ob-hint" style="display:none;margin-top:4px"></div>
         <div id="macro-calc-hint" style="font-size:11px;color:var(--txt2);margin-bottom:12px;padding:8px;background:var(--s2);border-radius:8px"></div>
-        <div class="input-group"><label class="input-label">Water target (ml)</label><input type="number" id="s-water" placeholder="e.g. 2000"/></div>
+        <div class="input-group"><label class="input-label">Water target (ml)</label><input type="text" inputmode="decimal" id="s-water" placeholder="e.g. 2000" oninput="this.value=this.value.replace(/[^0-9.]/g,'')" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
         <button class="btn btn-primary" onclick="saveTargets()">Save</button>
         <div style="margin-top:16px;border-top:1px solid var(--s3);padding-top:16px">
           <div class="card-title" style="margin-bottom:10px">Goal</div>
@@ -2311,7 +2311,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
 // ============================================================
 let state = {
   profile: { name: '', height: 0, dob: '' },
-  targets: { calories: 2000, protein: 150, carbs: 200, fat: 65, water: 8 },
+  targets: { calories: 2000, protein: 150, carbs: 200, fat: 65, fibre: 25, water: 2000, macroMode: 'auto', macroSplit: 'balanced', nutritionDaysPerWeek: 5 },
   goals: { weight: 0 },
   currentDate: new Date().toISOString().split('T')[0],
   logs: {},       // { 'YYYY-MM-DD': { meals: [], water: 0, weight: null } }
@@ -2639,7 +2639,7 @@ function loadTestData() {
     profile: { name:'Alix', height:168, dob:'1990-03-15' },
     goalWeight: 65,
     goalDate: monthsFromNow(3),
-    targets: { calories:1800, protein:140, carbs:180, fat:55, water:2000, fibre:25 },
+    targets: { calories:1800, protein:140, carbs:180, fat:55, fibre:25, water:2000, macroMode:'auto', macroSplit:'balanced', nutritionDaysPerWeek:5 },
     weightLog,
     logs,
     workouts,
@@ -3990,9 +3990,19 @@ function searchFoodFiles(query) {
   return FOODFILES_DB.filter(function(food) {
     var name = food.name.toLowerCase();
     return words.every(function(w) { return name.includes(w); });
-  }).sort(function(a, b) {
-    return a.name.length - b.name.length;
-  }).slice(0, 10);
+  }).map(function(food) {
+    var name = food.name.toLowerCase();
+    var score = name.length; // shorter = better base
+    words.forEach(function(w) {
+      // Word-boundary match: preceded by start, comma, space or parenthesis
+      var wordBoundary = new RegExp('(^|[,\\s(])' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+      if (wordBoundary.test(name)) score -= 200; // exact word match
+      if (name.startsWith(w)) score -= 100;       // starts with query
+    });
+    return { food: food, score: score };
+  }).sort(function(a, b) { return a.score - b.score; })
+    .map(function(x) { return x.food; })
+    .slice(0, 10);
 }
 
 function searchFallback(query) {
@@ -4007,10 +4017,15 @@ function searchCustomFoods(query) {
   });
 }
 
+// Common non-English words that slip through ASCII filter
+var _OFF_REJECT = /\b(de|du|le|la|les|un|une|avec|pour|au|aux|bio|et|von|der|die|das|und|mit|van|voor|met|del|della|con|para|los|las|los|sin)\b/i;
+
 function parseOpenFoodFacts(products) {
   return (products || []).filter(function(p) {
     if (!p.product_name || p.product_name.trim().length < 2) return false;
     if (/[^\x00-\x7F]/.test(p.product_name)) return false;
+    // Reject products with common non-English function words
+    if (_OFF_REJECT.test(p.product_name)) return false;
     if (!p.nutriments) return false;
     var kcal = p.nutriments['energy-kcal_100g'] || p.nutriments['energy-kcal'];
     if (!kcal || kcal <= 0) return false;
@@ -6382,7 +6397,7 @@ function doFullReset() {
   localStorage.removeItem('fitsol_v2');
   state = {
     profile: { name: '', height: 0, dob: '' },
-    targets: { calories: 2000, protein: 150, carbs: 200, fat: 65, water: 2000 },
+    targets: { calories: 2000, protein: 150, carbs: 200, fat: 65, fibre: 25, water: 2000, macroMode: 'auto', macroSplit: 'balanced', nutritionDaysPerWeek: 5 },
     goals: [],
     currentDate: new Date().toISOString().split('T')[0],
     logs: {}, workouts: [], plans: [], recipes: [],
