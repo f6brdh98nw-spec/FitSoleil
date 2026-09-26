@@ -3878,7 +3878,7 @@ function renderFastingState() {
   if (pfStatus) pfStatus.textContent = String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0') + ' / ' + goalH + 'h';
   if (pfBar) pfBar.style.width = (progress*100) + '%';
 }
-function updateHomeFastTile() { renderFastingState(); }
+function updateHomeFastTile() { renderFastingForDate(); }
 
 function format12hr(date) {
   var h = date.getHours(), m = date.getMinutes().toString().padStart(2,'0');
@@ -3918,18 +3918,23 @@ function renderFastingForDate() {
     const labelEl = document.getElementById('home-fast-label');
     const progressEl = document.getElementById('home-fast-progress');
     const btnEl = document.getElementById('home-fast-btn');
-    if (ringEl) ringEl.setAttribute('stroke-dashoffset', '238.8');
-    if (btnEl) { btnEl.style.display='none'; }
+    if (btnEl) btnEl.style.display = 'none';
     if (pastFast) {
-      if (titleEl) titleEl.textContent = pastFast.protocol + ' fast';
-      if (elapsedEl) elapsedEl.textContent = pastFast.hours + 'h';
-      if (labelEl) labelEl.textContent = 'Completed · ' + pastFast.hours + 'h';
-      if (progressEl) { const pct = Math.min(100, (pastFast.hours / (pastFast.lengthHours||16))*100); progressEl.style.width = pct+'%'; }
+      // Full teal ring
+      if (ringEl) ringEl.setAttribute('stroke-dashoffset', '0');
+      const hrs = Math.floor(pastFast.hours);
+      const mins = Math.round((pastFast.hours - hrs) * 60);
+      const durStr = mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+      if (elapsedEl) elapsedEl.textContent = durStr;
+      if (titleEl) titleEl.textContent = pastFast.protocol || '16:8';
+      if (labelEl) labelEl.textContent = 'Completed ✓';
+      if (progressEl) progressEl.style.width = '100%';
     } else {
-      if (titleEl) titleEl.textContent = 'Fasting';
+      if (ringEl) ringEl.setAttribute('stroke-dashoffset', '238.8');
       if (elapsedEl) elapsedEl.textContent = '—';
+      if (titleEl) titleEl.textContent = 'Fasting';
       if (labelEl) labelEl.textContent = 'No fast logged';
-      if (progressEl) progressEl.style.width='0%';
+      if (progressEl) progressEl.style.width = '0%';
     }
   }
 }
