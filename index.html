@@ -4265,8 +4265,7 @@ var FOOD_CATEGORIES = {
   'sunflower seeds': 'en:sunflower-seeds',
   'chia': 'en:chia-seeds', 'flaxseed': 'en:flaxseeds',
   'olive oil': 'en:olive-oils', 'oil': 'en:oils',
-  'mince': 'en:ground-meat', 'ground beef': 'en:ground-meat',
-  'mince beef': 'en:ground-meat', 'beef mince': 'en:ground-meat'
+  'ground beef': 'en:ground-meat'
 };
 
 function getCategoryForQuery(query) {
@@ -4316,7 +4315,6 @@ function searchOFFByCategory(category, signal, page) {
 
 // Extra synonyms for categories where the OFF slug doesn't match common product names
 var _CATEGORY_SYNONYMS = {
-  'ground-meat': ['mince', 'ground', 'meat'],
   'shrimps': ['prawn', 'shrimp'],
   'bacons': ['bacon'],
   'hams': ['ham'],
