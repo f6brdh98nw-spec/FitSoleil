@@ -3595,8 +3595,10 @@ function renderDashboard() {
     const activeWO = state.activeWorkout && state.activeWorkout.date === state.currentDate ? state.activeWorkout : null;
 
     const completedPlanIds = completedSessions.map(s => s.planId).filter(Boolean);
+    const todayPlanIds = new Set(todayPlans.map(p => p.id));
     const rows = [];
-    // One row per planned workout — colour changes by state, no extra rows
+
+    // One row per scheduled plan — colour reflects state
     todayPlans.forEach(plan => {
       const isCompleted = completedPlanIds.includes(plan.id);
       const isActive = activeWO && activeWO.planId === plan.id;
@@ -3609,8 +3611,21 @@ function renderDashboard() {
       }
     });
 
+    // Active workout not in scheduled plans (started ad-hoc or from another plan)
+    if (activeWO && !todayPlanIds.has(activeWO.planId)) {
+      const plan = (state.plans||[]).find(p => p.id === activeWO.planId);
+      const name = plan ? plan.name : 'Workout';
+      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${name} <span style="color:#F07C3A;font-size:11px">● In progress</span></div>`);
+    }
+
+    // Completed sessions not in scheduled plans (ad-hoc or unscheduled plan)
+    completedSessions.forEach(session => {
+      if (session.planId && todayPlanIds.has(session.planId)) return; // already shown above
+      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${session.name || 'Workout'}</div>`);
+    });
+
     const hasUnstarted = todayPlans.some(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
-    const allDone = todayPlans.length > 0 && todayPlans.every(p => completedPlanIds.includes(p.id));
+    const allDone = rows.length > 0 && !activeWO && todayPlans.length > 0 && todayPlans.every(p => completedPlanIds.includes(p.id));
     const playBtnEl = document.getElementById('plan-workout-play');
     if (playBtnEl) {
       if (hasUnstarted) {
