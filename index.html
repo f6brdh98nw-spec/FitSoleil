@@ -870,6 +870,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           </div>
         </div>
       </div>
+      <div id="macro-debug" style="font-size:10px;color:#5A5860;padding:2px 16px 6px"></div>
 
       <!-- Fasting tile -->
       <div class="card" id="home-fast-card" style="margin-bottom:8px">
@@ -3523,10 +3524,19 @@ function changeDay(delta) {
   renderDashboard();
 }
 
+function getTargets() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('fitsol_v2') || '{}');
+    return saved.targets || { calories: 0, protein: 0, carbs: 0, fat: 0, fibre: 25, water: 2000 };
+  } catch(e) { return { calories: 0, protein: 0, carbs: 0, fat: 0, fibre: 25, water: 2000 }; }
+}
+
 function renderDashboard() {
   const log = getDayLog();
   const totals = calcTotals(log.meals || []);
-  const tgt = state.targets;
+  const tgt = getTargets();
+  const debugEl = document.getElementById('macro-debug');
+  if (debugEl) debugEl.textContent = 'fitsol_v2.targets: P=' + tgt.protein + ' C=' + tgt.carbs + ' F=' + tgt.fat + ' Fi=' + tgt.fibre;
 
   // ── Calories card ──
   setEl('cals-consumed', totals.calories.toLocaleString ? totals.calories.toLocaleString() : totals.calories);
@@ -3660,7 +3670,7 @@ function renderDashboard() {
     } else {
       const planned = state.mealPlan?.[state.currentDate]?.[label];
       if (planned) {
-        mealRows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${label} — ${planned} (planned)</div>`);
+        mealRows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${label} — ${planned}</div>`);
       }
     }
   });
@@ -3760,16 +3770,15 @@ function renderWaterGrid() {
 
 function toggleWater(idx) {
   const log = getDayLog();
-  const targetMl = state.targets.water || 2000;
+  const targetMl = getTargets().water || 2000;
   const filledBubbles = Math.floor((log.water || 0) / WATER_STEP);
   if (idx < filledBubbles) {
-    if (idx === 0 && filledBubbles >= 1) {
-      log.water = 0;
-    } else {
-      log.water = Math.max(0, (log.water||0) - 250);
-    }
+    // Tapping a filled bubble — remove back to that bubble's position
+    // idx=0 → zero out; idx=2 → keep 2 bubbles (500ml)
+    log.water = idx === 0 ? 0 : idx * 250;
   } else {
-    log.water = (log.water||0) + 250;
+    // Tapping an empty bubble — fill UP TO and including that bubble
+    log.water = (idx + 1) * 250;
   }
   saveState();
   renderWaterGrid();
@@ -3978,13 +3987,14 @@ async function doFoodSearch(q) {
   const loading = document.getElementById('food-search-loading');
   const results = document.getElementById('food-search-results');
   loading.style.display = 'flex';
-  results.innerHTML = '';
+  // Don't clear results here — keep showing previous results until new ones arrive
   window._foodResults = [];
 
   try {
-    // USDA FoodData Central — demo key, rate-limited but free
-    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&pageSize=20&dataType=Survey%20(FNDDS),SR%20Legacy,Foundation&api_key=DEMO_KEY`;
+    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&pageSize=20&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded&api_key=DEMO_KEY`;
     const r = await fetch(url);
+    if (r.status === 429) throw new Error('rate_limit');
+    if (!r.ok) throw new Error('api_error');
     const data = await r.json();
     loading.style.display = 'none';
 
@@ -3993,36 +4003,44 @@ async function doFoodSearch(q) {
       return;
     }
 
-    window._foodResults = data.foods.slice(0,12).map(f => {
-      const getNut = (name) => {
-        const n = (f.foodNutrients||[]).find(x => x.nutrientName && x.nutrientName.toLowerCase().includes(name.toLowerCase()));
-        return n ? Math.round(n.value || 0) : 0;
-      };
-      return {
-        name: f.description,
-        brand: f.brandOwner || f.brandName || '',
-        cals100: getNut('energy'),
-        protein100: getNut('protein'),
-        carbs100: getNut('carbohydrate'),
-        fat100: getNut('total lipid'),
-        fiber100: getNut('fiber'),
-        serving: 100,
-      };
-    }).filter(i => i.cals100 > 0);
+    try {
+      window._foodResults = data.foods.slice(0,12).map(f => {
+        const getNut = (name) => {
+          const n = (f.foodNutrients||[]).find(x => x.nutrientName && x.nutrientName.toLowerCase().includes(name.toLowerCase()));
+          return n ? Math.round(n.value || 0) : 0;
+        };
+        return {
+          name: f.description,
+          brand: f.brandOwner || f.brandName || '',
+          cals100: getNut('energy'),
+          protein100: getNut('protein'),
+          carbs100: getNut('carbohydrate'),
+          fat100: getNut('total lipid'),
+          fiber100: getNut('fiber'),
+          serving: 100,
+        };
+      }).filter(i => i.cals100 > 0);
 
-    if (!window._foodResults.length) {
-      results.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3);font-size:13px">No results with nutrition data. Try a different search.</div>';
-      return;
+      if (!window._foodResults.length) {
+        results.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3);font-size:13px">No results with nutrition data. Try a different search.</div>';
+        return;
+      }
+
+      results.innerHTML = window._foodResults.map((item, idx) => `
+        <div class="search-result-item" onclick="selectFood(${idx})">
+          <div style="font-weight:500;font-size:13px">${item.name}${item.brand ? ' <span style="color:var(--txt3);font-size:11px">· ' + item.brand + '</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:2px">${item.cals100} kcal · P:${item.protein100}g C:${item.carbs100}g F:${item.fat100}g (per 100g)</div>
+        </div>`).join('');
+    } catch(renderErr) {
+      results.innerHTML = '<div style="padding:12px;color:var(--danger);font-size:13px">Search unavailable. Add food manually using the Custom tab.</div>';
     }
-
-    results.innerHTML = window._foodResults.map((item, idx) => `
-      <div class="search-result-item" onclick="selectFood(${idx})">
-        <div style="font-weight:500;font-size:13px">${item.name}${item.brand ? ' <span style="color:var(--txt3);font-size:11px">· ' + item.brand + '</span>' : ''}</div>
-        <div style="font-size:11px;color:var(--txt2);margin-top:2px">${item.cals100} kcal · P:${item.protein100}g C:${item.carbs100}g F:${item.fat100}g (per 100g)</div>
-      </div>`).join('');
   } catch(e) {
     loading.style.display = 'none';
-    results.innerHTML = '<div style="padding:12px;color:var(--danger);font-size:13px">Search failed. Check your connection.</div>';
+    if (e.message === 'rate_limit') {
+      results.innerHTML = '<div style="padding:12px;color:var(--txt3);font-size:13px">Search limit reached — try again in a moment.</div>';
+    } else {
+      results.innerHTML = '<div style="padding:12px;color:var(--txt3);font-size:13px">Search unavailable. Add food manually using the Custom tab.</div>';
+    }
   }
 }
 
@@ -4724,10 +4742,10 @@ function savePlan() {
   state.planBeingBuilt = { name: '', days: [], exercises: [] };
   saveState();
   renderWorkoutPlans();
+  renderDashboard();
   closeModal('modal-create-plan');
   showToast(`Plan saved: ${name} ✓`);
   scheduleWorkoutReminders(plan);
-  if (document.getElementById('screen-home')?.classList.contains('active')) renderDashboard();
 }
 
 function togglePlanDay(el) { el.classList.toggle('selected'); }
@@ -6294,7 +6312,7 @@ function openModal(id) {
   if (id === 'modal-food') {
     const searchInput = document.getElementById('food-search-input');
     searchInput.value = '';
-    document.getElementById('food-search-results').innerHTML = '';
+    // Don't clear results until new results are ready — avoids blank flash and lost results
     const mealSel = document.getElementById('food-meal-select');
     if (mealSel) mealSel.value = 'Breakfast';
     renderRecipesList();
