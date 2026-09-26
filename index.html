@@ -2527,7 +2527,7 @@ function loadTestData() {
     const d = new Date(); d.setDate(d.getDate() + i);
     const ds = localStr(d);
     const dow = d.getDay(); // 0=Sun
-    if (dow === 0 || dow === 6) continue; // skip weekends
+    // no weekend skip — meals are planned every day
     const idx = Math.abs(i) % 4;
     mealPlan[ds] = {Breakfast: bfNames[idx], Lunch: lnNames[(idx+1)%4], Dinner: dnNames[(idx+2)%4]};
   }
@@ -3932,7 +3932,7 @@ function renderFastingForDate() {
 function startPlanInline(planId) {
   state.activeWorkout = { planId, startTime: new Date().toISOString(), date: state.currentDate };
   saveState();
-  renderDashboard();
+  navigate('workout');
 }
 
 function startFastFromHome() {
