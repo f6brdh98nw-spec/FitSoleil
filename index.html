@@ -2393,9 +2393,9 @@ function loadTestData() {
     const water = 1600 + Math.floor(Math.random()*600);
     logs[d] = {
       meals: [
-        {...bfood, meal:'breakfast'},
-        {...lfood, meal:'lunch'},
-        {...dfood, meal:'dinner'},
+        {...bfood, meal:'Breakfast'},
+        {...lfood, meal:'Lunch'},
+        {...dfood, meal:'Dinner'},
       ],
       water,
     };
@@ -2403,7 +2403,7 @@ function loadTestData() {
   // Today: only breakfast logged (tests H3.08 — lunch shows planned, dinner shows planned)
   logs[todayStr] = {
     meals: [
-      {...breakfasts[0], meal:'breakfast'},
+      {...breakfasts[0], meal:'Breakfast'},
     ],
     water: 750,
   };
@@ -3649,18 +3649,17 @@ function renderDashboard() {
       : `<div style="color:#5A5860">Rest day — tap to schedule</div>`;
   }
   // Meals row — logged > planned priority, max 3 rows
-  const mealTypesRow = ['breakfast','lunch','dinner','snack'];
+  const mealTypesRow = ['Breakfast','Lunch','Dinner','Snack'];
   const mealRows = [];
-  mealTypesRow.forEach(mealType => {
+  mealTypesRow.forEach(label => {
     if (mealRows.length >= 3) return;
-    const label = mealType.charAt(0).toUpperCase() + mealType.slice(1);
-    const logged = (getDayLog().meals||[]).filter(m => (m.meal||'').toLowerCase() === mealType);
+    const logged = (getDayLog().meals||[]).filter(m => (m.meal||'').toLowerCase() === label.toLowerCase());
     if (logged.length) {
       mealRows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${label} — ${logged[0].name}</div>`);
     } else {
-      const planned = (state.mealPlan && state.mealPlan[state.currentDate] && state.mealPlan[state.currentDate][label]);
+      const planned = state.mealPlan?.[state.currentDate]?.[label];
       if (planned) {
-        mealRows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${label} — ${planned} (planned)</div>`);
+        mealRows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${label} — ${planned}</div>`);
       }
     }
   });
