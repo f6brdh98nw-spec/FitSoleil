@@ -4092,18 +4092,21 @@ function executeFoodSearch(query) {
       var allResults = instantResults.concat(newOff);
       if (allResults.length > 0) {
         renderSearchResults(instantResults, newOff);
-        _setFoodSourceLine('');
+        var parts = [];
+        if (instantResults.length > 0) parts.push('FOODfiles NZ (' + instantResults.length + ')');
+        if (newOff.length > 0) parts.push('Open Food Facts (' + newOff.length + ')');
+        _setFoodSourceLine('Sources: ' + parts.join(' + '));
       } else {
         var fallback = searchFallback(query);
         renderSearchResults(fallback, []);
-        _setFoodSourceLine(fallback.length > 0 ? 'Showing common foods — results may be limited' : 'No results found. Try different terms or add a custom food.');
+        _setFoodSourceLine(fallback.length > 0 ? 'Showing FOODfiles NZ (' + fallback.length + ' results)' : 'No results found. Try different terms or add a custom food.');
       }
     })
     .catch(function(err) {
       if (err && err.name === 'AbortError') return;
       activeSearchController = null;
       if (instantResults.length > 0) {
-        _setFoodSourceLine('');
+        _setFoodSourceLine('FOODfiles NZ (' + instantResults.length + ' results) — online search unavailable');
       } else {
         var fallback = searchFallback(query);
         renderSearchResults(fallback, []);
