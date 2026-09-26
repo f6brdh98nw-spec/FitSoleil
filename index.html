@@ -3598,12 +3598,12 @@ function renderDashboard() {
     const rows = [];
     // Completed sessions — white
     completedSessions.forEach(session => {
-      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${session.name || 'Workout'} — completed ✓</div>`);
+      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${session.name || 'Workout'} ✓</div>`);
     });
-    // Active session — orange
+    // Active session — white name with orange in-progress indicator
     if (activeWO) {
       const activePlan = (state.plans||[]).find(p => p.id === activeWO.planId);
-      if (activePlan) rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F07C3A">${activePlan.name} — in progress ●</div>`);
+      if (activePlan) rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${activePlan.name} <span style="color:#F07C3A;font-size:11px">● In progress</span></div>`);
     }
     // Planned sessions not yet started — muted
     todayPlans.forEach(plan => {
@@ -3613,8 +3613,23 @@ function renderDashboard() {
     });
 
     const hasUnstarted = todayPlans.some(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
+    const allDone = todayPlans.length > 0 && todayPlans.every(p => completedPlanIds.includes(p.id));
     const playBtnEl = document.getElementById('plan-workout-play');
-    if (playBtnEl) playBtnEl.style.display = hasUnstarted ? 'inline-flex' : 'none';
+    if (playBtnEl) {
+      if (hasUnstarted) {
+        playBtnEl.style.display = 'inline-flex';
+        playBtnEl.style.setProperty('--acc', '#F07C3A');
+        playBtnEl.innerHTML = '<i class="ti ti-player-play"></i>';
+        playBtnEl.onclick = () => navigate('workout');
+      } else if (allDone) {
+        playBtnEl.style.display = 'inline-flex';
+        playBtnEl.style.setProperty('--acc', '#4ADE80');
+        playBtnEl.innerHTML = '<i class="ti ti-check"></i>';
+        playBtnEl.onclick = () => navigate('workout');
+      } else {
+        playBtnEl.style.display = 'none';
+      }
+    }
 
     workoutRowsEl.innerHTML = rows.length
       ? rows.join('')
