@@ -4290,10 +4290,12 @@ function searchOFFByCategory(category, signal, page) {
       fetch(globalUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};})
     ]).then(function(results) {
       var nz = parseOpenFoodFacts(results[0].products || []);
-      var global = parseOpenFoodFacts(results[1].products || []);
+      // NZ results trust the category tag — no name filter needed
+      // Global extras get name-filtered to catch OFF miscategorisation
+      var global = _filterByCategory(parseOpenFoodFacts(results[1].products || []), keyword);
       var nzIds = new Set(nz.map(function(p){return p.id;}));
       var extra = global.filter(function(p){return !nzIds.has(p.id);});
-      return _filterByCategory(nz.concat(extra), keyword).slice(0, 25);
+      return nz.concat(extra).slice(0, 25);
     });
   }
   // Page 2+: single global fetch at the requested page
