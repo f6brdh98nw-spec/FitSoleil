@@ -115,6 +115,11 @@
   /* BUTTONS */
   button { display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; }
   button * { pointer-events: none; }
+  .modal button, .modal-overlay button, .bottom-sheet button,
+  [class*="modal"] button, [class*="sheet"] button {
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  [class*="modal"] button *, [class*="sheet"] button * { pointer-events: none; }
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     padding: 12px 20px; border-radius: var(--r-sm); border: none;
@@ -913,6 +918,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           <input type="number" id="water-custom-ml" placeholder="ml" min="1" max="2000" style="flex:1"/>
           <button class="btn btn-sm" onclick="addWaterCustom()" style="background:#60A5FA;color:#0F0F13;white-space:nowrap;width:auto;flex-shrink:0">+ Add</button>
         </div>
+        <button style="background:rgba(248,113,113,0.08);border:0.5px solid rgba(248,113,113,0.3);color:#F87171;font-size:11px;border-radius:8px;padding:5px 12px;margin-top:8px;cursor:pointer;width:auto;align-self:flex-start" onclick="resetWater()">Reset water</button>
       </div>
 
     </div>
@@ -3623,8 +3629,12 @@ function renderDashboard() {
         playBtnEl.style.display = 'inline-flex';
         playBtnEl.style.setProperty('--acc', '#F07C3A');
         playBtnEl.innerHTML = '<i class="ti ti-player-play"></i>';
-        const firstUnstarted = todayPlans.find(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
-        playBtnEl.onclick = () => firstUnstarted ? startPlanInline(firstUnstarted.id) : navigate('workout');
+        const unstartedPlans = todayPlans.filter(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
+        playBtnEl.onclick = () => {
+          if (unstartedPlans.length > 1) showWorkoutPicker(unstartedPlans);
+          else if (unstartedPlans.length === 1) startPlanInline(unstartedPlans[0].id);
+          else navigate('workout');
+        };
       } else if (allDone) {
         playBtnEl.style.display = 'inline-flex';
         playBtnEl.style.setProperty('--acc', '#4ADE80');
@@ -3646,11 +3656,11 @@ function renderDashboard() {
     if (mealRows.length >= 3) return;
     const logged = (getDayLog().meals||[]).filter(m => (m.meal||'').toLowerCase() === label.toLowerCase());
     if (logged.length) {
-      mealRows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${label} — ${logged[0].name}</div>`);
+      mealRows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${label} — ${logged.map(f=>f.name).join(', ')}</div>`);
     } else {
       const planned = state.mealPlan?.[state.currentDate]?.[label];
       if (planned) {
-        mealRows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${label} — ${planned}</div>`);
+        mealRows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${label} — ${planned} (planned)</div>`);
       }
     }
   });
@@ -3753,7 +3763,11 @@ function toggleWater(idx) {
   const targetMl = state.targets.water || 2000;
   const filledBubbles = Math.floor((log.water || 0) / WATER_STEP);
   if (idx < filledBubbles) {
-    log.water = Math.max(0, (log.water||0) - 250);
+    if (idx === 0 && filledBubbles >= 1) {
+      log.water = 0;
+    } else {
+      log.water = Math.max(0, (log.water||0) - 250);
+    }
   } else {
     log.water = (log.water||0) + 250;
   }
@@ -3828,6 +3842,10 @@ function renderFastingState() {
   }
   const now = new Date();
   const start = new Date(state.activeFast.start);
+  if (isNaN(start.getTime())) {
+    state.activeFast.start = new Date().toISOString();
+    saveState();
+  }
   const elapsedMs = now - start;
   const goalH = state.activeFast.hours || 16;
   const goalMs = goalH * 3600000;
@@ -3920,6 +3938,18 @@ function startPlanInline(planId) {
   state.activeWorkout = { planId, startTime: new Date().toISOString(), date: state.currentDate };
   saveState();
   startPlan(planId);
+}
+
+function showWorkoutPicker(plans) {
+  const existing = document.getElementById('workout-picker-sheet');
+  if (existing) existing.remove();
+  const sheet = document.createElement('div');
+  sheet.className = 'modal-overlay open';
+  sheet.id = 'workout-picker-sheet';
+  const rows = plans.map(p => `<button class="btn btn-secondary" style="margin-bottom:8px" onclick="startPlanInline(${p.id});document.getElementById('workout-picker-sheet').remove()">${p.name} →</button>`).join('');
+  sheet.innerHTML = `<div class="modal"><div class="modal-handle"></div><div class="modal-title">Which workout?</div>${rows}<button class="btn btn-outline" style="margin-top:8px" onclick="document.getElementById('workout-picker-sheet').remove()">Cancel</button></div>`;
+  document.body.appendChild(sheet);
+  sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
 }
 
 function startFastFromHome() {
@@ -4398,18 +4428,24 @@ function renderWeightMiniChart() {
   const el = document.getElementById('weight-mini-chart');
   if (!el) return;
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = localDateStr(today);
   // Build 7-day window: 4 past + today + 2 future
   const pts = [];
   for (let i = -4; i <= 2; i++) {
     const d = new Date(today); d.setDate(d.getDate()+i);
-    const ds = d.toISOString().split('T')[0];
+    const ds = localDateStr(d);
     const lbl = String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
     const entry = (state.weightLog||[]).find(w => w.date === ds);
     pts.push({x: lbl, v: entry ? entry.kg : null, isFuture: i > 0, isToday: i === 0});
   }
   const todayIdx = 4; // index of today in pts array
-  drawLineChart(el, pts, '#C084FC', {todayIdx, gradientId:'mini-wt', futureFrom: 5});
+  // Find which index corresponds to state.currentDate (offset -4..2 maps to index 0..6)
+  let selectedIdx = todayIdx;
+  for (let si = 0; si < pts.length; si++) {
+    const sd = new Date(today); sd.setDate(sd.getDate() + (si - 4));
+    if (localDateStr(sd) === state.currentDate) { selectedIdx = si; break; }
+  }
+  drawLineChart(el, pts, '#C084FC', {todayIdx, selectedIdx, gradientId:'mini-wt', futureFrom: 5, width: el.clientWidth || 300});
   // Gold kg value
   const wl = state.weightLog || [];
   const latest = wl.length ? wl[wl.length-1].kg : null;
@@ -4683,6 +4719,7 @@ function savePlan() {
   closeModal('modal-create-plan');
   showToast(`Plan saved: ${name} ✓`);
   scheduleWorkoutReminders(plan);
+  if (document.getElementById('screen-home')?.classList.contains('active')) renderDashboard();
 }
 
 function togglePlanDay(el) { el.classList.toggle('selected'); }
@@ -5184,7 +5221,7 @@ function drawLineChart(container, vals, color, opts = {}) {
     container.innerHTML = '<div style="color:var(--txt3);font-size:11px;text-align:center;padding:16px">No data</div>';
     return;
   }
-  const W = 300, H = 100, PL = opts.noYAxis ? 4 : 32, PB = 18, PT = 8, PR = opts.noYAxis ? 4 : 8;
+  const W = opts.width || 300, H = 100, PL = opts.noYAxis ? 4 : 32, PB = 18, PT = 8, PR = opts.noYAxis ? 4 : 8;
   const cW = W-PL-PR, cH = H-PB-PT;
   const minV = Math.min(...nonNull.map(p=>p.v));
   const maxV = Math.max(...nonNull.map(p=>p.v));
@@ -5218,22 +5255,23 @@ function drawLineChart(container, vals, color, opts = {}) {
   const step = Math.max(1, Math.ceil(vals.length/5));
   const todayIdx = opts.todayIdx ?? (vals.length-1);
   const xLabels = vals.map((p,i) => {
-    if (i % step !== 0 && i !== vals.length-1 && i !== todayIdx) return '';
     const isFuture = opts.futureFrom != null && i >= opts.futureFrom;
+    if (i % step !== 0 && i !== vals.length-1 && i !== todayIdx && !isFuture) return '';
     const isToday = i === todayIdx;
-    const fill = isToday ? '#C084FC' : isFuture ? '#5A5860' : '#5A5860';
+    const fill = isToday ? '#C084FC' : '#5A5860';
     return `<text x="${toX(i).toFixed(1)}" y="${H-2}" text-anchor="middle" font-size="8" fill="${fill}" font-family="DM Sans,sans-serif">${p.x}</text>`;
   }).join('');
   // dots
+  const selectedIdx = opts.selectedIdx != null ? opts.selectedIdx : todayIdx;
   const dots = vals.map((p,i) => {
     if (p.v == null) return '';
-    const isLatest = i === todayIdx;
+    const isSelected = i === selectedIdx;
     const isFuture = opts.futureFrom != null && i >= opts.futureFrom;
     if (isFuture) return '';
-    if (isLatest) return `<circle cx="${toX(i).toFixed(1)}" cy="${toY(p.v).toFixed(1)}" r="3.5" fill="${color}" stroke="none"/>`;
+    if (isSelected) return `<circle cx="${toX(i).toFixed(1)}" cy="${toY(p.v).toFixed(1)}" r="3.5" fill="${color}" stroke="none"/>`;
     return `<circle cx="${toX(i).toFixed(1)}" cy="${toY(p.v).toFixed(1)}" r="2.5" fill="#1A1A22" stroke="${color}" stroke-width="1.5"/>`;
   }).join('');
-  container.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" style="overflow:visible;display:block">
+  container.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${opts.width ? W : '100%'}" height="${H}" style="overflow:visible;display:block">
   <defs>
     <linearGradient id="${gId}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${color}" stop-opacity="0.15"/>
@@ -6248,6 +6286,8 @@ function openModal(id) {
   if (id === 'modal-food') {
     document.getElementById('food-search-input').value = '';
     document.getElementById('food-search-results').innerHTML = '';
+    const mealSel = document.getElementById('food-meal-select');
+    if (mealSel) mealSel.value = 'Breakfast';
     renderRecipesList();
     // Reset custom form
     ['custom-food-name','custom-cals','custom-protein','custom-carbs','custom-fat','custom-fiber','custom-serving'].forEach(fid => { const el = document.getElementById(fid); if(el) el.value=''; });
