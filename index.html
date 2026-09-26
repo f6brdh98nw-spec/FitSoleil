@@ -4113,8 +4113,11 @@ function searchCustomFoods(query) {
   });
 }
 
-// Common non-English function words that indicate non-English product names
+// Common non-English function words that indicate non-English product names.
+// Also reject names with accented characters beyond basic Latin (é,è,ê,ü,ö,ñ etc.)
+// that almost always indicate French/German/Spanish products.
 var _OFF_REJECT = /\b(de|du|le|la|les|un|une|avec|pour|au|aux|et|von|der|die|das|und|mit|van|voor|met|del|della|con|para|los|las|sin)\b/i;
+var _OFF_REJECT_ACCENT = /[àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿœ]/i;
 
 function _offKcal(n) {
   var k = n['energy-kcal_100g'] || n['energy-kcal'];
@@ -4133,6 +4136,7 @@ function parseOpenFoodFacts(products) {
     if (!p.product_name || p.product_name.trim().length < 2) return false;
     if (/[^\x00-\xFF]/.test(p.product_name)) return false;
     if (_OFF_REJECT.test(p.product_name)) return false;
+    if (_OFF_REJECT_ACCENT.test(p.product_name)) return false;
     if (!p.nutriments) return false;
     if (_offKcal(p.nutriments) <= 0) return false;
     return true;
@@ -4173,7 +4177,9 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
     '&fields=product_name,nutriments,brands,code,countries_tags' +
     '&sort_by=unique_scans_n&page=' + pg;
 
-  var searchTerms = 'search_terms=' + encodeURIComponent(query);
+  // Normalise query: replace dashes/special chars with spaces so OFF can tokenise correctly
+  var normQuery = query.replace(/[–—‒\-]/g, ' ').replace(/[%#]/g, '').replace(/\s+/g, ' ').trim();
+  var searchTerms = 'search_terms=' + encodeURIComponent(normQuery);
 
   // Brand search: skip NZ-only pass — NZ brands often aren't country-tagged in OFF.
   // Use tagtype_0 for brand (not tagtype_1) since OFF ignores non-sequential tag params.
