@@ -4189,16 +4189,28 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
   var normQuery = query.replace(/[–—‒\-]/g, ' ').replace(/[%#]/g, '').replace(/\s+/g, ' ').trim();
   var searchTerms = 'search_terms=' + encodeURIComponent(normQuery);
 
-  // Brand search: skip NZ-only pass — NZ brands often aren't country-tagged in OFF.
-  // Use tagtype_0 for brand (not tagtype_1) since OFF ignores non-sequential tag params.
+  // Brand filter: use regular keyword search then filter client-side by brand name.
+  // OFF brand tags are unreliable (NZ brands may be tagged as "Countdown", missing, etc.)
   if (brandFilter) {
-    var brandUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' +
+    var brandLower = brandFilter.toLowerCase();
+    var nzBrandUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' +
       searchTerms + '&' + baseParams +
-      '&tagtype_0=brands&tag_contains_0=contains&tag_0=' + encodeURIComponent(brandFilter);
-    return fetch(brandUrl, {signal: signal})
-      .then(function(r){return r.json();})
-      .catch(function(){return {products:[]};})
-      .then(function(data){ return parseOpenFoodFacts(data.products || [], true).slice(0, 25); });
+      '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
+    var globalBrandUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' +
+      searchTerms + '&' + baseParams;
+    return Promise.all([
+      fetch(nzBrandUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};}),
+      fetch(globalBrandUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};})
+    ]).then(function(results) {
+      var all = parseOpenFoodFacts(results[0].products || [], true)
+        .concat(parseOpenFoodFacts(results[1].products || [], false));
+      var seen = new Set();
+      return all.filter(function(p) {
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return p.name.toLowerCase().includes(brandLower);
+      }).slice(0, 25);
+    });
   }
 
   var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' +
