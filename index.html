@@ -4170,16 +4170,12 @@ function searchOpenFoodFacts(query, brandFilter, signal) {
 
   var searchTerms = 'search_terms=' + encodeURIComponent(query);
 
-  var brandParam = '';
-  if (brandFilter) {
-    brandParam = '&tagtype_1=brands&tag_contains_1=contains&tag_1=' +
-      encodeURIComponent(brandFilter);
-  }
-
-  // Brand search: skip NZ-only pass — NZ brands often aren't country-tagged in OFF
+  // Brand search: skip NZ-only pass — NZ brands often aren't country-tagged in OFF.
+  // Use tagtype_0 for brand (not tagtype_1) since OFF ignores non-sequential tag params.
   if (brandFilter) {
     var brandUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' +
-      searchTerms + '&' + baseParams + brandParam;
+      searchTerms + '&' + baseParams +
+      '&tagtype_0=brands&tag_contains_0=contains&tag_0=' + encodeURIComponent(brandFilter);
     return fetch(brandUrl, {signal: signal})
       .then(function(r){return r.json();})
       .catch(function(){return {products:[]};})
