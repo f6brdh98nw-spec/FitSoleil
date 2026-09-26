@@ -577,7 +577,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
 
       <div id="ob-split-row" style="display:none">
-        <div id="ob-split-label" class="input-label" style="margin-bottom:8px">Carb / fat split</div>
+        <div id="ob-split-label" class="input-label" style="margin-bottom:8px">Carb / Fat split</div>
         <div class="ob-pill-group">
           <div class="ob-pill ob-split-pill active" onclick="obSetSplit('balanced',this)" data-split="balanced">Balanced</div>
           <div class="ob-pill ob-split-pill" onclick="obSetSplit('highcarb',this)" data-split="highcarb">High carb</div>
@@ -1575,8 +1575,8 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
             <div class="ob-pill s-macro-pill" id="sm-cust" onclick="settingsSetMacroMode('cust',this)" data-mode="cust">Custom</div>
           </div>
         </div>
-        <div id="s-split-row" style="display:none">
-          <div id="s-split-label" class="input-label" style="margin-bottom:8px">Carb / fat split</div>
+        <div id="s-split-row" style="display:none;margin-top:14px">
+          <div id="s-split-label" class="input-label" style="margin-bottom:8px">Carb / Fat split</div>
           <div class="ob-pill-group">
             <div class="ob-pill ob-split-pill active" id="ss-balanced" onclick="settingsSplitChange('balanced',this)">Balanced</div>
             <div class="ob-pill ob-split-pill" id="ss-highcarb" onclick="settingsSplitChange('highcarb',this)">High carb</div>
@@ -2984,7 +2984,7 @@ function obSetMacroMode(mode, el) {
   var splitRow = document.getElementById('ob-split-row');
   if (splitRow) splitRow.style.display = (mode === 'auto' || mode === 'prot') ? '' : 'none';
   var splitLabel = document.getElementById('ob-split-label');
-  if (splitLabel) splitLabel.textContent = mode === 'prot' ? 'Remaining calorie split' : 'Carb / fat split';
+  if (splitLabel) splitLabel.textContent = mode === 'prot' ? 'Remaining calorie split' : 'Carb / Fat split';
   // Keto helper
   var ketoHint = document.getElementById('ob-keto-hint');
   if (ketoHint) ketoHint.style.display = mode === 'keto' ? '' : 'none';
@@ -5675,7 +5675,7 @@ function settingsSetMacroMode(mode, el) {
   var splitRow = document.getElementById('s-split-row');
   if (splitRow) splitRow.style.display = (mode === 'auto' || mode === 'prot') ? '' : 'none';
   var splitLabel = document.getElementById('s-split-label');
-  if (splitLabel) splitLabel.textContent = mode === 'prot' ? 'Remaining calorie split' : 'Carb / fat split';
+  if (splitLabel) splitLabel.textContent = mode === 'prot' ? 'Remaining calorie split' : 'Carb / Fat split';
   var resetBtn = document.getElementById('s-macro-reset');
   if (resetBtn) resetBtn.style.display = mode === 'cust' ? 'none' : '';
   settingsRecalcMacros();
