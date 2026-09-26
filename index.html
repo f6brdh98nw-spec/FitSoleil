@@ -4176,12 +4176,21 @@ function searchOpenFoodFacts(query, brandFilter, signal) {
       encodeURIComponent(brandFilter);
   }
 
+  // Brand search: skip NZ-only pass — NZ brands often aren't country-tagged in OFF
+  if (brandFilter) {
+    var brandUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' +
+      searchTerms + '&' + baseParams + brandParam;
+    return fetch(brandUrl, {signal: signal})
+      .then(function(r){return r.json();})
+      .catch(function(){return {products:[]};})
+      .then(function(data){ return parseOpenFoodFacts(data.products || []).slice(0, 25); });
+  }
+
   var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' +
     searchTerms + '&' + baseParams +
-    '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand' +
-    brandParam;
+    '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
   var globalUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' +
-    searchTerms + '&' + baseParams + brandParam;
+    searchTerms + '&' + baseParams;
 
   return Promise.all([
     fetch(nzUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};}),
@@ -4288,13 +4297,12 @@ function executeFoodSearch(query) {
   activeSearchController = new AbortController();
   var signal = activeSearchController.signal;
 
-  var customResults = searchCustomFoods(foodQuery);
-  var foodfilesResults = brandFilter ? [] : searchFoodFiles(foodQuery);
-  var instantResults = customResults.concat(foodfilesResults);
+  // Instant: custom foods only — FOODfiles hidden from display for now
+  var instantResults = searchCustomFoods(foodQuery);
 
   if (instantResults.length > 0) {
     renderSearchResults(instantResults, []);
-    _setFoodSourceLine('Searching for more...');
+    _setFoodSourceLine('Searching...');
   } else {
     _setFoodSourceLine(brandFilter
       ? 'Searching for "' + foodQuery + '" by ' + brandFilter + '...'
@@ -4319,19 +4327,15 @@ function executeFoodSearch(query) {
         renderSearchResults(instantResults, newOff);
         _setFoodSourceLine('');
       } else {
-        var fallback = searchFallback(foodQuery);
-        renderSearchResults(fallback, []);
-        _setFoodSourceLine(fallback.length > 0
-          ? 'Showing NZ foods'
-          : 'No results. Try different terms or add a custom food.');
+        renderSearchResults([], []);
+        _setFoodSourceLine('No results. Try different terms or add a custom food.');
       }
     })
     .catch(function(err) {
       if (err && err.name === 'AbortError') return;
       activeSearchController = null;
       if (instantResults.length === 0) {
-        var fallback = searchFallback(foodQuery);
-        renderSearchResults(fallback, []);
+        renderSearchResults([], []);
         _setFoodSourceLine('Search unavailable. Add food manually using the Custom tab.');
       } else {
         _setFoodSourceLine('');
