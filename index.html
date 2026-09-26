@@ -4191,13 +4191,22 @@ function _parseOffProducts(products) {
       if (/[^\x00-\x7F]/.test(p.product_name)) return false;
       if (!p.nutriments) return false;
       const n = p.nutriments;
-      const hasKcal = n['energy-kcal_100g'] || n['energy-kcal'] || (n['energy_100g'] && n['energy_100g'] > 0);
-      if (!hasKcal) return false;
+      const prot = n['proteins_100g'] || 0;
+      const carb = n['carbohydrates_100g'] || 0;
+      const fat  = n['fat_100g'] || 0;
+      // Accept if any macro present (we can derive kcal)
+      if (!prot && !carb && !fat) return false;
       return true;
     })
     .map(function(p) {
       const n = p.nutriments;
-      const kcal = n['energy-kcal_100g'] || n['energy-kcal'] || Math.round((n['energy_100g'] || 0) / 4.184);
+      const prot = n['proteins_100g'] || 0;
+      const carb = n['carbohydrates_100g'] || 0;
+      const fat  = n['fat_100g'] || 0;
+      const kcal = n['energy-kcal_100g'] || n['energy-kcal']
+        || (n['energy_100g'] ? Math.round(n['energy_100g'] / 4.184) : 0)
+        || (n['energy-kj_100g'] ? Math.round(n['energy-kj_100g'] / 4.184) : 0)
+        || Math.round(prot * 4 + carb * 4 + fat * 9);
       return {
         description: p.product_name.trim(),
         brandOwner: p.brands ? p.brands.split(',')[0].trim() : '',
