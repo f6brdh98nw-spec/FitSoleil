@@ -4201,7 +4201,7 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
     var globalProducts = parseOpenFoodFacts(results[1].products || []);
     var nzIds = new Set(nzProducts.map(function(p){return p.id;}));
     var extra = globalProducts.filter(function(p){return !nzIds.has(p.id);});
-    return _sortByRelevance(nzProducts.concat(extra), query).slice(0, 25);
+    return nzProducts.concat(extra).slice(0, 25);
   });
 }
 
