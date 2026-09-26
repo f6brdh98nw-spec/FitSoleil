@@ -152,7 +152,7 @@
     -webkit-text-fill-color: var(--txt);
     color-scheme: dark;
   }
-  input::placeholder, textarea::placeholder { color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
+  input::placeholder, textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
   input[type="checkbox"], input[type="radio"] {
     -webkit-appearance: checkbox; appearance: checkbox;
     width: auto; -webkit-text-fill-color: initial;
@@ -324,7 +324,7 @@
   .ob-card-label { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#5A5860; }
   .ob-input { background:#22222E; border:1px solid #2C2C3A; color:#F0EEE8; border-radius:10px; padding:12px; font-size:15px; width:100%; font-family:inherit; }
   .ob-input:focus { outline:none; border-color:rgba(232,197,71,0.5); }
-  input.ob-input::placeholder, select.ob-input::placeholder, textarea.ob-input::placeholder { color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
+  input.ob-input::placeholder, select.ob-input::placeholder, textarea.ob-input::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
   .ob-input.error { border-color:#F87171; }
   .ob-error { color:#F87171; font-size:11px; margin-top:6px; }
   .ob-hint { font-size:11px; color:#9A98A0; line-height:1.5; }
@@ -435,10 +435,10 @@
   .quick-tile-sub { font-size: 11px; color: var(--txt3); margin-top: 1px; }
 
 /* Placeholder — must be last */
-input::placeholder { color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
-textarea::placeholder { color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
+input::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
+textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
 #ob-name::placeholder, #ob-weight::placeholder, #ob-height::placeholder,
-#ob-dob-d::placeholder, #ob-dob-m::placeholder, #ob-dob-y::placeholder { color: #5A5860 !important; font-style: italic !important; }
+#ob-dob-d::placeholder, #ob-dob-m::placeholder, #ob-dob-y::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5860 !important; font-style: italic !important; }
 </style>
 </head>
 <body>
