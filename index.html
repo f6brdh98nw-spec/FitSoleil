@@ -4774,8 +4774,8 @@ function copyLastMealPlanWeek() {
   for (let i = 0; i < 7; i++) {
     const thisD = new Date(thisMonday); thisD.setDate(thisMonday.getDate() + i);
     const lastD = new Date(thisD); lastD.setDate(thisD.getDate() - 7);
-    const thisDs = thisD.toISOString().split('T')[0];
-    const lastDs = lastD.toISOString().split('T')[0];
+    const thisDs = localDateStr(thisD);
+    const lastDs = localDateStr(lastD);
     if (state.mealPlan[lastDs]) { state.mealPlan[thisDs] = {...state.mealPlan[lastDs]}; copied++; }
   }
   saveState();
@@ -4817,12 +4817,11 @@ function renderMealPlanGrid() {
   }
   const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   el.innerHTML = dates.map((d, i) => {
-    const ds = d.toISOString().split('T')[0];
-    const dayKey = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i];
+    const ds = localDateStr(d);
     return `<div class="meal-day-card">
       <div class="meal-day-header">${dayNames[i]} ${d.getDate()}</div>
       ${MEALS.map(meal => {
-        const assigned = (state.mealPlan[ds]||state.mealPlan[dayKey]||{})[meal];
+        const assigned = (state.mealPlan[ds]||{})[meal];
         return `<div class="meal-slot" onclick="assignMealDate('${ds}','${meal}')">
           <span class="meal-slot-name">${meal}</span>
           <span class="meal-slot-food">${assigned || '+ Add'}</span>
