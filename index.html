@@ -3603,7 +3603,7 @@ function renderDashboard() {
       const isCompleted = completedPlanIds.includes(plan.id);
       const isActive = activeWO && activeWO.planId === plan.id;
       if (isCompleted) {
-        rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${plan.name}</div>`);
+        rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${plan.name} <span style="color:#4ADE80;font-size:11px">✓</span></div>`);
       } else if (isActive) {
         rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${plan.name} <span style="color:#F07C3A;font-size:11px">● In progress</span></div>`);
       } else {
@@ -3621,7 +3621,7 @@ function renderDashboard() {
     // Completed sessions not in scheduled plans (ad-hoc or unscheduled plan)
     completedSessions.forEach(session => {
       if (session.planId && todayPlanIds.has(session.planId)) return; // already shown above
-      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${session.name || 'Workout'}</div>`);
+      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${session.name || 'Workout'} <span style="color:#4ADE80;font-size:11px">✓</span></div>`);
     });
 
     const hasUnstarted = todayPlans.some(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
