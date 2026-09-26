@@ -6897,25 +6897,30 @@ function addSwipe(el, onLeft, onRight, threshold=50) {
 }
 
 function initFoodSearch() {
+  // Clear pending debounce but do NOT abort an in-flight OFF fetch —
+  // openModal can fire on mobile viewport shifts while search is running.
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-  if (activeSearchController) activeSearchController.abort();
   searchDebounceTimer = null;
-  activeSearchController = null;
 
   var input = document.getElementById('food-search-input');
-  var fresh = input.cloneNode(true);
-  input.parentNode.replaceChild(fresh, input);
-  fresh.value = '';
-  var hint = document.getElementById('search-hint');
-  if (hint) hint.style.display = 'block';
-  fresh.addEventListener('input', function() {
-    if (hint) hint.style.display = this.value.length === 0 ? 'block' : 'none';
-    runFoodSearch(this.value.trim());
-  });
-
-  clearSearchResults();
-  document.getElementById('food-search-loading').style.display = 'none';
-  fresh.focus();
+  // Only re-wire the input if it has no listener yet (avoid duplicate listeners)
+  if (!input._foodSearchWired) {
+    var fresh = input.cloneNode(true);
+    input.parentNode.replaceChild(fresh, input);
+    fresh.value = '';
+    input = fresh;
+    input._foodSearchWired = true;
+    var hint = document.getElementById('search-hint');
+    if (hint) hint.style.display = 'block';
+    input.addEventListener('input', function() {
+      var h = document.getElementById('search-hint');
+      if (h) h.style.display = this.value.length === 0 ? 'block' : 'none';
+      runFoodSearch(this.value.trim());
+    });
+    clearSearchResults();
+    document.getElementById('food-search-loading').style.display = 'none';
+  }
+  input.focus();
 }
 
 function openModal(id) {
@@ -6941,11 +6946,32 @@ function openModal(id) {
   if (id === 'modal-add-exercise') renderExerciseList('', state.selectedMuscle);
   if (id === 'modal-create-plan') { state.planBeingBuilt = { name: '', days: [], exercises: [] }; renderPlanBeingBuilt(); }
 }
-function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
+function closeModal(id) {
+  document.getElementById(id)?.classList.remove('open');
+  if (id === 'modal-food') {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    if (activeSearchController) activeSearchController.abort();
+    searchDebounceTimer = null;
+    activeSearchController = null;
+    var inp = document.getElementById('food-search-input');
+    if (inp) inp._foodSearchWired = false;
+  }
+}
 
 // Close modal on overlay click
 document.querySelectorAll('.modal-overlay').forEach(el => {
-  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+  el.addEventListener('click', e => {
+    if (e.target === el) {
+      el.classList.remove('open');
+      if (el.id === 'modal-food') {
+        if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+        if (activeSearchController) activeSearchController.abort();
+        searchDebounceTimer = null; activeSearchController = null;
+        var inp = document.getElementById('food-search-input');
+        if (inp) inp._foodSearchWired = false;
+      }
+    }
+  });
 });
 
 function showToast(msg) {
