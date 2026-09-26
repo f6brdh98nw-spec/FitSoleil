@@ -4123,7 +4123,9 @@ function clearSearchResults() {
 
 function _setFoodSourceLine(msg) {
   var el = document.getElementById('food-source-line');
-  if (el) el.textContent = msg || '';
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.display = msg ? 'block' : 'none';
 }
 
 var SOURCE_BADGE_COLOURS = {
