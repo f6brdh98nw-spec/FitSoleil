@@ -4258,7 +4258,9 @@ var FOOD_CATEGORIES = {
   'snapper': 'en:fish', 'hoki': 'en:fish', 'cod': 'en:fish',
   'prawns': 'en:shrimps', 'shrimp': 'en:shrimps',
   'mussels': 'en:mussels',
-  'milk': 'en:milks', 'cheese': 'en:cheeses',
+  'milk': 'en:milks', 'cheese': 'en:cheeses', 'feta': 'en:feta',
+  'cheddar': 'en:cheddar', 'brie': 'en:brie', 'mozzarella': 'en:mozzarella',
+  'parmesan': 'en:parmesan', 'ricotta': 'en:ricotta', 'cottage cheese': 'en:cottage-cheese',
   'yoghurt': 'en:yogurts', 'yogurt': 'en:yogurts',
   'butter': 'en:butters', 'cream': 'en:creams',
   'egg': 'en:eggs', 'eggs': 'en:eggs',
@@ -4350,6 +4352,13 @@ function searchOFFByCategory(category, signal, page) {
 
 // Extra synonyms for categories where the OFF slug doesn't match common product names
 var _CATEGORY_SYNONYMS = {
+  'feta': ['feta'],
+  'cheddar': ['cheddar'],
+  'brie': ['brie'],
+  'mozzarella': ['mozzarella', 'mozza'],
+  'parmesan': ['parmesan', 'parmigiano'],
+  'ricotta': ['ricotta'],
+  'cottage-cheese': ['cottage'],
   'shrimps': ['prawn', 'shrimp'],
   'bacons': ['bacon'],
   'hams': ['ham'],
