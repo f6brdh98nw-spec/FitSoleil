@@ -769,14 +769,9 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           <div class="card-title" style="margin-bottom:0">Today</div>
           <button class="isq" onclick="openModal('modal-plan-rows')" title="Edit plan rows" style="font-size:16px"><i class="ti ti-adjustments-horizontal"></i></button>
         </div>
-        <!-- Workout row -->
-        <div id="plan-row-workout" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--s2)">
-          <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="plan-workout-name">Rest day</div>
-            <div style="font-size:11px;color:var(--txt3)" id="plan-workout-sub">No plan scheduled</div>
-          </div>
-          <button class="isq" id="plan-workout-play-btn" onclick="startTodayPlan()" title="Start workout" style="--acc:#F07C3A;font-size:14px"><i class="ti ti-player-play"></i></button>
+        <!-- Workout row(s) — dynamically populated by renderDashboard -->
+        <div id="plan-row-workout" style="padding:4px 0;border-bottom:0.5px solid var(--s2)">
+          <div id="plan-workout-rows"></div>
         </div>
         <!-- Meals row -->
         <div id="plan-row-food" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--s2)">
@@ -2537,10 +2532,12 @@ function loadTestData() {
     mealPlan[ds] = {Breakfast: bfNames[idx], Lunch: lnNames[(idx+1)%4], Dinner: dnNames[(idx+2)%4]};
   }
 
-  // Plans — today's day included in Push Day A so H3.03/H3.04 show a scheduled workout
+  // Plans — both Push Day A AND Cardio are scheduled for today to test multi-row workout display
   const todayDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
   const pushDays = ['Monday','Thursday'];
   if (!pushDays.includes(todayDayName)) pushDays.push(todayDayName);
+  const cardioDays = ['Tuesday','Friday'];
+  if (!cardioDays.includes(todayDayName)) cardioDays.push(todayDayName);
   const plans = [
     {
       id:101,
@@ -2564,6 +2561,16 @@ function loadTestData() {
         {name:'Romanian Deadlift',sets:3,reps:10},
         {name:'Leg Extension',sets:3,reps:15},
         {name:'Calf Raise',sets:4,reps:20},
+      ],
+    },
+    {
+      id:103,
+      name:'Morning Cardio',
+      days: cardioDays,
+      exercises:[
+        {name:'Treadmill run',sets:1,reps:1},
+        {name:'Rowing machine',sets:1,reps:1},
+        {name:'Jump rope',sets:3,reps:1},
       ],
     },
   ];
@@ -3577,59 +3584,72 @@ function renderDashboard() {
   setEl('plan-water-target', waterTgt);
   setWidth('plan-water-bar', Math.min(100, (waterMl/waterTgt)*100));
   // Workout row — show today's active plan if exists
-  const todayName = getTodayPlanName();
-  const todayPlanId = getTodayPlanId();
-  const todayPlan = todayPlanId ? (state.plans||[]).find(p=>p.id===todayPlanId) : null;
-  const todayCompleted = (state.workouts||[]).some(w=>w.date===state.currentDate);
-  const nameEl = document.getElementById('plan-workout-name');
-  const subEl = document.getElementById('plan-workout-sub');
-  const playBtn = document.getElementById('plan-workout-play-btn');
-  if (todayCompleted) {
-    if (nameEl) {
-      nameEl.innerHTML = todayName ? `<span onclick="navigate('workout')" style="cursor:pointer">${todayName}</span>` : 'Workout';
+  // ── Workout rows (multi-plan support) ──
+  const workoutRowsEl = document.getElementById('plan-workout-rows');
+  if (workoutRowsEl) {
+    const selectedDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(state.currentDate+'T12:00:00').getDay()];
+    const todayPlans = (state.plans||[]).filter(p => p.days && p.days.includes(selectedDayName));
+    const completedSessions = (state.workouts||[]).filter(w => w.date === state.currentDate);
+    const activeWO = state.activeWorkout && state.activeWorkout.date === state.currentDate ? state.activeWorkout : null;
+
+    if (!todayPlans.length && !completedSessions.length) {
+      workoutRowsEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
+        <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--txt3)">Rest day</div>
+          <div style="font-size:11px;color:var(--txt3)">Tap Plans to schedule</div>
+        </div>
+        <button class="isq" onclick="navigate('workout')" style="--acc:#F07C3A;font-size:14px"><i class="ti ti-player-play"></i></button>
+      </div>`;
+    } else {
+      const rows = [];
+      // Show completed sessions first
+      completedSessions.forEach(session => {
+        const planName = session.name || 'Workout';
+        rows.push(`<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
+          <div class="isq" style="--acc:#4ADE80;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              <span onclick="navigate('workout');setTimeout(()=>openWorkoutDetail(${session.id}),80)" style="cursor:pointer">${planName}</span>
+            </div>
+            <div style="font-size:11px;color:#4ADE80">Completed ✓</div>
+          </div>
+          <button class="isq" onclick="navigate('workout');setTimeout(()=>openWorkoutDetail(${session.id}),80)" style="--acc:#4ADE80;font-size:14px"><i class="ti ti-check"></i></button>
+        </div>`);
+      });
+      // Show planned sessions not yet completed
+      const completedPlanIds = completedSessions.map(s => s.planId).filter(Boolean);
+      todayPlans.forEach(plan => {
+        const isActive = activeWO && activeWO.planId === plan.id;
+        const isCompleted = completedPlanIds.includes(plan.id);
+        if (isCompleted) return; // already shown above
+        const exCount = (plan.exercises||[]).length;
+        if (isActive) {
+          rows.push(`<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
+            <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                <span onclick="navigate('workout')" style="cursor:pointer">${plan.name}</span>
+              </div>
+              <div style="font-size:11px;color:#F07C3A">In progress ●</div>
+            </div>
+            <button class="isq" onclick="navigate('workout')" style="--acc:#F87171;font-size:14px"><i class="ti ti-player-stop"></i></button>
+          </div>`);
+        } else {
+          rows.push(`<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
+            <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                <span onclick="navigate('workout')" style="cursor:pointer">${plan.name}</span>
+              </div>
+              <div style="font-size:11px;color:var(--txt3)">Scheduled · ${exCount} exercises</div>
+            </div>
+            <button class="isq" onclick="startPlanInline(${plan.id})" style="--acc:#F07C3A;font-size:14px"><i class="ti ti-player-play"></i></button>
+          </div>`);
+        }
+      });
+      workoutRowsEl.innerHTML = rows.join('<div style="height:1px;background:var(--s2);margin:0 40px"></div>');
     }
-    if (subEl) { subEl.textContent = 'Completed'; subEl.style.color = '#4ADE80'; }
-    if (playBtn) {
-      playBtn.style.setProperty('--acc','#4ADE80');
-      playBtn.innerHTML='<i class="ti ti-check"></i>';
-      playBtn.onclick=()=>{
-        const doneSession = (state.workouts||[]).find(w=>w.date===state.currentDate);
-        if (doneSession) { navigate('workout'); setTimeout(()=>openWorkoutDetail(doneSession.id),80); }
-        else navigate('workout');
-      };
-    }
-  } else if (state.activeWorkout && state.activeWorkout.date === state.currentDate) {
-    if (nameEl) {
-      nameEl.innerHTML = todayName ? `<span onclick="navigate('workout')" style="cursor:pointer">${todayName}</span>` : 'Workout';
-    }
-    if (subEl) { subEl.textContent = 'In progress ●'; subEl.style.color = '#F07C3A'; }
-    if (playBtn) {
-      playBtn.style.setProperty('--acc','#F87171');
-      playBtn.innerHTML='<i class="ti ti-player-stop"></i>';
-      playBtn.onclick=()=>navigate('workout');
-    }
-  } else if (todayName) {
-    const exCount = todayPlan ? (todayPlan.exercises||[]).length : 0;
-    if (nameEl) {
-      nameEl.innerHTML = `<span onclick="navigate('workout')" style="cursor:pointer">${todayName}</span>`;
-    }
-    if (subEl) { subEl.textContent = 'Scheduled · ' + exCount + ' exercises'; subEl.style.color = ''; }
-    if (playBtn) {
-      playBtn.style.setProperty('--acc','#F07C3A');
-      playBtn.innerHTML='<i class="ti ti-player-play"></i>';
-      playBtn.onclick=()=>{
-        if (todayPlanId) {
-          state.activeWorkout = { planId: todayPlanId, startTime: new Date().toISOString(), date: state.currentDate };
-          saveState();
-          if (subEl) { subEl.textContent = 'In progress ●'; subEl.style.color = '#F07C3A'; }
-          if (playBtn) { playBtn.style.setProperty('--acc','#F87171'); playBtn.innerHTML='<i class="ti ti-player-stop"></i>'; playBtn.onclick=()=>navigate('workout'); }
-        } else { navigate('workout'); }
-      };
-    }
-  } else {
-    if (nameEl) { nameEl.innerHTML = 'Rest day'; }
-    if (subEl) { subEl.textContent = 'Tap Plans to schedule'; subEl.style.color = ''; }
-    if (playBtn) { playBtn.style.setProperty('--acc','#F07C3A'); playBtn.innerHTML='<i class="ti ti-player-play"></i>'; playBtn.onclick=()=>navigate('workout'); }
   }
   // Meals row — logged > planned priority, max 3 rows
   const mealTypesRow = ['breakfast','lunch','dinner','snack'];
@@ -3907,6 +3927,12 @@ function renderFastingForDate() {
       if (progressEl) progressEl.style.width='0%';
     }
   }
+}
+
+function startPlanInline(planId) {
+  state.activeWorkout = { planId, startTime: new Date().toISOString(), date: state.currentDate };
+  saveState();
+  renderDashboard();
 }
 
 function startFastFromHome() {
