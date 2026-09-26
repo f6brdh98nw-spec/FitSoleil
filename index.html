@@ -2836,14 +2836,14 @@ function obValidateDob() {
   const yr = parseInt(y), mo = parseInt(m), dy = parseInt(d);
   const dt = new Date(yr, mo - 1, dy);
   const today = new Date(); today.setHours(0,0,0,0);
-  const isReal = dt.getFullYear()===yr && dt.getMonth()===mo-1 && dt.getDate()===dy && yr>=1900 && yr<=today.getFullYear();
-  const isPast = dt < today;
-  if (!isReal) {
-    if (err) { err.textContent = 'Please enter a valid date of birth'; err.style.display = ''; }
+  // Check past FIRST — any today-or-future date is invalid regardless of year
+  if (dt >= today) {
+    if (err) { err.textContent = 'Date of birth must be in the past'; err.style.display = ''; }
     return false;
   }
-  if (!isPast) {
-    if (err) { err.textContent = 'Date of birth must be in the past'; err.style.display = ''; }
+  const isReal = dt.getFullYear()===yr && dt.getMonth()===mo-1 && dt.getDate()===dy && yr>=1900;
+  if (!isReal) {
+    if (err) { err.textContent = 'Please enter a valid date of birth'; err.style.display = ''; }
     return false;
   }
   if (err) err.style.display = 'none';
@@ -3138,7 +3138,7 @@ function obUpdateMonthlyHint() {
   const suffix = ['th','st','nd','rd'];
   const suf = (d >= 11 && d <= 13) ? 'th' : (suffix[d % 10] || 'th');
   const hint = document.getElementById('ob-monthly-hint');
-  if (hint) hint.textContent = `We'll remind you on the ${d}${suf} of each month at ${time}. Days 29–31 are capped at 28 to work every month.`;
+  if (hint) hint.textContent = `We'll remind you on the ${d}${suf} of each month at ${time}. Days are capped at 28 to work every month.`;
 }
 
 function obToggle(id) {
