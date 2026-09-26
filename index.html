@@ -446,6 +446,20 @@ input::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5860
 textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5860 !important; font-style: italic !important; opacity: 1 !important; }
 #ob-name::placeholder, #ob-weight::placeholder, #ob-height::placeholder,
 #ob-dob-d::placeholder, #ob-dob-m::placeholder, #ob-dob-y::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5860 !important; font-style: italic !important; }
+/* Settings macro inputs — prevent browser number-style behaviour regardless of type */
+#s-cals, #s-protein, #s-carbs, #s-fat, #s-fibre, #s-water {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+#s-cals::-webkit-outer-spin-button, #s-cals::-webkit-inner-spin-button,
+#s-protein::-webkit-outer-spin-button, #s-protein::-webkit-inner-spin-button,
+#s-carbs::-webkit-outer-spin-button, #s-carbs::-webkit-inner-spin-button,
+#s-fat::-webkit-outer-spin-button, #s-fat::-webkit-inner-spin-button,
+#s-fibre::-webkit-outer-spin-button, #s-fibre::-webkit-inner-spin-button,
+#s-water::-webkit-outer-spin-button, #s-water::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 </style>
 </head>
 <body>
@@ -1570,7 +1584,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
       <div class="card">
         <div class="card-title">Daily Targets</div>
-        <div class="input-group"><label class="input-label">Calories</label><input type="text" inputmode="decimal" id="s-cals" oninput="this.value=this.value.replace(/[^0-9.]/g,'');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
+        <div class="input-group"><label class="input-label">Calories</label><input type="text" inputmode="decimal" id="s-cals" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
         <div class="input-group">
           <label class="input-label">Macro mode</label>
           <div class="ob-pill-group" id="s-macro-pills">
@@ -1589,16 +1603,16 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           </div>
         </div>
         <div id="macro-inputs" style="margin-top:20px">
-          <div class="input-group"><label class="input-label">Protein (g)</label><input type="text" inputmode="decimal" id="s-protein" oninput="this.value=this.value.replace(/[^0-9.]/g,'');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
-          <div class="input-group"><label class="input-label">Carbs (g)</label><input type="text" inputmode="decimal" id="s-carbs" oninput="this.value=this.value.replace(/[^0-9.]/g,'');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
-          <div class="input-group"><label class="input-label">Fat (g)</label><input type="text" inputmode="decimal" id="s-fat" oninput="this.value=this.value.replace(/[^0-9.]/g,'');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
-          <div class="input-group"><label class="input-label">Fibre (g)</label><input type="text" inputmode="decimal" id="s-fibre" placeholder="e.g. 25" oninput="this.value=this.value.replace(/[^0-9.]/g,'')" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
+          <div class="input-group"><label class="input-label">Protein (g)</label><input type="text" inputmode="decimal" id="s-protein" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
+          <div class="input-group"><label class="input-label">Carbs (g)</label><input type="text" inputmode="decimal" id="s-carbs" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
+          <div class="input-group"><label class="input-label">Fat (g)</label><input type="text" inputmode="decimal" id="s-fat" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
+          <div class="input-group"><label class="input-label">Fibre (g)</label><input type="text" inputmode="decimal" id="s-fibre" placeholder="e.g. 25" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1')" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
         </div>
         <button id="s-macro-reset" onclick="settingsResetMacros()" style="align-self:flex-start;font-size:11px;padding:5px 12px;border-radius:8px;background:rgba(232,197,71,0.08);border:0.5px solid rgba(232,197,71,0.3);color:#E8C547;cursor:pointer;margin-bottom:8px">Reset macros</button>
         <div id="s-kcal-check" class="ob-kcal-check" style="display:none;margin-top:8px"></div>
         <div id="s-kcal-note" class="ob-hint" style="display:none;margin-top:4px"></div>
         <div id="macro-calc-hint" style="font-size:11px;color:var(--txt2);margin-bottom:12px;padding:8px;background:var(--s2);border-radius:8px"></div>
-        <div class="input-group"><label class="input-label">Water target (ml)</label><input type="text" inputmode="decimal" id="s-water" placeholder="e.g. 2000" oninput="this.value=this.value.replace(/[^0-9.]/g,'')" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
+        <div class="input-group"><label class="input-label">Water target (ml)</label><input type="text" inputmode="decimal" id="s-water" placeholder="e.g. 2000" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1')" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
         <button class="btn btn-primary" onclick="saveTargets()">Save</button>
         <div style="margin-top:16px;border-top:1px solid var(--s3);padding-top:16px">
           <div class="card-title" style="margin-bottom:10px">Goal</div>
@@ -4150,7 +4164,7 @@ function parseFoodQuery(query) {
 }
 
 function searchOpenFoodFacts(query, brandFilter, signal) {
-  var baseParams = 'search_simple=1&action=process&json=1&page_size=12' +
+  var baseParams = 'search_simple=1&action=process&json=1&page_size=20' +
     '&fields=product_name,nutriments,brands,code,countries_tags' +
     '&sort_by=unique_scans_n';
 
@@ -4177,7 +4191,7 @@ function searchOpenFoodFacts(query, brandFilter, signal) {
     var globalProducts = parseOpenFoodFacts(results[1].products || []);
     var nzIds = new Set(nzProducts.map(function(p){return p.id;}));
     var extra = globalProducts.filter(function(p){return !nzIds.has(p.id);});
-    return nzProducts.concat(extra).slice(0, 15);
+    return nzProducts.concat(extra).slice(0, 25);
   });
 }
 
@@ -4256,7 +4270,7 @@ function searchOFFByCategory(category, signal) {
     category + '/1.json?' +
     'fields=product_name,nutriments,brands,code&' +
     'sort_by=unique_scans_n&' +
-    'page_size=10&' +
+    'page_size=20&' +
     'tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
   return fetch(url, { signal: signal })
     .then(function(r) { return r.json(); })
@@ -6356,18 +6370,20 @@ function settingsRecalcMacros() {
   var sProtEl = document.getElementById('s-protein');
   var sCarbEl = document.getElementById('s-carbs');
   var sFatEl  = document.getElementById('s-fat');
+  // Never overwrite the field the user is actively editing
+  var focusId = document.activeElement ? document.activeElement.id : '';
 
   if (_settingsMacroMode === 'auto') {
     var r = calcAuto(cal, _settingsSplit);
-    if (sProtEl) sProtEl.value = r.p;
-    if (sCarbEl) sCarbEl.value = r.c;
-    if (sFatEl)  sFatEl.value  = r.f;
+    if (sProtEl && focusId !== 's-protein') sProtEl.value = r.p;
+    if (sCarbEl && focusId !== 's-carbs')   sCarbEl.value = r.c;
+    if (sFatEl  && focusId !== 's-fat')     sFatEl.value  = r.f;
   } else if (_settingsMacroMode === 'prot') {
     var pv = parseFloat(sProtEl && sProtEl.value) || Math.round(cal * 0.30 / 4);
     var r2 = calcFixProtein(cal, pv, _settingsSplit);
-    if (sProtEl && !sProtEl.value) sProtEl.value = r2.p;
-    if (sCarbEl) sCarbEl.value = r2.c;
-    if (sFatEl)  sFatEl.value  = r2.f;
+    // Never overwrite protein in 'prot' mode — user controls it
+    if (sCarbEl && focusId !== 's-carbs') sCarbEl.value = r2.c;
+    if (sFatEl  && focusId !== 's-fat')   sFatEl.value  = r2.f;
   } else if (_settingsMacroMode === 'keto') {
     var prevP = parseFloat(sProtEl && sProtEl.value) || 0;
     var prevC = parseFloat(sCarbEl && sCarbEl.value) || 0;
@@ -6375,9 +6391,9 @@ function settingsRecalcMacros() {
       ? { p: prevP || Math.round(cal * 0.20 / 4), c: prevC || Math.round(cal * 0.05 / 4) }
       : calcKetoInitial(cal);
     k.f = calcKetoFat(cal, k.p, k.c);
-    if (!prevP && sProtEl) sProtEl.value = k.p;
-    if (!prevC && sCarbEl) sCarbEl.value = k.c;
-    if (sFatEl) sFatEl.value = k.f;
+    if (!prevP && sProtEl && focusId !== 's-protein') sProtEl.value = k.p;
+    if (!prevC && sCarbEl && focusId !== 's-carbs')   sCarbEl.value = k.c;
+    if (sFatEl  && focusId !== 's-fat')               sFatEl.value  = k.f;
   }
   // 'cust': don't touch fields — user sets them manually
 
