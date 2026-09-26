@@ -3596,20 +3596,17 @@ function renderDashboard() {
 
     const completedPlanIds = completedSessions.map(s => s.planId).filter(Boolean);
     const rows = [];
-    // Completed sessions — white
-    completedSessions.forEach(session => {
-      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${session.name || 'Workout'} ✓</div>`);
-    });
-    // Active session — white name with orange in-progress indicator
-    if (activeWO) {
-      const activePlan = (state.plans||[]).find(p => p.id === activeWO.planId);
-      if (activePlan) rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${activePlan.name} <span style="color:#F07C3A;font-size:11px">● In progress</span></div>`);
-    }
-    // Planned sessions not yet started — muted
+    // One row per planned workout — colour changes by state, no extra rows
     todayPlans.forEach(plan => {
-      if (completedPlanIds.includes(plan.id)) return;
-      if (activeWO && activeWO.planId === plan.id) return;
-      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${plan.name}</div>`);
+      const isCompleted = completedPlanIds.includes(plan.id);
+      const isActive = activeWO && activeWO.planId === plan.id;
+      if (isCompleted) {
+        rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${plan.name}</div>`);
+      } else if (isActive) {
+        rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${plan.name} <span style="color:#F07C3A;font-size:11px">● In progress</span></div>`);
+      } else {
+        rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${plan.name}</div>`);
+      }
     });
 
     const hasUnstarted = todayPlans.some(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
