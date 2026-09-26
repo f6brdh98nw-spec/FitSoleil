@@ -4278,18 +4278,39 @@ function searchOFFByCategory(category, signal, page) {
     '&sort_by=unique_scans_n&page_size=50' +
     '&tagtype_0=categories&tag_contains_0=contains&tag_0=' + encodeURIComponent(category);
   var pg = page || 1;
-  var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + base +
-    '&tagtype_1=countries&tag_contains_1=contains&tag_1=new-zealand&page=' + pg;
-  var globalUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + base + '&page=' + pg;
-  return Promise.all([
-    fetch(nzUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};}),
-    fetch(globalUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};})
-  ]).then(function(results) {
-    var nz = parseOpenFoodFacts(results[0].products || []);
-    var global = parseOpenFoodFacts(results[1].products || []);
-    var nzIds = new Set(nz.map(function(p){return p.id;}));
-    var extra = global.filter(function(p){return !nzIds.has(p.id);});
-    return nz.concat(extra).slice(0, 25);
+  var keyword = category.replace(/^[a-z]{2}:/,''); // strip "en:" prefix → "chicken"
+  // Page 1: NZ-first (two fetches, merge NZ then global extras)
+  // Page 2+: global only — NZ products were already returned on page 1
+  if (pg === 1) {
+    var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + base +
+      '&tagtype_1=countries&tag_contains_1=contains&tag_1=new-zealand&page=1';
+    var globalUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + base + '&page=1';
+    return Promise.all([
+      fetch(nzUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};}),
+      fetch(globalUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};})
+    ]).then(function(results) {
+      var nz = parseOpenFoodFacts(results[0].products || []);
+      var global = parseOpenFoodFacts(results[1].products || []);
+      var nzIds = new Set(nz.map(function(p){return p.id;}));
+      var extra = global.filter(function(p){return !nzIds.has(p.id);});
+      return _filterByCategory(nz.concat(extra), keyword).slice(0, 25);
+    });
+  }
+  // Page 2+: single global fetch at the requested page
+  var url = 'https://world.openfoodfacts.org/cgi/search.pl?' + base + '&page=' + pg;
+  return fetch(url, {signal: signal})
+    .then(function(r){return r.json();})
+    .catch(function(){return {products:[]};})
+    .then(function(data){return _filterByCategory(parseOpenFoodFacts(data.products || []), keyword).slice(0, 25);});
+}
+
+// Keep only products whose name contains at least one word from the category keyword
+function _filterByCategory(products, keyword) {
+  var words = keyword.toLowerCase().split(/\W+/).filter(function(w){return w.length > 2;});
+  if (words.length === 0) return products;
+  return products.filter(function(p) {
+    var n = p.name.toLowerCase();
+    return words.some(function(w){return n.includes(w);});
   });
 }
 
