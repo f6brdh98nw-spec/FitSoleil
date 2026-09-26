@@ -3525,10 +3525,8 @@ function changeDay(delta) {
 }
 
 function getTargets() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('fitsol_v2') || '{}');
-    return saved.targets || { calories: 0, protein: 0, carbs: 0, fat: 0, fibre: 25, water: 2000 };
-  } catch(e) { return { calories: 0, protein: 0, carbs: 0, fat: 0, fibre: 25, water: 2000 }; }
+  // state.targets is always current — saveTargets() updates it and calls saveState() together
+  return state.targets || { calories: 0, protein: 0, carbs: 0, fat: 0, fibre: 25, water: 2000 };
 }
 
 function renderDashboard() {
@@ -3597,7 +3595,12 @@ function renderDashboard() {
   const workoutRowsEl = document.getElementById('plan-workout-rows');
   if (workoutRowsEl) {
     const selectedDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(state.currentDate+'T12:00:00').getDay()];
-    const todayPlans = (state.plans||[]).filter(p => p.days && p.days.includes(selectedDayName));
+    const todayPlans = (state.plans||[]).filter(p => {
+      if (p.days && p.days.includes(selectedDayName)) return true;
+      // Plans with no days scheduled show on the day they were created
+      if (!p.days || p.days.length === 0) return localDateStr(new Date(p.id)) === state.currentDate;
+      return false;
+    });
     const completedSessions = (state.workouts||[]).filter(w => w.date === state.currentDate);
     const activeWO = state.activeWorkout && state.activeWorkout.date === state.currentDate ? state.activeWorkout : null;
 
@@ -6312,13 +6315,15 @@ function openModal(id) {
   if (id === 'modal-food') {
     const searchInput = document.getElementById('food-search-input');
     searchInput.value = '';
-    // Don't clear results until new results are ready — avoids blank flash and lost results
+    // Clear stale results on open — prevents old results flashing when new search is rate-limited
+    document.getElementById('food-search-results').innerHTML = '';
+    document.getElementById('food-search-loading').style.display = 'none';
     const mealSel = document.getElementById('food-meal-select');
     if (mealSel) mealSel.value = 'Breakfast';
     renderRecipesList();
     // Reset custom form
     ['custom-food-name','custom-cals','custom-protein','custom-carbs','custom-fat','custom-fiber','custom-serving'].forEach(fid => { const el = document.getElementById(fid); if(el) el.value=''; });
-    // Attach search listener fresh each open (removes old one first)
+    // Attach search listener fresh each open (cloneNode removes all previous listeners)
     const newInput = searchInput.cloneNode(true);
     searchInput.parentNode.replaceChild(newInput, searchInput);
     newInput.addEventListener('input', () => searchFood());
