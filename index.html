@@ -3592,64 +3592,31 @@ function renderDashboard() {
     const completedSessions = (state.workouts||[]).filter(w => w.date === state.currentDate);
     const activeWO = state.activeWorkout && state.activeWorkout.date === state.currentDate ? state.activeWorkout : null;
 
-    if (!todayPlans.length && !completedSessions.length) {
-      workoutRowsEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
-        <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;color:var(--txt3)">Rest day</div>
-          <div style="font-size:11px;color:var(--txt3)">Tap Plans to schedule</div>
-        </div>
-        <button class="isq" onclick="navigate('workout')" style="--acc:#F07C3A;font-size:14px"><i class="ti ti-player-play"></i></button>
-      </div>`;
+    const completedPlanIds = completedSessions.map(s => s.planId).filter(Boolean);
+    const rows = [];
+    // Completed sessions — white
+    completedSessions.forEach(session => {
+      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${session.name || 'Workout'} — completed ✓</div>`);
+    });
+    // Active session — orange
+    if (activeWO) {
+      const activePlan = (state.plans||[]).find(p => p.id === activeWO.planId);
+      if (activePlan) rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F07C3A">${activePlan.name} — in progress ●</div>`);
+    }
+    // Planned sessions not yet started — muted
+    todayPlans.forEach(plan => {
+      if (completedPlanIds.includes(plan.id)) return;
+      if (activeWO && activeWO.planId === plan.id) return;
+      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${plan.name} (planned)</div>`);
+    });
+
+    const hasUnstarted = todayPlans.some(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
+    const playBtn = hasUnstarted ? `<button class="isq" onclick="navigate('workout')" style="--acc:#F07C3A;font-size:14px;width:30px;height:30px;flex-shrink:0;float:right;margin-top:-2px"><i class="ti ti-player-play"></i></button>` : '';
+
+    if (!rows.length) {
+      workoutRowsEl.innerHTML = `<div style="color:#5A5860">Rest day — tap to schedule</div>`;
     } else {
-      const rows = [];
-      // Show completed sessions first
-      completedSessions.forEach(session => {
-        const planName = session.name || 'Workout';
-        rows.push(`<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
-          <div class="isq" style="--acc:#4ADE80;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-              <span onclick="navigate('workout');setTimeout(()=>openWorkoutDetail(${session.id}),80)" style="cursor:pointer">${planName}</span>
-            </div>
-            <div style="font-size:11px;color:#4ADE80">Completed ✓</div>
-          </div>
-          <button class="isq" onclick="navigate('workout');setTimeout(()=>openWorkoutDetail(${session.id}),80)" style="--acc:#4ADE80;font-size:14px"><i class="ti ti-check"></i></button>
-        </div>`);
-      });
-      // Show planned sessions not yet completed
-      const completedPlanIds = completedSessions.map(s => s.planId).filter(Boolean);
-      todayPlans.forEach(plan => {
-        const isActive = activeWO && activeWO.planId === plan.id;
-        const isCompleted = completedPlanIds.includes(plan.id);
-        if (isCompleted) return; // already shown above
-        const exCount = (plan.exercises||[]).length;
-        if (isActive) {
-          rows.push(`<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
-            <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                <span onclick="navigate('workout')" style="cursor:pointer">${plan.name}</span>
-              </div>
-              <div style="font-size:11px;color:#F07C3A">In progress ●</div>
-            </div>
-            <button class="isq" onclick="navigate('workout')" style="--acc:#F87171;font-size:14px"><i class="ti ti-player-stop"></i></button>
-          </div>`);
-        } else {
-          rows.push(`<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
-            <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:600;color:#F0EEE8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${plan.name}</div>
-              <div style="font-size:11px;color:var(--txt3)">Scheduled · ${exCount} exercises</div>
-            </div>
-          </div>`);
-        }
-      });
-      const hasUnstarted = todayPlans.some(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
-      const playBtn = hasUnstarted ? `<div style="display:flex;justify-content:flex-end;padding:6px 0 2px">
-        <button class="isq" onclick="navigate('workout')" style="--acc:#F07C3A;font-size:14px;width:30px;height:30px;flex-shrink:0"><i class="ti ti-player-play"></i></button>
-      </div>` : '';
-      workoutRowsEl.innerHTML = rows.join('<div style="height:1px;background:var(--s2);margin:0 40px"></div>') + playBtn;
+      workoutRowsEl.innerHTML = playBtn + rows.join('');
     }
   }
   // Meals row — logged > planned priority, max 3 rows
