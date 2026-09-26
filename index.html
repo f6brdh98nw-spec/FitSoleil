@@ -3639,16 +3639,17 @@ function renderDashboard() {
           rows.push(`<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
             <div class="isq" style="--acc:#F07C3A;width:30px;height:30px;font-size:15px;flex-shrink:0"><i class="ti ti-barbell"></i></div>
             <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                <span onclick="navigate('workout')" style="cursor:pointer">${plan.name}</span>
-              </div>
+              <div style="font-size:13px;font-weight:600;color:#F0EEE8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${plan.name}</div>
               <div style="font-size:11px;color:var(--txt3)">Scheduled · ${exCount} exercises</div>
             </div>
-            <button class="isq" onclick="startPlanInline(${plan.id})" style="--acc:#F07C3A;font-size:14px;width:30px;height:30px;flex-shrink:0"><i class="ti ti-player-play"></i></button>
           </div>`);
         }
       });
-      workoutRowsEl.innerHTML = rows.join('<div style="height:1px;background:var(--s2);margin:0 40px"></div>');
+      const hasUnstarted = todayPlans.some(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
+      const playBtn = hasUnstarted ? `<div style="display:flex;justify-content:flex-end;padding:6px 0 2px">
+        <button class="isq" onclick="navigate('workout')" style="--acc:#F07C3A;font-size:14px;width:30px;height:30px;flex-shrink:0"><i class="ti ti-player-play"></i></button>
+      </div>` : '';
+      workoutRowsEl.innerHTML = rows.join('<div style="height:1px;background:var(--s2);margin:0 40px"></div>') + playBtn;
     }
   }
   // Meals row — logged > planned priority, max 3 rows
