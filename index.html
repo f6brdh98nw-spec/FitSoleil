@@ -3914,8 +3914,7 @@ function renderFastingForDate() {
 function startPlanInline(planId) {
   state.activeWorkout = { planId, startTime: new Date().toISOString(), date: state.currentDate };
   saveState();
-  renderDashboard();
-  navigate('workout');
+  startPlan(planId);
 }
 
 function startFastFromHome() {
@@ -4644,9 +4643,11 @@ function removeExerciseFromLog(idx) {
 function endWorkout() {
   if (!state.lastActiveWorkout) return;
   state.lastActiveWorkout.duration = Math.round((Date.now() - state.lastActiveWorkout.started) / 60000);
+  if (state.activeWorkout) state.lastActiveWorkout.planId = state.activeWorkout.planId;
   state.workouts.push({ ...state.lastActiveWorkout });
   state.lastActiveWorkout = null;
   state.workoutTimerStart = null;
+  state.activeWorkout = null;
   document.getElementById('active-workout-banner').classList.add('hidden');
   saveState();
   renderActiveWorkout();
@@ -4711,8 +4712,9 @@ function deletePlan(id) {
 function startPlan(id) {
   const plan = state.plans.find(p => p.id === id);
   if (!plan) return;
+  state.activeWorkout = { planId: id, startTime: new Date().toISOString(), date: state.currentDate };
   state.lastActiveWorkout = {
-    id: Date.now(), date: state.currentDate, name: plan.name,
+    id: Date.now(), date: state.currentDate, name: plan.name, planId: id,
     exercises: plan.exercises.map(e => ({ ...e, sets: Array(e.defaultSets||3).fill(null).map(() => ({ weight: '', reps: e.defaultReps||'', done: false })) })),
     duration: 0, started: Date.now()
   };
