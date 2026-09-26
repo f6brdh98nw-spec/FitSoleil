@@ -906,7 +906,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
             <button class="isq" onclick="openModal('modal-weight')" style="--acc:#E8C547;width:26px;height:26px;font-size:13px"><i class="ti ti-plus"></i></button>
           </div>
         </div>
-        <div id="weight-mini-chart" class="chart-wrap" style="height:80px"></div>
+        <div id="weight-mini-chart" class="chart-wrap" style="height:80px;margin:0 -16px;width:calc(100% + 32px)"></div>
       </div>
 
       <!-- Water card (250 ml per bubble) -->
@@ -3482,6 +3482,8 @@ function renderDashboard() {
 
   // ── Calories card ──
   setEl('cals-consumed', totals.calories.toLocaleString ? totals.calories.toLocaleString() : totals.calories);
+  const calsNumEl = document.getElementById('cals-consumed');
+  if (calsNumEl) calsNumEl.style.color = '#F0EEE8';
   setEl('cals-of-label', ' / ' + (tgt.calories||2000).toLocaleString() + ' kcal');
   setEl('cals-goal', tgt.calories || 2000);
   const calsRem = (tgt.calories||2000) - totals.calories;
@@ -3540,7 +3542,15 @@ function renderDashboard() {
     setEl('plan-workout-name', '✓ Completed');
     setEl('plan-workout-sub', todayName || 'Workout done');
     const playBtn = document.getElementById('plan-workout-play-btn');
-    if (playBtn) { playBtn.style.setProperty('--acc','#4ADE80'); playBtn.innerHTML='<i class="ti ti-check"></i>'; playBtn.onclick=()=>navigate('workout'); }
+    if (playBtn) {
+      playBtn.style.setProperty('--acc','#4ADE80');
+      playBtn.innerHTML='<i class="ti ti-check"></i>';
+      playBtn.onclick=()=>{
+        const doneSession = (state.workouts||[]).find(w=>w.date===state.currentDate);
+        if (doneSession) { navigate('workout'); setTimeout(()=>openWorkoutDetail(doneSession.id),80); }
+        else navigate('workout');
+      };
+    }
   } else {
     setEl('plan-workout-name', todayName || 'Rest day');
     setEl('plan-workout-sub', todayName ? 'Tap to start' : 'No plan scheduled');
