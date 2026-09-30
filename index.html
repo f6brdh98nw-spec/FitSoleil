@@ -2021,20 +2021,22 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
 
     <!-- BARCODE SCAN -->
     <div id="ft-scan" class="hidden">
-      <div id="barcode-view" style="position:relative;width:100%;background:#000;border-radius:var(--r-sm);overflow:hidden;aspect-ratio:4/3">
-        <div id="barcode-tap-prompt" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;cursor:pointer" onclick="startBarcodeScanner()">
-          <i class="ti ti-camera" style="font-size:40px;color:var(--txt3)"></i>
-          <div style="font-size:13px;color:var(--txt2)">Tap to scan barcode</div>
-          <div style="font-size:11px;color:var(--txt3)">Uses Open Food Facts database</div>
-        </div>
-        <video id="barcode-video" style="display:none;width:100%;height:100%;object-fit:cover" autoplay playsinline></video>
+      <div id="barcode-view" style="position:relative;width:100%;min-height:280px;max-height:60vh;background:#000;border-radius:var(--r-sm);overflow:hidden">
+        <video id="barcode-video" style="width:100%;height:100%;min-height:280px;max-height:60vh;object-fit:cover;display:block" autoplay playsinline></video>
         <canvas id="barcode-canvas" style="display:none"></canvas>
-        <div id="barcode-overlay" style="display:none;position:absolute;inset:0;pointer-events:none">
-          <div style="position:absolute;inset:20%;border:2px solid #E8C547;border-radius:6px;box-shadow:0 0 0 9999px rgba(0,0,0,.45)"></div>
+        <div id="barcode-overlay" style="position:absolute;inset:0;pointer-events:none">
+          <div style="position:absolute;inset:20%;border:2px solid #E8C547;border-radius:6px;box-shadow:0 0 0 9999px rgba(0,0,0,.5)"></div>
+        </div>
+        <div id="barcode-tap-prompt" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:rgba(0,0,0,.6);cursor:pointer" onclick="startBarcodeScanner()">
+          <i class="ti ti-camera" style="font-size:36px;color:#fff"></i>
+          <div style="font-size:13px;color:rgba(255,255,255,.8)">Tap to retry</div>
+        </div>
+        <div id="barcode-error-msg" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;padding:16px;text-align:center">
+          <div style="font-size:12px;color:rgba(255,255,255,.7)" id="barcode-error-text"></div>
         </div>
       </div>
       <div style="text-align:center;font-size:12px;color:var(--txt2);margin-top:8px" id="barcode-instruction">Point camera at barcode</div>
-      <button id="barcode-stop-btn" style="display:none;margin-top:8px;width:100%" class="btn btn-outline" onclick="stopBarcodeScanner()">Stop scanning</button>
+      <button id="barcode-stop-btn" style="margin-top:8px;width:100%" class="btn btn-outline" onclick="stopBarcodeScanner()">Cancel</button>
       <div id="barcode-result" style="margin-top:12px"></div>
     </div>
 
@@ -3512,6 +3514,7 @@ function switchTab(el, targetId) {
   if (target) target.classList.remove('hidden');
   if (targetId === 'ph-compare') renderPhotoGallery();
   if (targetId === 'nt-meals') renderRecipesList();
+  if (targetId === 'ft-scan') startBarcodeScanner();
 }
 
 // ============================================================
@@ -4656,24 +4659,25 @@ async function startBarcodeScanner() {
   var video = document.getElementById('barcode-video');
   var resultDiv = document.getElementById('barcode-result');
   var tapPrompt = document.getElementById('barcode-tap-prompt');
-  var overlay = document.getElementById('barcode-overlay');
-  var stopBtn = document.getElementById('barcode-stop-btn');
+  var errorMsg = document.getElementById('barcode-error-msg');
+  var errorText = document.getElementById('barcode-error-text');
   var instruction = document.getElementById('barcode-instruction');
 
+  if (tapPrompt) tapPrompt.style.display = 'none';
+  if (errorMsg) errorMsg.style.display = 'none';
+  if (resultDiv) resultDiv.innerHTML = '';
+
   if (!('BarcodeDetector' in window)) {
-    resultDiv.innerHTML = '<div style="font-size:12px;color:var(--danger);text-align:center;padding:12px">Barcode scanning requires Chrome on Android or Safari on iOS 17+.</div>';
+    if (errorText) errorText.textContent = 'Barcode scanning requires Chrome on Android or Safari on iOS 17+.';
+    if (errorMsg) errorMsg.style.display = 'flex';
+    if (instruction) instruction.textContent = 'Camera not available';
     return;
   }
   try {
     var stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     _barcodeStream = stream;
     video.srcObject = stream;
-    video.style.display = 'block';
-    if (tapPrompt) tapPrompt.style.display = 'none';
-    if (overlay) overlay.style.display = 'block';
-    if (stopBtn) stopBtn.style.display = 'block';
     if (instruction) instruction.textContent = 'Point camera at barcode...';
-    resultDiv.innerHTML = '';
 
     var detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
     var scan = async function() {
@@ -4691,7 +4695,10 @@ async function startBarcodeScanner() {
     };
     video.addEventListener('loadedmetadata', function() { requestAnimationFrame(scan); }, { once: true });
   } catch(e) {
-    resultDiv.innerHTML = '<div style="font-size:12px;color:var(--danger);text-align:center;padding:12px">Camera access denied. Please allow camera access in your browser settings.</div>';
+    if (errorText) errorText.textContent = 'Camera access denied. Please allow camera access in your browser settings.';
+    if (errorMsg) errorMsg.style.display = 'flex';
+    if (tapPrompt) { tapPrompt.style.display = 'flex'; }
+    if (instruction) instruction.textContent = 'Camera unavailable';
   }
 }
 
@@ -4701,15 +4708,7 @@ function stopBarcodeScanner() {
     _barcodeStream = null;
   }
   var video = document.getElementById('barcode-video');
-  var tapPrompt = document.getElementById('barcode-tap-prompt');
-  var overlay = document.getElementById('barcode-overlay');
-  var stopBtn = document.getElementById('barcode-stop-btn');
-  var instruction = document.getElementById('barcode-instruction');
-  if (video) { video.srcObject = null; video.style.display = 'none'; }
-  if (tapPrompt) tapPrompt.style.display = 'flex';
-  if (overlay) overlay.style.display = 'none';
-  if (stopBtn) stopBtn.style.display = 'none';
-  if (instruction) instruction.textContent = 'Point camera at barcode';
+  if (video) { video.srcObject = null; }
 }
 
 function lookupBarcode(barcode, resultDiv) {
