@@ -946,7 +946,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     </div>
     <div class="tabs" style="margin:12px 16px 0">
       <div class="tab active" onclick="switchTab(this,'nt-diary')">Diary</div>
-      <div class="tab" onclick="switchTab(this,'nt-meals')">Meals</div>
+      <div class="tab" onclick="switchTab(this,'nt-meals')">Meals / Recipes</div>
       <div class="tab" onclick="switchTab(this,'nt-mealplan')">Plan</div>
       <div class="tab" onclick="switchTab(this,'nt-shopping')">Shopping</div>
     </div>
@@ -2021,14 +2021,21 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
 
     <!-- BARCODE SCAN -->
     <div id="ft-scan" class="hidden">
-      <div style="background:var(--s2);border-radius:var(--r-sm);aspect-ratio:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;cursor:pointer" onclick="startBarcodeScanner()">
-        <i class="ti ti-camera" style="font-size:40px;color:var(--txt3)"></i>
-        <div style="font-size:13px;color:var(--txt2)">Tap to scan barcode</div>
-        <div style="font-size:11px;color:var(--txt3)">Uses Open Food Facts database</div>
+      <div id="barcode-view" style="position:relative;width:100%;background:#000;border-radius:var(--r-sm);overflow:hidden;aspect-ratio:4/3">
+        <div id="barcode-tap-prompt" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;cursor:pointer" onclick="startBarcodeScanner()">
+          <i class="ti ti-camera" style="font-size:40px;color:var(--txt3)"></i>
+          <div style="font-size:13px;color:var(--txt2)">Tap to scan barcode</div>
+          <div style="font-size:11px;color:var(--txt3)">Uses Open Food Facts database</div>
+        </div>
+        <video id="barcode-video" style="display:none;width:100%;height:100%;object-fit:cover" autoplay playsinline></video>
+        <canvas id="barcode-canvas" style="display:none"></canvas>
+        <div id="barcode-overlay" style="display:none;position:absolute;inset:0;pointer-events:none">
+          <div style="position:absolute;inset:20%;border:2px solid #E8C547;border-radius:6px;box-shadow:0 0 0 9999px rgba(0,0,0,.45)"></div>
+        </div>
       </div>
+      <div style="text-align:center;font-size:12px;color:var(--txt2);margin-top:8px" id="barcode-instruction">Point camera at barcode</div>
+      <button id="barcode-stop-btn" style="display:none;margin-top:8px;width:100%" class="btn btn-outline" onclick="stopBarcodeScanner()">Stop scanning</button>
       <div id="barcode-result" style="margin-top:12px"></div>
-      <video id="barcode-video" style="display:none;width:100%;border-radius:var(--r-sm)" autoplay playsinline></video>
-      <canvas id="barcode-canvas" style="display:none"></canvas>
     </div>
 
     <!-- CUSTOM FOOD -->
@@ -2259,7 +2266,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     <div id="recipe-detail-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
     <div class="card-title">Ingredients</div>
     <div id="recipe-detail-ingredients" style="margin-bottom:12px"></div>
-    <div class="card-title">Per serving</div>
+    <div class="card-title">Nutrition</div>
     <div id="recipe-detail-macros" style="margin-bottom:16px"></div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-recipe-detail')">Close</button>
@@ -2704,6 +2711,7 @@ function loadState() {
     }
   } catch(e) { loadTestData(); }
   if (!(state.cycleViewDate instanceof Date)) state.cycleViewDate = new Date();
+  state.currentDate = localDateStr(new Date());
 }
 
 function saveState() {
@@ -3485,7 +3493,8 @@ function goBack() {
 
 let _prevScreen = 'home';
 function switchTab(el, targetId) {
-  const container = el.closest('.tabs').nextElementSibling.parentElement;
+  const scanTab = document.getElementById('ft-scan');
+  if (scanTab && !scanTab.classList.contains('hidden') && targetId !== 'ft-scan') stopBarcodeScanner();
   el.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   let parent = el.closest('.screen') || el.closest('.modal');
@@ -4641,40 +4650,66 @@ function addCustomFood() {
 // ============================================================
 // BARCODE SCANNER
 // ============================================================
+var _barcodeStream = null;
+
 async function startBarcodeScanner() {
-  const video = document.getElementById('barcode-video');
-  const canvas = document.getElementById('barcode-canvas');
-  const resultDiv = document.getElementById('barcode-result');
+  var video = document.getElementById('barcode-video');
+  var resultDiv = document.getElementById('barcode-result');
+  var tapPrompt = document.getElementById('barcode-tap-prompt');
+  var overlay = document.getElementById('barcode-overlay');
+  var stopBtn = document.getElementById('barcode-stop-btn');
+  var instruction = document.getElementById('barcode-instruction');
+
+  if (!('BarcodeDetector' in window)) {
+    resultDiv.innerHTML = '<div style="font-size:12px;color:var(--danger);text-align:center;padding:12px">Barcode scanning requires Chrome on Android or Safari on iOS 17+.</div>';
+    return;
+  }
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    video.style.display = 'block';
+    var stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    _barcodeStream = stream;
     video.srcObject = stream;
-    resultDiv.innerHTML = '<div style="font-size:12px;color:var(--txt2);text-align:center;margin-top:8px">Point camera at barcode... scanning</div>';
-    // Simple scanning loop
-    const scan = async () => {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        // BarcodeDetector API (supported in Safari 17+)
-        if ('BarcodeDetector' in window) {
-          const bd = new BarcodeDetector();
-          const codes = await bd.detect(canvas);
-          if (codes.length > 0) {
-            const barcode = codes[0].rawValue;
-            stream.getTracks().forEach(t => t.stop());
-            video.style.display = 'none';
-            lookupBarcode(barcode, resultDiv);
-            return;
-          }
+    video.style.display = 'block';
+    if (tapPrompt) tapPrompt.style.display = 'none';
+    if (overlay) overlay.style.display = 'block';
+    if (stopBtn) stopBtn.style.display = 'block';
+    if (instruction) instruction.textContent = 'Point camera at barcode...';
+    resultDiv.innerHTML = '';
+
+    var detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+    var scan = async function() {
+      if (!_barcodeStream) return;
+      try {
+        var codes = await detector.detect(video);
+        if (codes.length > 0) {
+          var barcode = codes[0].rawValue;
+          stopBarcodeScanner();
+          lookupBarcode(barcode, resultDiv);
+          return;
         }
-      }
+      } catch(e) {}
       requestAnimationFrame(scan);
     };
-    video.addEventListener('loadedmetadata', () => requestAnimationFrame(scan));
+    video.addEventListener('loadedmetadata', function() { requestAnimationFrame(scan); }, { once: true });
   } catch(e) {
-    resultDiv.innerHTML = '<div style="font-size:12px;color:var(--danger)">Camera access denied or not available.</div>';
+    resultDiv.innerHTML = '<div style="font-size:12px;color:var(--danger);text-align:center;padding:12px">Camera access denied. Please allow camera access in your browser settings.</div>';
   }
+}
+
+function stopBarcodeScanner() {
+  if (_barcodeStream) {
+    _barcodeStream.getTracks().forEach(function(t) { t.stop(); });
+    _barcodeStream = null;
+  }
+  var video = document.getElementById('barcode-video');
+  var tapPrompt = document.getElementById('barcode-tap-prompt');
+  var overlay = document.getElementById('barcode-overlay');
+  var stopBtn = document.getElementById('barcode-stop-btn');
+  var instruction = document.getElementById('barcode-instruction');
+  if (video) { video.srcObject = null; video.style.display = 'none'; }
+  if (tapPrompt) tapPrompt.style.display = 'flex';
+  if (overlay) overlay.style.display = 'none';
+  if (stopBtn) stopBtn.style.display = 'none';
+  if (instruction) instruction.textContent = 'Point camera at barcode';
 }
 
 function lookupBarcode(barcode, resultDiv) {
@@ -4693,15 +4728,22 @@ function lookupBarcode(barcode, resultDiv) {
             '<button class="btn btn-primary" style="margin-top:10px" onclick="selectFood(\'' + encoded + '\')">Add This Food</button>' +
           '</div>';
         } else {
-          resultDiv.innerHTML = '<div style="font-size:12px;color:var(--txt2)">Product not found. Try manual entry.</div>';
+          resultDiv.innerHTML = '<div style="font-size:12px;color:var(--txt2);text-align:center">Product not found. <span style="color:var(--acc);cursor:pointer;text-decoration:underline" onclick="openCustomFoodForm(\'' + barcode + '\')">Add it manually</span></div>';
         }
       } else {
-        resultDiv.innerHTML = '<div style="font-size:12px;color:var(--txt2)">Product not found. Try manual entry.</div>';
+        resultDiv.innerHTML = '<div style="font-size:12px;color:var(--txt2);text-align:center">Product not found. <span style="color:var(--acc);cursor:pointer;text-decoration:underline" onclick="openCustomFoodForm(\'' + barcode + '\')">Add it manually</span></div>';
       }
     })
     .catch(function() {
       resultDiv.innerHTML = '<div style="font-size:12px;color:var(--danger)">Lookup failed.</div>';
     });
+}
+
+function openCustomFoodForm(barcode) {
+  var customTabBtn = document.querySelector('#modal-food .tabs .tab:nth-child(3)');
+  if (customTabBtn) customTabBtn.click();
+  var nameEl = document.getElementById('custom-food-name');
+  if (nameEl) { nameEl.value = 'Barcode: ' + barcode; nameEl.focus(); }
 }
 
 // ============================================================
@@ -4750,13 +4792,16 @@ function renderMealSections() {
           <button class="btn btn-outline btn-sm" style="padding:4px 8px;font-size:11px" onclick="quickAddMeal('${meal}')">+</button>
         </div>
       </div>
-      ${items.map(item => `
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--s2)">
-          <div style="flex:1"><div style="font-size:13px">${item.name}</div><div style="font-size:11px;color:var(--txt2)">${item.serving}g</div></div>
+      ${items.map(item => {
+        const subLabel = item.recipeId
+          ? '1 serve · P:' + item.protein + 'g C:' + item.carbs + 'g F:' + item.fat + 'g'
+          : (item.serving ? item.serving + 'g' : '');
+        return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--s2)">
+          <div style="flex:1"><div style="font-size:13px">${item.name}</div><div style="font-size:11px;color:var(--txt2)">${subLabel}</div></div>
           <div style="font-size:13px;font-weight:600;color:var(--acc)">${item.calories} kcal</div>
           <button onclick="removeFood(${(log.meals||[]).indexOf(item)})" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px">✕</button>
-        </div>
-      `).join('')}
+        </div>`;
+      }).join('')}
     </div>`;
   }).join('');
 }
@@ -4808,49 +4853,94 @@ function saveRecipe() {
 function renderRecipesList() {
   const list = document.getElementById('recipes-list');
   const mlist = document.getElementById('modal-recipes-list');
-  const html = state.recipes.length ? state.recipes.map(r => `
-    <div class="recipe-card" onclick="openRecipeDetail(${r.id})">
-      <div style="font-weight:600;font-size:14px">${r.name}</div>
-      <div class="recipe-macros">
-        <span class="recipe-macro">${Math.round(r.macros?.calories||0)} kcal</span>
-        <span class="recipe-macro">P:${Math.round(r.macros?.protein||0)}g</span>
-        <span class="recipe-macro">C:${Math.round(r.macros?.carbs||0)}g</span>
-        <span class="recipe-macro">F:${Math.round(r.macros?.fat||0)}g</span>
+  const html = state.recipes.length ? state.recipes.map(r => {
+    const serves = r.servings || 1;
+    const ps = {
+      cal: Math.round((r.macros?.calories||0) / serves),
+      p: Math.round((r.macros?.protein||0) / serves),
+      c: Math.round((r.macros?.carbs||0) / serves),
+      f: Math.round((r.macros?.fat||0) / serves),
+    };
+    const tot = {
+      cal: Math.round(r.macros?.calories||0),
+      p: Math.round(r.macros?.protein||0),
+      c: Math.round(r.macros?.carbs||0),
+      f: Math.round(r.macros?.fat||0),
+    };
+    return `<div class="recipe-card" onclick="openRecipeDetail(${r.id})">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <div style="font-weight:600;font-size:14px">${r.name}</div>
+        <div style="font-size:11px;color:var(--txt3)">${r.ingredients?.length||0} ingredients · ${serves} serve${serves!==1?'s':''}</div>
       </div>
-      <div style="font-size:11px;color:var(--txt3);margin-top:4px">${r.ingredients?.length||0} ingredients · ${r.servings} serving${r.servings!==1?'s':''}</div>
-    </div>
-  `).join('') : '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No saved meals yet</div>';
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">Per serve</div>
+          <div class="recipe-macros"><span class="recipe-macro" style="font-weight:600">${ps.cal} kcal</span><span class="recipe-macro">P:${ps.p}g</span><span class="recipe-macro">C:${ps.c}g</span><span class="recipe-macro">F:${ps.f}g</span></div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">Total recipe</div>
+          <div class="recipe-macros" style="opacity:.6;font-size:11px"><span class="recipe-macro">${tot.cal} kcal</span><span class="recipe-macro">P:${tot.p}g</span><span class="recipe-macro">C:${tot.c}g</span><span class="recipe-macro">F:${tot.f}g</span></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No saved meals yet</div>';
   if (list) list.innerHTML = html;
   if (mlist) mlist.innerHTML = html;
 }
 
+function showMealSelector(callback) {
+  var meals = ['Breakfast','Morning Snack','Lunch','Afternoon Snack','Dinner','Evening Snack'];
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'display:flex;z-index:9999';
+  overlay.id = 'meal-selector-overlay';
+  overlay.innerHTML = '<div class="modal"><div class="modal-handle"></div><div class="modal-title" style="font-size:15px;margin-bottom:12px">Add to which meal?</div>' +
+    meals.map(function(m) {
+      return '<button class="btn btn-secondary" style="width:100%;margin-bottom:6px;text-align:left" onclick="_mealSelectorPick(\'' + m + '\')">' + m + '</button>';
+    }).join('') +
+    '<button class="btn btn-outline" style="width:100%;margin-top:4px" onclick="document.getElementById(\'meal-selector-overlay\')?.remove()">Cancel</button></div>';
+  window._mealSelectorCallback = callback;
+  document.body.appendChild(overlay);
+}
+
+function _mealSelectorPick(meal) {
+  var overlay = document.getElementById('meal-selector-overlay');
+  if (overlay) overlay.remove();
+  if (typeof window._mealSelectorCallback === 'function') {
+    window._mealSelectorCallback(meal);
+    window._mealSelectorCallback = null;
+  }
+}
+
 function logRecipeAndRender(id) {
   logRecipe(id);
-  renderMealSections();
-  renderDashboard();
 }
 
 function logRecipe(id) {
-  const r = state.recipes.find(x => x.id === id);
+  var r = state.recipes.find(function(x) { return x.id === id; });
   if (!r) return;
-  const log = getDayLog();
-  log.meals.push({
-    name: r.name,
-    meal: 'Snack',
-    calories: r.macros?.calories||0,
-    protein: r.macros?.protein||0,
-    carbs: r.macros?.carbs||0,
-    fat: r.macros?.fat||0,
-    fiber: r.macros?.fiber||0,
-    serving: 1,
-    time: new Date().toISOString()
+  showMealSelector(function(selectedMeal) {
+    var serves = r.servings || 1;
+    var log = getDayLog();
+    log.meals.push({
+      name: r.name,
+      meal: selectedMeal,
+      calories: Math.round((r.macros?.calories || 0) / serves),
+      protein:  Math.round((r.macros?.protein  || 0) / serves * 10) / 10,
+      carbs:    Math.round((r.macros?.carbs    || 0) / serves * 10) / 10,
+      fat:      Math.round((r.macros?.fat      || 0) / serves * 10) / 10,
+      fiber:    Math.round((r.macros?.fiber    || 0) / serves * 10) / 10,
+      serving:  Math.round((r.macros?.calories || 0) / serves),
+      time: new Date().toISOString(),
+      recipeId: id
+    });
+    saveState();
+    renderMealSections();
+    renderDashboard();
+    closeModal('modal-recipe-detail');
+    closeModal('modal-food');
+    showToast('Added to ' + selectedMeal + ' ✓');
   });
-  saveState();
-  renderMealSections();
-  renderDashboard();
-  closeModal('modal-recipe-detail');
-  closeModal('modal-food');
-  showToast(r.name + ' added to diary');
 }
 
 let recipeSearchTimeout;
@@ -5425,55 +5515,32 @@ function setMealPlanDateSlot(ds, meal, name, pickerId) {
   document.getElementById(pickerId)?.remove();
 }
 
-function assignMeal(day, meal) {
-  const recipes = state.recipes;
-  if (!recipes.length) { showToast('Create some meals first in the Meals tab'); return; }
-  // Simple picker
-  const picker = document.createElement('div');
-  picker.innerHTML = `<div class="modal-overlay open" id="temp-meal-picker">
-    <div class="modal">
-      <div class="modal-handle"></div>
-      <div class="modal-title">Choose for ${day} ${meal}</div>
-      ${recipes.map(r => `<div class="recipe-card" onclick="setMealPlanSlot('${day}','${meal}','${r.name}','temp-meal-picker')">${r.name}</div>`).join('')}
-      <button class="btn btn-outline" style="margin-top:8px" onclick="document.getElementById('temp-meal-picker').remove()">Cancel</button>
-    </div>
-  </div>`;
-  document.body.appendChild(picker.firstChild);
-}
-
-function setMealPlanSlot(day, meal, name, pickerId) {
-  if (!state.mealPlan) state.mealPlan = {};
-  if (!state.mealPlan[day]) state.mealPlan[day] = {};
-  state.mealPlan[day][meal] = name;
-  saveState();
-  renderMealPlanGrid();
-  document.getElementById(pickerId)?.remove();
-}
-
 function generateShoppingList() {
   if (!state.mealPlan) { showToast('No meal plan set'); return; }
-  const ingredients = {};
-  DAYS.forEach(day => {
-    MEALS.forEach(meal => {
-      const mealName = state.mealPlan[day]?.[meal];
+  var ingredients = {};
+  getMealPlanWeekDates().forEach(function(d) {
+    var ds = localDateStr(d);
+    var dayPlan = state.mealPlan[ds];
+    if (!dayPlan) return;
+    MEALS.forEach(function(meal) {
+      var mealName = dayPlan[meal];
       if (!mealName) return;
-      const recipe = state.recipes.find(r => r.name === mealName);
+      var recipe = state.recipes.find(function(r) { return r.name === mealName; });
       if (!recipe) return;
-      (recipe.ingredients||[]).forEach(ing => {
+      (recipe.ingredients || []).forEach(function(ing) {
         if (!ingredients[ing.name]) ingredients[ing.name] = 0;
-        ingredients[ing.name] += ing.grams;
+        ingredients[ing.name] += (ing.grams || 0);
       });
     });
   });
-  const el = document.getElementById('shopping-list-container');
-  if (!Object.keys(ingredients).length) { el.innerHTML = '<div style="color:var(--txt3);font-size:13px">No ingredients found. Add meals to your plan first.</div>'; return; }
-  el.innerHTML = Object.entries(ingredients).map(([name, grams]) => `
-    <div class="shop-item">
-      <input type="checkbox"/>
-      <span>${name}</span>
-      <span class="qty">${grams}g</span>
-    </div>
-  `).join('');
+  var el = document.getElementById('shopping-list-container');
+  if (!Object.keys(ingredients).length) {
+    el.innerHTML = '<div style="color:var(--txt3);font-size:13px">No ingredients found. Add meals to your plan first.</div>';
+    return;
+  }
+  el.innerHTML = Object.entries(ingredients).sort(function(a, b) { return a[0].localeCompare(b[0]); }).map(function(entry) {
+    return '<div class="shop-item"><input type="checkbox"/><span>' + entry[0] + '</span><span class="qty">' + entry[1] + 'g</span></div>';
+  }).join('');
 }
 
 function exportShoppingList() {
@@ -6859,6 +6926,7 @@ function closeFoodModal() {
   if (activeSearchController) activeSearchController.abort();
   searchDebounceTimer = null;
   activeSearchController = null;
+  stopBarcodeScanner();
 }
 
 function openModal(id) {
@@ -7277,6 +7345,7 @@ function completeMonthlyReview() {
 function openRecipeDetail(id) {
   const r = state.recipes.find(x => x.id === id);
   if (!r) return;
+  const serves = r.servings || 1;
   document.getElementById('recipe-detail-name').textContent = r.name;
   const tagsEl = document.getElementById('recipe-detail-tags');
   if (tagsEl) tagsEl.innerHTML = (r.tags||[]).map(t => `<span class="tag-pill active">${t}</span>`).join('');
@@ -7288,11 +7357,25 @@ function openRecipeDetail(id) {
     </div>`).join('');
   const macrosEl = document.getElementById('recipe-detail-macros');
   if (macrosEl) macrosEl.innerHTML = `
-    <div class="macro-grid">
-      <div class="macro-item"><div class="macro-val" style="color:var(--acc)">${Math.round(r.macros?.calories||0)}</div><div class="macro-label">kcal</div></div>
-      <div class="macro-item"><div class="macro-val" style="color:#60A5FA">${Math.round(r.macros?.protein||0)}g</div><div class="macro-label">Protein</div></div>
-      <div class="macro-item"><div class="macro-val" style="color:#4ADE80">${Math.round(r.macros?.carbs||0)}g</div><div class="macro-label">Carbs</div></div>
-      <div class="macro-item"><div class="macro-val" style="color:#E8C547">${Math.round(r.macros?.fat||0)}g</div><div class="macro-label">Fat</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Per serve (${serves})</div>
+        <div class="macro-grid">
+          <div class="macro-item"><div class="macro-val" style="color:var(--acc)">${Math.round((r.macros?.calories||0)/serves)}</div><div class="macro-label">kcal</div></div>
+          <div class="macro-item"><div class="macro-val" style="color:#60A5FA">${Math.round((r.macros?.protein||0)/serves)}g</div><div class="macro-label">Protein</div></div>
+          <div class="macro-item"><div class="macro-val" style="color:#4ADE80">${Math.round((r.macros?.carbs||0)/serves)}g</div><div class="macro-label">Carbs</div></div>
+          <div class="macro-item"><div class="macro-val" style="color:#E8C547">${Math.round((r.macros?.fat||0)/serves)}g</div><div class="macro-label">Fat</div></div>
+        </div>
+      </div>
+      <div style="opacity:.6">
+        <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Total recipe</div>
+        <div class="macro-grid">
+          <div class="macro-item"><div class="macro-val" style="color:var(--acc)">${Math.round(r.macros?.calories||0)}</div><div class="macro-label">kcal</div></div>
+          <div class="macro-item"><div class="macro-val" style="color:#60A5FA">${Math.round(r.macros?.protein||0)}g</div><div class="macro-label">Protein</div></div>
+          <div class="macro-item"><div class="macro-val" style="color:#4ADE80">${Math.round(r.macros?.carbs||0)}g</div><div class="macro-label">Carbs</div></div>
+          <div class="macro-item"><div class="macro-val" style="color:#E8C547">${Math.round(r.macros?.fat||0)}g</div><div class="macro-label">Fat</div></div>
+        </div>
+      </div>
     </div>`;
   const logBtn = document.getElementById('recipe-detail-log-btn');
   if (logBtn) logBtn.onclick = () => logRecipe(id);
