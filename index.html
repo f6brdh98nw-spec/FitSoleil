@@ -4321,18 +4321,7 @@ function executeFoodSearch(query) {
       : 'Searching...');
   }
 
-  // Fetch pages 1 and 2 in parallel so the initial count reflects both pages
-  var offPromise = Promise.all([
-    searchOpenFoodFacts(foodQuery, brandFilter || null, signal, 1),
-    searchOpenFoodFacts(foodQuery, brandFilter || null, signal, 2)
-  ]).then(function(pages) {
-    var seen = new Set();
-    return pages[0].concat(pages[1]).filter(function(f) {
-      if (seen.has(f.id)) return false;
-      seen.add(f.id);
-      return true;
-    });
-  });
+  var offPromise = searchOpenFoodFacts(foodQuery, brandFilter || null, signal, 1);
 
   offPromise
     .then(function(offResults) {
@@ -4352,13 +4341,15 @@ function executeFoodSearch(query) {
         if (usdaCount) parts.push('USDA (' + usdaCount + ')');
         if (customCount) parts.push('Custom (' + customCount + ')');
         if (newOff.length) parts.push('OFF (' + newOff.length + ')');
-        var status = total + ' result' + (total === 1 ? '' : 's') + (parts.length ? ' · ' + parts.join(' · ') : '');
+        var hasMore = offResults.length >= 25;
+        var countStr = hasMore ? (total + '+') : (total + '');
+        var status = countStr + ' result' + (total === 1 ? '' : 's') + (parts.length ? ' · ' + parts.join(' · ') : '');
         _setFoodSourceLine(status);
         _lastSearchState = {
           foodQuery: foodQuery, brandFilter: brandFilter,
-          instantResults: instantResults, loadedOff: newOff, page: 2
+          instantResults: instantResults, loadedOff: newOff, page: 1
         };
-        if (offResults.length >= 48) _appendLoadMoreButton();
+        if (hasMore) _appendLoadMoreButton();
       } else {
         renderSearchResults([], []);
         _setFoodSourceLine('No results. Try different terms or add a custom food.');
