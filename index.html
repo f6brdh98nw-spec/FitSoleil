@@ -4412,14 +4412,6 @@ function _loadMoreResults() {
     }
     s.loadedOff = s.loadedOff.concat(newOff);
     s.page = nextPage;
-    var total = s.instantResults.length + s.loadedOff.length;
-    var lmUsdaCount = s.instantResults.filter(function(f){return f.source==='USDA';}).length;
-    var lmCustomCount = s.instantResults.filter(function(f){return f.source==='Custom';}).length;
-    var lmParts = [];
-    if (lmUsdaCount) lmParts.push('USDA (' + lmUsdaCount + ')');
-    if (lmCustomCount) lmParts.push('Custom (' + lmCustomCount + ')');
-    if (s.loadedOff.length) lmParts.push('OFF (' + s.loadedOff.length + ')');
-    _setFoodSourceLine(total + ' result' + (total === 1 ? '' : 's') + (lmParts.length ? ' · ' + lmParts.join(' · ') : ''));
     if (newOff.length >= 25) _appendLoadMoreButton();
   }).catch(function(){
     if (btn) btn.textContent = 'See more results';
