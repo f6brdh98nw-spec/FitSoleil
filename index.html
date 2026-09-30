@@ -4412,6 +4412,8 @@ function _loadMoreResults() {
     }
     s.loadedOff = s.loadedOff.concat(newOff);
     s.page = nextPage;
+    var total = s.instantResults.length + s.loadedOff.length;
+    _setFoodSourceLine(total + ' result' + (total === 1 ? '' : 's') + ' shown');
     if (newOff.length >= 25) _appendLoadMoreButton();
   }).catch(function(){
     if (btn) btn.textContent = 'See more results';
