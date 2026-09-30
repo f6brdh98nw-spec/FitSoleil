@@ -4270,132 +4270,6 @@ function runFoodSearch(query) {
   searchDebounceTimer = setTimeout(function() { executeFoodSearch(query); }, 600);
 }
 
-var FOOD_CATEGORIES = {
-  'chicken': 'en:chicken', 'turkey': 'en:turkey',
-  'beef': 'en:beef', 'steak': 'en:beef',
-  'lamb': 'en:lamb',
-  'pork': 'en:pork', 'bacon': 'en:bacons', 'ham': 'en:hams',
-  'salmon': 'en:salmon', 'tuna': 'en:tuna', 'fish': 'en:fish',
-  'snapper': 'en:fish', 'hoki': 'en:fish', 'cod': 'en:fish',
-  'prawns': 'en:shrimps', 'shrimp': 'en:shrimps',
-  'mussels': 'en:mussels',
-  'milk': 'en:milks', 'cheese': 'en:cheeses',
-  'cottage cheese': 'en:cottage-cheese',
-  'yoghurt': 'en:yogurts', 'yogurt': 'en:yogurts',
-  'butter': 'en:butters', 'cream': 'en:creams',
-  'egg': 'en:eggs', 'eggs': 'en:eggs',
-  'broccoli': 'en:broccoli', 'spinach': 'en:spinach',
-  'carrot': 'en:carrots', 'carrots': 'en:carrots',
-  'potato': 'en:potatoes', 'potatoes': 'en:potatoes',
-  'kumara': 'en:sweet-potatoes', 'sweet potato': 'en:sweet-potatoes',
-  'tomato': 'en:tomatoes', 'tomatoes': 'en:tomatoes',
-  'lettuce': 'en:lettuces', 'cucumber': 'en:cucumbers',
-  'capsicum': 'en:bell-peppers', 'pepper': 'en:bell-peppers',
-  'onion': 'en:onions', 'onions': 'en:onions',
-  'garlic': 'en:garlic', 'mushroom': 'en:mushrooms', 'mushrooms': 'en:mushrooms',
-  'corn': 'en:corn', 'peas': 'en:peas', 'beans': 'en:green-beans',
-  'avocado': 'en:avocados', 'avocados': 'en:avocados',
-  'courgette': 'en:zucchinis', 'zucchini': 'en:zucchinis',
-  'cauliflower': 'en:cauliflowers', 'cabbage': 'en:cabbages',
-  'beetroot': 'en:beets', 'celery': 'en:celeries',
-  'leek': 'en:leeks', 'asparagus': 'en:asparagus', 'kale': 'en:kale',
-  'apple': 'en:apples', 'apples': 'en:apples',
-  'banana': 'en:bananas', 'bananas': 'en:bananas',
-  'orange': 'en:oranges', 'oranges': 'en:oranges',
-  'grape': 'en:grapes', 'grapes': 'en:grapes',
-  'strawberry': 'en:strawberries', 'strawberries': 'en:strawberries',
-  'blueberry': 'en:blueberries', 'blueberries': 'en:blueberries',
-  'mango': 'en:mangoes', 'kiwi': 'en:kiwis',
-  'watermelon': 'en:watermelons', 'pear': 'en:pears',
-  'peach': 'en:peaches', 'lemon': 'en:lemons', 'lime': 'en:limes',
-  'cherry': 'en:cherries', 'cherries': 'en:cherries',
-  'pineapple': 'en:pineapples', 'melon': 'en:melons',
-  'oats': 'en:oats', 'rice': 'en:rice',
-  'pasta': 'en:pasta', 'bread': 'en:breads',
-  'flour': 'en:flours', 'quinoa': 'en:quinoa',
-  'couscous': 'en:couscous', 'barley': 'en:barley',
-  'lentils': 'en:lentils', 'lentil': 'en:lentils',
-  'chickpeas': 'en:chickpeas', 'tofu': 'en:tofu',
-  'tempeh': 'en:tempeh', 'edamame': 'en:edamame',
-  'almonds': 'en:almonds', 'peanuts': 'en:peanuts',
-  'peanut butter': 'en:peanut-butters', 'almond butter': 'en:almond-butters',
-  'cashews': 'en:cashew-nuts', 'walnuts': 'en:walnuts',
-  'sunflower seeds': 'en:sunflower-seeds',
-  'chia': 'en:chia-seeds', 'flaxseed': 'en:flaxseeds',
-  'olive oil': 'en:olive-oils', 'oil': 'en:oils',
-  'ground beef': 'en:ground-meat'
-};
-
-function getCategoryForQuery(query) {
-  var q = query.toLowerCase().trim();
-  if (FOOD_CATEGORIES[q]) return FOOD_CATEGORIES[q];
-  // Only use first-word fallback for single-word queries — multi-word queries
-  // with no exact match (e.g. "beef mince") should use keyword search
-  var words = q.split(/\s+/);
-  if (words.length === 1) return FOOD_CATEGORIES[words[0]] || null;
-  return null;
-}
-
-function searchOFFByCategory(category, signal, page) {
-  // Use search API with category tag — /category/ endpoint ignores tag filter params
-  var base = 'action=process&json=1&fields=product_name,nutriments,brands,code,countries_tags' +
-    '&sort_by=unique_scans_n&page_size=50' +
-    '&tagtype_0=categories&tag_contains_0=contains&tag_0=' + encodeURIComponent(category);
-  var pg = page || 1;
-  var keyword = category.replace(/^[a-z]{2}:/,''); // strip "en:" prefix → "chicken"
-  // Page 1: NZ-first (two fetches, merge NZ then global extras)
-  // Page 2+: global only — NZ products were already returned on page 1
-  if (pg === 1) {
-    var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + base +
-      '&tagtype_1=countries&tag_contains_1=contains&tag_1=new-zealand&page=1';
-    var globalUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + base + '&page=1';
-    return Promise.all([
-      fetch(nzUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};}),
-      fetch(globalUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};})
-    ]).then(function(results) {
-      var rawNz = parseOpenFoodFacts(results[0].products || [], true);
-      var rawGlobal = parseOpenFoodFacts(results[1].products || [], false);
-      // For categories with explicit synonyms (small/specific), filter NZ too —
-      // miscategorisation is proportionally high in small categories.
-      // For large generic categories (no synonyms), trust NZ country tag.
-      var hasSynonyms = !!_CATEGORY_SYNONYMS[keyword];
-      var nz = hasSynonyms ? _filterByCategory(rawNz, keyword) : rawNz;
-      var global = _filterByCategory(rawGlobal, keyword);
-      var nzIds = new Set(nz.map(function(p){return p.id;}));
-      var extra = global.filter(function(p){return !nzIds.has(p.id);});
-      return nz.concat(extra).slice(0, 25);
-    });
-  }
-  // Page 2+: single global fetch at the requested page
-  var url = 'https://world.openfoodfacts.org/cgi/search.pl?' + base + '&page=' + pg;
-  return fetch(url, {signal: signal})
-    .then(function(r){return r.json();})
-    .catch(function(){return {products:[]};})
-    .then(function(data){return _filterByCategory(parseOpenFoodFacts(data.products || [], false), keyword).slice(0, 25);});
-}
-
-// Extra synonyms for categories where the OFF slug doesn't match common product names
-// Synonyms only needed where OFF category is broad OR product names use different terms
-// Categories not listed here: trust the OFF category tag (no name filter applied)
-var _CATEGORY_SYNONYMS = {
-  'shrimps': ['prawn', 'shrimp'],
-  'bell-peppers': ['capsicum', 'pepper'],
-  'sweet-potatoes': ['kumara', 'sweet potato', 'sweetpotato'],
-  'chia-seeds': ['chia'],
-  'cashew-nuts': ['cashew'],
-  'olive-oils': ['olive oil', 'olive'],
-};
-
-// Keep only products whose name contains at least one word from the category keyword
-function _filterByCategory(products, keyword) {
-  var synonyms = _CATEGORY_SYNONYMS[keyword];
-  // No explicit synonyms: trust the OFF category tag, don't filter by name
-  if (!synonyms) return products;
-  return products.filter(function(p) {
-    var n = p.name.toLowerCase();
-    return synonyms.some(function(w){return n.includes(w);});
-  });
-}
 
 function searchUSDA(query) {
   var words = query.toLowerCase().trim().split(/\s+/).filter(function(w){return w.length > 1;});
@@ -4422,33 +4296,12 @@ function searchUSDA(query) {
     .slice(0, 8);
 }
 
-function searchOFFByBrand(brand, signal) {
-  var url = 'https://world.openfoodfacts.org/cgi/search.pl?' +
-    'search_simple=1&action=process&json=1&page_size=50' +
-    '&fields=product_name,nutriments,brands,code' +
-    '&sort_by=unique_scans_n' +
-    '&tagtype_0=brands&tag_contains_0=contains&tag_0=' + encodeURIComponent(brand);
-  return fetch(url, {signal: signal})
-    .then(function(r){return r.json();})
-    .catch(function(){return {products:[]};})
-    .then(function(data){return parseOpenFoodFacts(data.products || [], true).slice(0, 25);});
-}
 
 function executeFoodSearch(query) {
   var parsed = parseFoodQuery(query);
   var foodQuery = parsed.food;
   var brandFilter = parsed.brand;
 
-  // Detect keyword mode: single query word, no comma, no category match
-  var category = null;
-  var keywordMode = false;
-  if (!brandFilter) {
-    category = getCategoryForQuery(foodQuery);
-    // If no category and single token, treat as possible brand search
-    if (!category && foodQuery.indexOf(' ') === -1) {
-      keywordMode = true;
-    }
-  }
 
   if (activeSearchController) activeSearchController.abort();
   activeSearchController = new AbortController();
@@ -4468,41 +4321,7 @@ function executeFoodSearch(query) {
       : 'Searching...');
   }
 
-  // Choose OFF strategy
-  var offPromise;
-  if (brandFilter) {
-    // Explicit comma-brand: "chicken, nescafe"
-    offPromise = searchOpenFoodFacts(foodQuery, brandFilter, signal);
-  } else if (category) {
-    // Category match: run category search AND keyword search in parallel, merge
-    offPromise = Promise.all([
-      searchOFFByCategory(category, signal),
-      searchOpenFoodFacts(foodQuery, null, signal)
-    ]).then(function(results) {
-      var seen = new Set();
-      return results[0].concat(results[1]).filter(function(f) {
-        if (seen.has(f.id)) return false;
-        seen.add(f.id);
-        return true;
-      });
-    });
-  } else if (keywordMode) {
-    // Single word, no category: run keyword + brand tag in parallel and merge
-    offPromise = Promise.all([
-      searchOpenFoodFacts(foodQuery, null, signal),
-      searchOFFByBrand(foodQuery, signal)
-    ]).then(function(results) {
-      var seen = new Set();
-      return results[0].concat(results[1]).filter(function(f) {
-        if (seen.has(f.id)) return false;
-        seen.add(f.id);
-        return true;
-      }).slice(0, 25);
-    });
-  } else {
-    // Multi-word keyword search
-    offPromise = searchOpenFoodFacts(foodQuery, null, signal);
-  }
+  var offPromise = searchOpenFoodFacts(foodQuery, brandFilter || null, signal);
 
   offPromise
     .then(function(offResults) {
@@ -4527,7 +4346,6 @@ function executeFoodSearch(query) {
         // Store state for load more
         _lastSearchState = {
           foodQuery: foodQuery, brandFilter: brandFilter,
-          category: category, keywordMode: keywordMode,
           instantResults: instantResults, loadedOff: newOff, page: 1
         };
         if (offResults.length >= 25) _appendLoadMoreButton();
@@ -4573,32 +4391,7 @@ function _loadMoreResults() {
   var nextPage = (s.page || 1) + 1;
   var signal = null; // don't cancel on load more
 
-  var offPromise;
-  if (s.brandFilter) {
-    offPromise = searchOpenFoodFacts(s.foodQuery, s.brandFilter, signal, nextPage);
-  } else if (s.category) {
-    offPromise = Promise.all([
-      searchOFFByCategory(s.category, signal, nextPage),
-      searchOpenFoodFacts(s.foodQuery, null, signal, nextPage)
-    ]).then(function(results) {
-      var seen = new Set();
-      return results[0].concat(results[1]).filter(function(f) {
-        if (seen.has(f.id)) return false; seen.add(f.id); return true;
-      });
-    });
-  } else if (s.keywordMode) {
-    offPromise = Promise.all([
-      searchOpenFoodFacts(s.foodQuery, null, signal, nextPage),
-      searchOFFByBrand(s.foodQuery, signal)
-    ]).then(function(results) {
-      var seen = new Set();
-      return results[0].concat(results[1]).filter(function(f) {
-        if (seen.has(f.id)) return false; seen.add(f.id); return true;
-      }).slice(0, 25);
-    });
-  } else {
-    offPromise = searchOpenFoodFacts(s.foodQuery, null, signal, nextPage);
-  }
+  var offPromise = searchOpenFoodFacts(s.foodQuery, s.brandFilter || null, signal, nextPage);
 
   offPromise.then(function(offResults) {
     var usedIds = new Set(
