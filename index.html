@@ -4117,12 +4117,8 @@ function searchCustomFoods(query) {
   });
 }
 
-// Common non-English function words that indicate non-English product names.
-// Also reject names with accented characters beyond basic Latin (é,è,ê,ü,ö,ñ etc.)
-// that almost always indicate French/German/Spanish products.
-var _OFF_REJECT = /\b(de|du|le|la|les|un|une|avec|pour|au|aux|et|von|der|die|das|und|mit|van|voor|met|del|della|con|para|los|las|sin)\b/i;
-var _OFF_REJECT_ACCENT = /[àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿœ]/i;
-var _OFF_BRAND_WHITELIST = /\b(nestl[eé]|danon[e]?|lur[a]?pak|anchor|calci[a]?|tip\s*top)\b/i;
+// Block Arabic, CJK, Korean, Cyrillic, Hebrew — allow Latin extended (Māori macrons, accents)
+var _OFF_REJECT_SCRIPT = /[؀-ۿ一-鿿぀-ゟ゠-ヿ가-힯Ѐ-ӿ֐-׿]/;
 
 function _offKcal(n) {
   var k = n['energy-kcal_100g'] || n['energy-kcal'];
@@ -4139,8 +4135,7 @@ function _offKcal(n) {
 function parseOpenFoodFacts(products, isNz) {
   return (products || []).filter(function(p) {
     if (!p.product_name || p.product_name.trim().length < 2) return false;
-    if (/[^\x00-\xFF]/.test(p.product_name)) return false;
-    if (_OFF_REJECT.test(p.product_name)) return false;
+    if (_OFF_REJECT_SCRIPT.test(p.product_name)) return false;
     if (!p.nutriments) return false;
     if (_offKcal(p.nutriments) <= 0) return false;
     return true;
@@ -4235,26 +4230,25 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
   });
 }
 
-// Sort OFF results: primary by country priority (NZ→AU→UK→US→other),
-// secondary by keyword relevance within each country group.
+// Sort: tier (match quality) first, country rank second, A-Z third.
+// Match quality always beats country — a global exact match beats a NZ partial match.
 function _sortByCountryAndRelevance(products, query) {
-  var words = query.toLowerCase().trim().split(/\s+/).filter(function(w){return w.length > 1;});
+  var q = query.toLowerCase().trim();
+  var words = q.split(/\s+/).filter(function(w){return w.length > 0;});
   return products.map(function(p) {
     var n = p.name.toLowerCase();
-    var rel = 0;
-    if (words.length > 0) {
-      if (words.every(function(w){return n.includes(w);})) rel += 50;
-      if (n.startsWith(words[0])) rel += 30;
-      words.forEach(function(w){
-        var pos = n.indexOf(w);
-        if (pos >= 0) rel += Math.max(0, 20 - pos);
-      });
-      rel -= n.length * 0.05;
-    }
-    return {p: p, country: p.countryRank !== undefined ? p.countryRank : 99, rel: rel};
-  }).sort(function(a, b){
+    var tier;
+    if (n === q) tier = 1000;
+    else if (n.startsWith(q)) tier = 800;
+    else if (words.length > 1 && words.every(function(w){return n.includes(w);})) tier = 600;
+    else if (words.length > 0 && n.startsWith(words[0])) tier = 400;
+    else if (words.length > 0 && words.some(function(w){return n.includes(w);})) tier = 200;
+    else tier = 0;
+    return {p: p, tier: tier, country: p.countryRank !== undefined ? p.countryRank : 99, name: p.name};
+  }).sort(function(a, b) {
+    if (a.tier !== b.tier) return b.tier - a.tier;
     if (a.country !== b.country) return a.country - b.country;
-    return b.rel - a.rel;
+    return a.name.localeCompare(b.name);
   }).map(function(r){return r.p;});
 }
 
@@ -4438,14 +4432,14 @@ function executeFoodSearch(query) {
   var foodQuery = parsed.food;
   var brandFilter = parsed.brand;
 
-  // Detect brand-only mode: single query word, no comma, no category match
+  // Detect keyword mode: single query word, no comma, no category match
   var category = null;
-  var brandOnlyMode = false;
+  var keywordMode = false;
   if (!brandFilter) {
     category = getCategoryForQuery(foodQuery);
     // If no category and single token, treat as possible brand search
     if (!category && foodQuery.indexOf(' ') === -1) {
-      brandOnlyMode = true;
+      keywordMode = true;
     }
   }
 
@@ -4473,9 +4467,19 @@ function executeFoodSearch(query) {
     // Explicit comma-brand: "chicken, nescafe"
     offPromise = searchOpenFoodFacts(foodQuery, brandFilter, signal);
   } else if (category) {
-    // Whole food: category search gives cleaner results
-    offPromise = searchOFFByCategory(category, signal);
-  } else if (brandOnlyMode) {
+    // Category match: run category search AND keyword search in parallel, merge
+    offPromise = Promise.all([
+      searchOFFByCategory(category, signal),
+      searchOpenFoodFacts(foodQuery, null, signal)
+    ]).then(function(results) {
+      var seen = new Set();
+      return results[0].concat(results[1]).filter(function(f) {
+        if (seen.has(f.id)) return false;
+        seen.add(f.id);
+        return true;
+      });
+    });
+  } else if (keywordMode) {
     // Single word, no category: run keyword + brand tag in parallel and merge
     offPromise = Promise.all([
       searchOpenFoodFacts(foodQuery, null, signal),
@@ -4516,7 +4520,7 @@ function executeFoodSearch(query) {
         // Store state for load more
         _lastSearchState = {
           foodQuery: foodQuery, brandFilter: brandFilter,
-          category: category, brandOnlyMode: brandOnlyMode,
+          category: category, keywordMode: keywordMode,
           instantResults: instantResults, loadedOff: newOff, page: 1
         };
         if (offResults.length >= 25) _appendLoadMoreButton();
@@ -4566,8 +4570,16 @@ function _loadMoreResults() {
   if (s.brandFilter) {
     offPromise = searchOpenFoodFacts(s.foodQuery, s.brandFilter, signal, nextPage);
   } else if (s.category) {
-    offPromise = searchOFFByCategory(s.category, signal, nextPage);
-  } else if (s.brandOnlyMode) {
+    offPromise = Promise.all([
+      searchOFFByCategory(s.category, signal, nextPage),
+      searchOpenFoodFacts(s.foodQuery, null, signal, nextPage)
+    ]).then(function(results) {
+      var seen = new Set();
+      return results[0].concat(results[1]).filter(function(f) {
+        if (seen.has(f.id)) return false; seen.add(f.id); return true;
+      });
+    });
+  } else if (s.keywordMode) {
     offPromise = Promise.all([
       searchOpenFoodFacts(s.foodQuery, null, signal, nextPage),
       searchOFFByBrand(s.foodQuery, signal)
