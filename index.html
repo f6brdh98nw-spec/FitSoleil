@@ -7528,7 +7528,9 @@ function doFullReset() {
 function loadTestDataAndReload() {
   loadTestData();
   saveState();
-  location.reload();
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('app').style.display = '';
+  initApp();
 }
 
 // ============================================================
