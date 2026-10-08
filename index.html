@@ -4419,6 +4419,7 @@ var searchDebounceTimer = null;
 var activeSearchController = null;
 var _lastSearchState = null; // tracks current search for "load more"
 var _searchGen = 0; // incremented on each new search; guards stale promise callbacks
+var _offCache = new Map(); // query -> OFF results, cleared on each fresh modal open
 
 function runFoodSearch(query) {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
@@ -4447,7 +4448,10 @@ function searchUSDA(query) {
       score -= name.length * 0.1;
       return {food: food, score: score};
     })
-    .sort(function(a,b){return b.score - a.score;})
+    .sort(function(a,b){
+      if (b.score !== a.score) return b.score - a.score;
+      return a.food.name.localeCompare(b.food.name);
+    })
     .map(function(r){return r.food;})
     .slice(0, 8);
 }
@@ -4477,12 +4481,38 @@ function executeFoodSearch(query) {
       : 'Searching...');
   }
 
+  var cacheKey = (foodQuery + '|' + (brandFilter||'')).toLowerCase();
+  var cachedOff = _offCache.get(cacheKey);
+  if (cachedOff) {
+    var usedIds = new Set(instantResults.map(function(f){return f.id;}));
+    var newOff = _sortByCountryAndRelevance(
+      cachedOff.filter(function(f){return !usedIds.has(f.id);}),
+      foodQuery
+    );
+    var total = instantResults.length + newOff.length;
+    if (total > 0) {
+      renderSearchResults(instantResults, newOff);
+      var parts = [];
+      var usdaCount = instantResults.filter(function(f){return f.source==='USDA';}).length;
+      var customCount = instantResults.filter(function(f){return f.source==='Custom';}).length;
+      if (usdaCount) parts.push('USDA (' + usdaCount + ')');
+      if (customCount) parts.push('Custom (' + customCount + ')');
+      if (newOff.length) parts.push('OFF (' + newOff.length + ')');
+      _setFoodSourceLine(total + ' result' + (total === 1 ? '' : 's') + (parts.length ? ' \xb7 ' + parts.join(' \xb7 ') : '') + ' (cached)');
+    } else {
+      renderSearchResults([], []);
+      _setFoodSourceLine('No results. Try different terms or add a custom food.');
+    }
+    return;
+  }
+
   var offPromise = searchOpenFoodFacts(foodQuery, brandFilter || null, signal, 1);
 
   offPromise
     .then(function(offResults) {
       if (myGen !== _searchGen) return; // stale — a newer search has taken over
       activeSearchController = null;
+      _offCache.set(cacheKey, offResults); // cache for session stability
       var usedIds = new Set(instantResults.map(function(f){return f.id;}));
       var newOff = _sortByCountryAndRelevance(
         offResults.filter(function(f){return !usedIds.has(f.id);}),
@@ -6068,7 +6098,7 @@ function renderMealPlanGrid() {
       <div class="meal-day-header">${dayNames[i]} ${d.getDate()}</div>
       ${planMeals.map(meal => {
         const assigned = (state.mealPlan[ds]||{})[meal];
-        return `<div class="meal-slot" onclick="assignMealDate('${ds}','${meal}')">
+        return `<div class="meal-slot" onclick="openMealPlanSlot('${ds}','${meal}')">
           <span class="meal-slot-name">${meal}</span>
           <span class="meal-slot-food">${assigned || '+ Add'}</span>
         </div>`;
@@ -7609,6 +7639,7 @@ function initFoodSearch(context) {
   _searchContext = context || 'modal';
   _foodModalOpen = true;
   _searchGen++; // invalidate any in-flight search from previous modal open
+  _offCache.clear(); // each fresh modal open gets fresh OFF results
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   searchDebounceTimer = null;
 
