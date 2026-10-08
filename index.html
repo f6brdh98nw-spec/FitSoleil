@@ -113,7 +113,7 @@
   .card-title { font-size: 10px; font-weight: 600; color: var(--txt3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
 
   /* BUTTONS */
-  button { display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; }
+  button { display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; position: relative; }
   button * { pointer-events: none; }
   .modal button, .modal-overlay button, .bottom-sheet button,
   [class*="modal"] button, [class*="sheet"] button {
@@ -124,7 +124,7 @@
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     padding: 12px 20px; border-radius: var(--r-sm); border: none;
     font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
-    cursor: pointer; transition: opacity 0.15s, transform 0.1s; width: 100%;
+    cursor: pointer; transition: opacity 0.15s, transform 0.1s; width: 100%; min-height: 44px;
   }
   .btn-primary { background: var(--acc); color: #0F0F13; }
   .btn-primary:active { transform: scale(0.97); opacity: 0.85; }
@@ -2037,7 +2037,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     <div class="tabs">
       <div class="tab active" onclick="switchTab(this,'ft-search')">Search</div>
       <div class="tab" onclick="switchTab(this,'ft-scan')">Scan</div>
-      <div class="tab" onclick="switchTab(this,'ft-custom')">Custom</div>
+      <div class="tab" onclick="switchTab(this,'ft-custom');resetCustomFoodForm()">Custom</div>
       <div class="tab" onclick="switchTab(this,'ft-recipes')">Meals / Recipes</div>
     </div>
 
@@ -2079,10 +2079,10 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       <div class="input-group"><label class="input-label">Brand / restaurant <span style="color:var(--txt3);font-weight:400">(optional)</span></label><input id="custom-brand" type="text" placeholder="e.g. Countdown, McDonald's"/></div>
       <div style="font-size:11px;color:var(--txt2);margin-bottom:4px">Per 100g:</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="input-group"><label class="input-label">Protein (g) <span style="color:#F87171">*</span></label><input id="custom-protein" type="text" inputmode="decimal" oninput="calcCustomFoodCalories()"/></div>
-        <div class="input-group"><label class="input-label">Net carbs (g) <span style="color:#F87171">*</span></label><input id="custom-carbs" type="text" inputmode="decimal" oninput="calcCustomFoodCalories()"/></div>
-        <div class="input-group"><label class="input-label">Fat (g) <span style="color:#F87171">*</span></label><input id="custom-fat" type="text" inputmode="decimal" oninput="calcCustomFoodCalories()"/></div>
-        <div class="input-group"><label class="input-label">Fibre (g)</label><input id="custom-fiber" type="text" inputmode="decimal"/></div>
+        <div class="input-group"><label class="input-label">Protein (g) <span style="color:#F87171">*</span></label><input id="custom-protein" type="text" inputmode="decimal" oninput="sanitiseMacroInput(this);calcCustomFoodCalories()"/></div>
+        <div class="input-group"><label class="input-label">Net carbs (g) <span style="color:#F87171">*</span></label><input id="custom-carbs" type="text" inputmode="decimal" oninput="sanitiseMacroInput(this);calcCustomFoodCalories()"/></div>
+        <div class="input-group"><label class="input-label">Fat (g) <span style="color:#F87171">*</span></label><input id="custom-fat" type="text" inputmode="decimal" oninput="sanitiseMacroInput(this);calcCustomFoodCalories()"/></div>
+        <div class="input-group"><label class="input-label">Fibre (g)</label><input id="custom-fiber" type="text" inputmode="decimal" oninput="sanitiseMacroInput(this)"/></div>
       </div>
       <div style="background:var(--s2);border-radius:8px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;color:var(--txt2)">Calories (auto)</span>
@@ -2140,7 +2140,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     <div class="input-group"><label class="input-label">Servings</label><input id="recipe-servings" type="number" value="1" min="1" oninput="updateRecipePerServe()"/></div>
     <div class="search-wrap" style="margin-bottom:8px">
       <span class="search-icon">&#128269;</span>
-      <input type="text" id="recipe-ingredient-search" placeholder="Search ingredient to add..." oninput="searchRecipeIngredient()"/>
+      <input type="text" id="recipe-ingredient-search" placeholder="Search ingredient to add..." onfocus="initFoodSearch('recipe')" oninput="runFoodSearch(this.value.trim())"/>
     </div>
     <div id="recipe-ingredient-results" class="search-results" style="margin-bottom:12px;max-height:200px;overflow-y:auto"></div>
     <div id="recipe-ingredients-list" style="margin-bottom:8px"></div>
@@ -2161,7 +2161,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     </div>
     <div class="input-group"><label class="input-label">Instructions (optional)</label><textarea id="recipe-instructions" placeholder="Cooking steps..."></textarea></div>
     <button class="btn btn-primary" onclick="saveRecipe()" style="background:#4ADE80;color:#0F0F13">Save Recipe</button>
-    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-recipe')">Cancel</button>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="clearRecipeBuilderSearch();closeModal('modal-recipe')">Cancel</button>
   </div>
 </div>
 
@@ -2284,7 +2284,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
   <div class="modal">
     <div class="modal-handle"></div>
     <div style="margin-bottom:4px">
-      <button id="fd-back-btn" onclick="backToFoodSearch()" style="background:none;border:none;color:#9A98A0;font-size:12px;cursor:pointer;padding:0">&#8592; Back to results</button>
+      <button id="fd-back-btn" onclick="backToFoodSearch()" style="background:none;border:none;color:#9A98A0;font-size:12px;cursor:pointer;padding:0">&#8592; Back to search</button>
     </div>
     <div class="modal-title" id="fd-name">—</div>
     <div class="macro-grid" id="fd-macros" style="margin-bottom:16px"></div>
@@ -2325,9 +2325,12 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     <div id="recipe-detail-ingredients" style="margin-bottom:12px"></div>
     <div class="card-title">Nutrition</div>
     <div id="recipe-detail-macros" style="margin-bottom:16px"></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-recipe-detail')">Close</button>
-      <button class="btn btn-primary" style="flex:1;background:#4ADE80;color:#0F0F13" id="recipe-detail-log-btn">Log to diary</button>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" style="flex:1" id="recipe-detail-edit-btn">Edit recipe</button>
+        <button class="btn btn-primary" style="flex:1;background:#4ADE80;color:#0F0F13" id="recipe-detail-log-btn">Log to diary</button>
+      </div>
+      <button class="btn btn-outline" style="width:100%" onclick="closeModal('modal-recipe-detail')">Close</button>
     </div>
   </div>
 </div>
@@ -4580,7 +4583,9 @@ function _loadMoreResults() {
 }
 
 function clearSearchResults() {
-  var r = document.getElementById('food-search-results');
+  var containerId = (typeof _searchContext !== 'undefined' && _searchContext === 'recipe')
+    ? 'recipe-ingredient-results' : 'food-search-results';
+  var r = document.getElementById(containerId);
   if (r) r.innerHTML = '';
   _setFoodSourceLine('');
 }
@@ -4612,7 +4617,10 @@ function renderFoodResult(food) {
     brand = parts.slice(1).join(' — ').trim();
   }
   var badge = '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;flex-shrink:0;background:' + c.bg + ';color:' + c.text + '">' + food.source + '</span>';
-  return '<div class="search-result-item" onclick="selectFood(\'' + encoded + '\')">' +
+  var onclickFn = (typeof _searchContext !== 'undefined' && _searchContext === 'recipe')
+    ? 'selectRecipeIngredient(\'' + encoded + '\')'
+    : 'selectFood(\'' + encoded + '\')';
+  return '<div class="search-result-item" onclick="' + onclickFn + '">' +
     (brand ? '<div style="font-size:10px;font-weight:700;color:#9A98A0;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:1px">' + brand + '</div>' : '') +
     '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">' +
       '<span style="font-size:13px;font-weight:500;color:#F0EEE8">' + displayName + '</span>' +
@@ -4623,7 +4631,9 @@ function renderFoodResult(food) {
 }
 
 function renderSearchResults(wholeFoods, brandedFoods) {
-  var container = document.getElementById('food-search-results');
+  var containerId = (typeof _searchContext !== 'undefined' && _searchContext === 'recipe')
+    ? 'recipe-ingredient-results' : 'food-search-results';
+  var container = document.getElementById(containerId);
   if (!container) return;
   var html = '';
   if (wholeFoods.length > 0) html += wholeFoods.map(renderFoodResult).join('');
@@ -4632,7 +4642,10 @@ function renderSearchResults(wholeFoods, brandedFoods) {
     html += brandedFoods.map(renderFoodResult).join('');
   }
   container.innerHTML = html || '<div style="padding:16px;text-align:center;color:#5A5860;font-size:13px">No results</div>';
-  document.getElementById('food-search-loading').style.display = 'none';
+  if (_searchContext !== 'recipe') {
+    var loadEl = document.getElementById('food-search-loading');
+    if (loadEl) loadEl.style.display = 'none';
+  }
 }
 
 function selectFood(encoded) {
@@ -4783,6 +4796,25 @@ function calcCustomFoodCalories() {
 // Keep alias for any legacy calls
 function updateCustomFoodCheck() { calcCustomFoodCalories(); }
 
+function sanitiseMacroInput(el) {
+  el.value = el.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+}
+
+function resetCustomFoodForm() {
+  ['custom-protein','custom-carbs','custom-fat','custom-fiber'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var calDisplay = document.getElementById('custom-cals-display');
+  if (calDisplay) calDisplay.textContent = '0 kcal';
+  var nameEl = document.getElementById('custom-food-name');
+  if (nameEl) nameEl.value = '';
+  var brandEl = document.getElementById('custom-brand');
+  if (brandEl) brandEl.value = '';
+  var errEl = document.getElementById('custom-food-error');
+  if (errEl) errEl.style.display = 'none';
+}
+
 function addCustomFood() {
   var name = (document.getElementById('custom-food-name') || {}).value || '';
   if (!name.trim()) {
@@ -4797,6 +4829,13 @@ function addCustomFood() {
   if (!prot && !carbs && !fat) {
     var errEl = document.getElementById('custom-food-error');
     if (errEl) { errEl.textContent = 'Enter at least one macro (protein, carbs, or fat)'; errEl.style.display = 'block'; }
+    return;
+  }
+  var servingG = parseFloat((document.getElementById('custom-serving') || {}).value) || 0;
+  var servingLbl = ((document.getElementById('custom-serving-label') || {}).value || '').trim();
+  if (!servingG && !servingLbl) {
+    var errEl = document.getElementById('custom-food-error');
+    if (errEl) { errEl.textContent = 'Please enter a serving size or label'; errEl.style.display = 'block'; }
     return;
   }
   var cals = calcCustomFoodCalories();
@@ -4863,7 +4902,7 @@ async function startBarcodeScanner() {
   if (resultDiv) resultDiv.innerHTML = '';
 
   if (!('BarcodeDetector' in window)) {
-    if (errorText) errorText.textContent = 'Barcode scanning requires Chrome on Android or Safari on iOS 17 or later. Make sure you are using the latest version of your browser.';
+    if (errorText) errorText.textContent = 'Barcode scanning requires a browser with BarcodeDetector support (Chrome on Android or Safari on iOS).';
     if (errorMsg) errorMsg.style.display = 'flex';
     if (instruction) instruction.textContent = 'Camera not available';
     return;
@@ -5115,6 +5154,7 @@ function saveRecipe() {
   state.recipeBeingBuilt = { ingredients: [] };
   saveState();
   renderRecipesList();
+  clearRecipeBuilderSearch();
   closeModal('modal-recipe');
   showToast(`Saved: ${name} ✓`);
 }
@@ -5241,6 +5281,57 @@ function _mealSelectorPick(meal) {
   }
 }
 
+function showServesSelector(recipe, onConfirm) {
+  var serves = recipe.servings || 1;
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'display:flex;z-index:9999';
+  overlay.id = 'serves-selector-overlay';
+  var perServe = {
+    cal: Math.round((recipe.macros&&recipe.macros.calories||0)/serves),
+    p:   Math.round((recipe.macros&&recipe.macros.protein||0)/serves*10)/10,
+    c:   Math.round((recipe.macros&&recipe.macros.carbs||0)/serves*10)/10,
+    f:   Math.round((recipe.macros&&recipe.macros.fat||0)/serves*10)/10
+  };
+  overlay.innerHTML = '<div class="modal">' +
+    '<div class="modal-handle"></div>' +
+    '<div class="modal-title" style="font-size:15px;margin-bottom:4px">' + recipe.name + '</div>' +
+    '<div style="font-size:11px;color:var(--txt2);margin-bottom:16px">' + perServe.cal + ' kcal per serve \xb7 P:' + perServe.p + 'g \xb7 C:' + perServe.c + 'g \xb7 F:' + perServe.f + 'g</div>' +
+    '<div class="input-group"><label class="input-label">Number of serves</label>' +
+    '<div style="display:flex;align-items:center;gap:8px">' +
+    '<button class="btn btn-outline btn-sm" style="width:36px;height:36px" onclick="_adjustServes(-0.5)">−</button>' +
+    '<input id="serves-input" type="number" value="1" min="0.5" max="10" step="0.5" style="flex:1;text-align:center"/>' +
+    '<button class="btn btn-outline btn-sm" style="width:36px;height:36px" onclick="_adjustServes(0.5)">+</button>' +
+    '</div></div>' +
+    '<div class="input-group"><label class="input-label">Add to meal</label></div>' +
+    ['Breakfast','Morning Snack','Lunch','Afternoon Snack','Dinner','Evening Snack'].map(function(m) {
+      return '<button class="btn btn-secondary" style="width:100%;margin-bottom:6px;text-align:left" onclick="_servesSelectorMealPick(\'' + m + '\')">' + m + '</button>';
+    }).join('') +
+    '<button class="btn btn-outline" style="width:100%;margin-top:4px" onclick="document.getElementById(\'serves-selector-overlay\').remove()">Cancel</button>' +
+    '</div>';
+  window._servesSelectorOnConfirm = onConfirm;
+  window._servesSelectorRecipe = recipe;
+  document.body.appendChild(overlay);
+}
+
+function _adjustServes(delta) {
+  var inp = document.getElementById('serves-input');
+  if (!inp) return;
+  var val = Math.max(0.5, Math.round((parseFloat(inp.value)||1) * 2 + delta * 2) / 2);
+  inp.value = val;
+}
+
+function _servesSelectorMealPick(meal) {
+  var overlay = document.getElementById('serves-selector-overlay');
+  var inp = document.getElementById('serves-input');
+  var serves = Math.max(0.5, parseFloat(inp ? inp.value : 1) || 1);
+  if (overlay) overlay.remove();
+  if (typeof window._servesSelectorOnConfirm === 'function') {
+    window._servesSelectorOnConfirm(serves, meal);
+    window._servesSelectorOnConfirm = null;
+  }
+}
+
 function logRecipeAndRender(id) {
   logRecipe(id);
 }
@@ -5248,18 +5339,19 @@ function logRecipeAndRender(id) {
 function logRecipe(id) {
   var r = state.recipes.find(function(x) { return x.id === id; });
   if (!r) return;
-  var doLog = function(selectedMeal) {
-    var serves = r.servings || 1;
+  var totalServes = r.servings || 1;
+  showServesSelector(r, function(selectedServes, selectedMeal) {
+    var ratio = selectedServes / totalServes;
     var log = getDayLog(_modalLogDate || state.nutritionDate);
     log.meals.push({
-      name: r.name,
+      name: r.name + (selectedServes !== 1 ? ' (' + selectedServes + ' serve' + (selectedServes !== 1 ? 's' : '') + ')' : ''),
       meal: selectedMeal,
-      calories: Math.round((r.macros?.calories || 0) / serves),
-      protein:  Math.round((r.macros?.protein  || 0) / serves * 10) / 10,
-      carbs:    Math.round((r.macros?.carbs    || 0) / serves * 10) / 10,
-      fat:      Math.round((r.macros?.fat      || 0) / serves * 10) / 10,
-      fiber:    Math.round((r.macros?.fiber    || 0) / serves * 10) / 10,
-      serving:  Math.round((r.macros?.calories || 0) / serves),
+      calories: Math.round((r.macros&&r.macros.calories || 0) * ratio),
+      protein:  Math.round((r.macros&&r.macros.protein  || 0) * ratio * 10) / 10,
+      carbs:    Math.round((r.macros&&r.macros.carbs    || 0) * ratio * 10) / 10,
+      fat:      Math.round((r.macros&&r.macros.fat      || 0) * ratio * 10) / 10,
+      fiber:    Math.round((r.macros&&r.macros.fiber    || 0) * ratio * 10) / 10,
+      serving:  Math.round((r.macros&&r.macros.calories || 0) * ratio),
       time: new Date().toISOString(),
       recipeId: id
     });
@@ -5269,100 +5361,92 @@ function logRecipe(id) {
     closeModal('modal-recipe-detail');
     closeModal('modal-food');
     showToast('Added to ' + selectedMeal + ' ✓');
-  };
-  if (_preselectedMeal) {
-    var meal = _preselectedMeal;
-    _preselectedMeal = null;
-    doLog(meal);
-  } else {
-    showMealSelector(function(selectedMeal) { doLog(selectedMeal); });
-  }
+  });
 }
 
-let recipeSearchTimeout;
 var _recipeSearchController = null;
 
-function searchRecipeIngredient() {
-  const q = document.getElementById('recipe-ingredient-search').value.trim();
-  if (!q || q.length < 2) {
-    document.getElementById('recipe-ingredient-results').innerHTML = '';
-    return;
-  }
-  clearTimeout(recipeSearchTimeout);
-  recipeSearchTimeout = setTimeout(() => doRecipeIngredientSearch(q), 500);
-}
-
-async function doRecipeIngredientSearch(q) {
-  const results = document.getElementById('recipe-ingredient-results');
-  results.innerHTML = '<div style="padding:8px;text-align:center"><div class="spinner" style="margin:0 auto"></div></div>';
-  if (_recipeSearchController) _recipeSearchController.abort();
-  _recipeSearchController = new AbortController();
-  var signal = _recipeSearchController.signal;
-
-  // Instant USDA results
-  var instant = searchUSDA(q);
-  if (instant.length > 0) {
-    results.innerHTML = renderRecipeIngredientResults(instant.slice(0, 10));
-  }
-
-  try {
-    var offResults = await searchOpenFoodFacts(q, null, signal, 1);
-    _recipeSearchController = null;
-    var all = instant.concat(offResults.filter(r => !instant.find(i => i.id === r.id)));
-    results.innerHTML = all.length ? renderRecipeIngredientResults(all.slice(0, 15)) : '<div style="padding:8px;color:var(--txt3);font-size:12px">No results</div>';
-  } catch(e) {
-    _recipeSearchController = null;
-    if (e && e.name === 'AbortError') return;
-    if (!instant.length) results.innerHTML = '<div style="padding:8px;color:var(--txt3);font-size:12px">Search failed</div>';
-  }
-}
-
-function renderRecipeIngredientResults(foods) {
-  return foods.map(function(food) {
-    var p = food.per100g || {};
-    var cals = p.calories !== undefined ? p.calories : (food.cals100 || 0);
-    var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(food))));
-    var c = SOURCE_BADGE_COLOURS[food.source] || {bg:'rgba(45,212,191,0.15)', text:'#2DD4BF'};
-    var badge = food.source ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;flex-shrink:0;background:' + c.bg + ';color:' + c.text + '">' + food.source + '</span>' : '';
-    return '<div class="search-result-item" onclick="selectRecipeIngredient(\'' + encoded + '\')">' +
-      '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">' +
-        '<span style="font-size:13px;font-weight:500">' + food.name + '</span>' +
-        badge +
-      '</div>' +
-      '<div style="font-size:11px;color:var(--txt2)">' + Math.round(cals) + ' kcal per 100g</div>' +
-      '</div>';
-  }).join('');
+function clearRecipeBuilderSearch() {
+  var searchInput = document.getElementById('recipe-ingredient-search');
+  if (searchInput) searchInput.value = '';
+  var resultsContainer = document.getElementById('recipe-ingredient-results');
+  if (resultsContainer) resultsContainer.innerHTML = '';
+  if (_recipeSearchController) { _recipeSearchController.abort(); _recipeSearchController = null; }
+  window._riCurrentFood = null;
 }
 
 function selectRecipeIngredient(encoded) {
   var food;
   try { food = JSON.parse(decodeURIComponent(escape(atob(encoded)))); } catch(e) { return; }
   var results = document.getElementById('recipe-ingredient-results');
+  if (!results) return;
   var p = food.per100g || {};
-  var cals = p.calories !== undefined ? p.calories : (food.cals100 || 0);
-  results.innerHTML = '<div style="padding:10px;background:var(--s2);border-radius:8px">' +
+  var servingOptionsHtml = '';
+  if (food.servings && food.servings.length > 0) {
+    servingOptionsHtml = '<div style="margin-bottom:6px">' +
+      '<select id="ri-serving-select" onchange="applyRecipeServingOption(this.value)" style="width:100%;background:var(--s2);border:1px solid var(--s3);border-radius:6px;padding:6px 8px;color:var(--txt1);font-size:12px">' +
+      '<option value="">Custom grams...</option>' +
+      food.servings.map(function(s) { return '<option value="' + s.g + '">' + (s.label||s.desc) + ' (' + s.g + 'g)</option>'; }).join('') +
+      '</select></div>';
+  }
+  results.innerHTML = '<div style="padding:10px;background:var(--s2);border-radius:8px;border-left:2px solid var(--acc)">' +
     '<div style="font-size:13px;font-weight:600;margin-bottom:8px">' + food.name + '</div>' +
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
-    '<input id="ri-grams" type="text" inputmode="decimal" value="100" style="width:80px" placeholder="g"/>' +
+    (servingOptionsHtml) +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+    '<input id="ri-grams" type="text" inputmode="decimal" value="" placeholder="0" style="width:72px;text-align:center" oninput="updateRiMacroPreview()"/>' +
     '<span style="font-size:12px;color:var(--txt2)">g</span>' +
+    '<div id="ri-macro-preview" style="font-size:11px;color:var(--txt3);flex:1"></div>' +
     '</div>' +
     '<div style="margin-bottom:8px">' +
-    '<label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:4px">Serving label (optional)</label>' +
-    '<input id="ri-serving-label" type="text" placeholder="e.g. 1 fillet, 1 cup" style="width:100%"/>' +
+    '<input id="ri-serving-label" type="text" placeholder="Serving label (optional, e.g. 1 fillet)" style="width:100%"/>' +
     '</div>' +
     '<div style="display:flex;gap:8px">' +
-    '<button class="btn btn-primary btn-sm" onclick="confirmRecipeIngredient(\'' + encoded + '\')">Add</button>' +
-    '<button class="btn btn-outline btn-sm" onclick="document.getElementById(\'recipe-ingredient-results\').innerHTML=\'\'">Cancel</button>' +
+    '<button class="btn btn-primary btn-sm" style="flex:1" onclick="confirmRecipeIngredient(\'' + encoded + '\')">&#10003; Add</button>' +
+    '<button class="btn btn-outline btn-sm" onclick="clearRecipeIngredientEntry()">Cancel</button>' +
     '</div></div>';
   var inp = document.getElementById('ri-grams');
+  if (inp) inp.focus();
+  window._riCurrentFood = food;
+}
+
+function applyRecipeServingOption(val) {
+  if (!val) return;
+  var inp = document.getElementById('ri-grams');
+  if (inp) { inp.value = val; updateRiMacroPreview(); }
+}
+
+function updateRiMacroPreview() {
+  var food = window._riCurrentFood;
+  if (!food) return;
+  var grams = parseFloat(document.getElementById('ri-grams') ? document.getElementById('ri-grams').value : 0) || 0;
+  var p = food.per100g || {};
+  var ratio = grams / 100;
+  var cals = Math.round((p.calories||0) * ratio);
+  var prot = Math.round((p.protein||0) * ratio * 10) / 10;
+  var prev = document.getElementById('ri-macro-preview');
+  if (prev && grams > 0) prev.textContent = cals + ' kcal \xb7 P:' + prot + 'g';
+  else if (prev) prev.textContent = '';
+}
+
+function clearRecipeIngredientEntry() {
+  var results = document.getElementById('recipe-ingredient-results');
+  if (results) results.innerHTML = '';
+  window._riCurrentFood = null;
+  var inp = document.getElementById('recipe-ingredient-search');
   if (inp) inp.focus();
 }
 
 function confirmRecipeIngredient(encoded) {
   var food;
   try { food = JSON.parse(decodeURIComponent(escape(atob(encoded)))); } catch(e) { return; }
-  var grams = parseFloat(document.getElementById('ri-grams')?.value) || 100;
-  var servingLabel = (document.getElementById('ri-serving-label')?.value || '').trim();
+  var gramsEl = document.getElementById('ri-grams');
+  var grams = parseFloat(gramsEl ? gramsEl.value : 0) || 0;
+  if (grams <= 0) {
+    showToast('Enter a weight in grams');
+    return;
+  }
+  var servingLabelEl = document.getElementById('ri-serving-label');
+  var servingLabel = (servingLabelEl ? servingLabelEl.value : '').trim();
   var p = food.per100g || {};
   var cals100 = p.calories !== undefined ? p.calories : (food.cals100 || 0);
   var prot100 = p.protein !== undefined ? p.protein : (food.protein100 || 0);
@@ -5372,7 +5456,7 @@ function confirmRecipeIngredient(encoded) {
   var ratio = grams / 100;
   if (!state.recipeBeingBuilt.ingredients) state.recipeBeingBuilt.ingredients = [];
   state.recipeBeingBuilt.ingredients.push({
-    name: food.name, grams, servingLabel: servingLabel || null,
+    name: food.name, grams: grams, servingLabel: servingLabel || null,
     macros: {
       calories: Math.round(cals100 * ratio),
       protein: Math.round(prot100 * ratio * 10) / 10,
@@ -5381,10 +5465,9 @@ function confirmRecipeIngredient(encoded) {
       fiber: Math.round(fiber100 * ratio * 10) / 10,
     }
   });
-  document.getElementById('recipe-ingredient-search').value = '';
-  document.getElementById('recipe-ingredient-results').innerHTML = '';
   renderRecipeIngredients();
   updateRecipePerServe();
+  clearRecipeIngredientEntry();
 }
 
 function renderRecipeIngredients() {
@@ -6898,7 +6981,10 @@ function removeMealPlanSlot(date, meal) {
   document.getElementById('modal-meal-slot')?.remove();
 }
 
+var _recipePickerTag = 'All';
+
 function openRecipePicker(date, meal) {
+  _recipePickerTag = 'All';
   var existing = document.getElementById('modal-recipe-picker');
   if (existing) existing.remove();
   var sheet = document.createElement('div');
@@ -6909,25 +6995,46 @@ function openRecipePicker(date, meal) {
     '<div class="modal-handle"></div>' +
     '<div class="modal-title" style="font-size:14px;margin-bottom:10px">Choose recipe for ' + meal + '</div>' +
     '<input id="recipe-picker-search" type="text" inputmode="text" placeholder="Search recipes..." ' +
-      'style="width:100%;background:#1A1A22;border:1px solid #2C2C3A;border-radius:8px;padding:10px 12px;color:var(--txt1);font-size:13px;margin-bottom:10px;box-sizing:border-box" ' +
-      'oninput="filterRecipePicker(\'' + date + '\',\'' + meal + '\')">' +
+      'style="width:100%;background:#1A1A22;border:1px solid #2C2C3A;border-radius:8px;padding:10px 12px;color:var(--txt1);font-size:13px;margin-bottom:8px;box-sizing:border-box" ' +
+      'oninput="renderRecipePickerList(\'' + date + '\',\'' + meal + '\')">' +
+    '<div id="recipe-picker-tags" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;scrollbar-width:none"></div>' +
     '<div id="recipe-picker-list" style="overflow-y:auto;flex:1"></div>' +
     '<button class="btn btn-outline" style="margin-top:8px;flex-shrink:0" onclick="document.getElementById(\'modal-recipe-picker\').remove()">Cancel</button>' +
     '</div>';
   document.body.appendChild(sheet);
-  renderRecipePickerList(date, meal, '');
+  renderRecipePickerTags(date, meal);
+  renderRecipePickerList(date, meal);
 }
 
-function filterRecipePicker(date, meal) {
-  var q = ((document.getElementById('recipe-picker-search') || {}).value || '').toLowerCase();
-  renderRecipePickerList(date, meal, q);
+function renderRecipePickerTags(date, meal) {
+  var tagsEl = document.getElementById('recipe-picker-tags');
+  if (!tagsEl) return;
+  var allTags = new Set();
+  (state.recipes||[]).forEach(function(r) { (r.tags||[]).forEach(function(t) { allTags.add(t); }); });
+  var tagList = ['All'].concat(Array.from(allTags));
+  tagsEl.innerHTML = tagList.map(function(t) {
+    var sel = t === _recipePickerTag;
+    var style = sel
+      ? 'background:rgba(74,222,128,0.15);border:0.5px solid rgba(74,222,128,0.4);color:#4ADE80;border-radius:8px;padding:4px 12px;font-size:11px;white-space:nowrap;cursor:pointer;flex-shrink:0'
+      : 'background:#1A1A22;border:0.5px solid #2C2C3A;color:#9A98A0;border-radius:8px;padding:4px 12px;font-size:11px;white-space:nowrap;cursor:pointer;flex-shrink:0';
+    return '<button style="' + style + '" onclick="setRecipePickerTag(\'' + t.replace(/'/g,"\\'") + '\',\'' + date + '\',\'' + meal + '\')">' + t + '</button>';
+  }).join('');
 }
 
-function renderRecipePickerList(date, meal, query) {
+function setRecipePickerTag(tag, date, meal) {
+  _recipePickerTag = tag;
+  renderRecipePickerTags(date, meal);
+  renderRecipePickerList(date, meal);
+}
+
+function renderRecipePickerList(date, meal) {
   var list = document.getElementById('recipe-picker-list');
   if (!list) return;
+  var q = ((document.getElementById('recipe-picker-search') || {}).value || '').toLowerCase();
   var recipes = (state.recipes||[]).filter(function(r) {
-    return !query || r.name.toLowerCase().includes(query);
+    var matchesSearch = !q || r.name.toLowerCase().includes(q);
+    var matchesTag = _recipePickerTag === 'All' || (r.tags||[]).includes(_recipePickerTag);
+    return matchesSearch && matchesTag;
   });
   if (!recipes.length) {
     list.innerHTML = '<div style="color:var(--txt3);font-size:13px;padding:12px;text-align:center">No recipes found</div>';
@@ -6938,13 +7045,13 @@ function renderRecipePickerList(date, meal, query) {
     var calPerServe = Math.round((r.macros&&r.macros.calories||0)/serves);
     var tags = (r.tags||[]).map(function(t) {
       return '<span style="background:rgba(74,222,128,0.12);border:0.5px solid rgba(74,222,128,0.25);color:#4ADE80;border-radius:6px;padding:1px 5px;font-size:9px;text-transform:uppercase">' + t + '</span>';
-    }).join('');
-    return '<div class="search-result-item" onclick="pickRecipeForPlan(\'' + date + '\',\'' + meal + '\',' + r.id + ')" style="margin-bottom:4px">' +
-      '<div style="display:flex;justify-content:space-between;align-items:baseline">' +
-        '<div style="font-size:13px;font-weight:500">' + r.name + '</div>' +
-        '<div style="font-size:11px;color:var(--txt2)">' + calPerServe + ' kcal/serve</div>' +
+    }).join(' ');
+    return '<div class="search-result-item" onclick="setMealPlanSlot(\'' + date + '\',\'' + meal + '\',' + r.id + ');document.getElementById(\'modal-recipe-picker\')?.remove();document.getElementById(\'modal-meal-slot\')?.remove()">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">' +
+        '<span style="font-size:13px;font-weight:600">' + r.name + '</span>' +
+        '<span style="font-size:12px;color:var(--acc);font-weight:600">' + calPerServe + ' kcal</span>' +
       '</div>' +
-      (tags ? '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">' + tags + '</div>' : '') +
+      (tags ? '<div style="display:flex;flex-wrap:wrap;gap:3px">' + tags + '</div>' : '') +
       '</div>';
   }).join('');
 }
@@ -7496,30 +7603,37 @@ function addSwipe(el, onLeft, onRight, threshold=50) {
 }
 
 var _foodModalOpen = false; // true while the food modal is open
+var _searchContext = 'modal'; // 'modal' | 'recipe'
 
-function initFoodSearch() {
+function initFoodSearch(context) {
+  _searchContext = context || 'modal';
   _foodModalOpen = true;
   _searchGen++; // invalidate any in-flight search from previous modal open
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   searchDebounceTimer = null;
-  // Don't abort activeSearchController here — if openModal fires a second time
-  // due to mobile keyboard/viewport shifts, it would kill the in-flight fetch.
-  // Abort only happens in closeFoodModal() when the modal actually closes.
 
-  // Always clone the input to strip old event listeners and reset value
-  var input = document.getElementById('food-search-input');
+  var inputId = _searchContext === 'recipe' ? 'recipe-ingredient-search' : 'food-search-input';
+  var input = document.getElementById(inputId);
+  if (!input) return;
   var fresh = input.cloneNode(true);
   input.parentNode.replaceChild(fresh, input);
   fresh.value = '';
-  var hint = document.getElementById('search-hint');
-  if (hint) hint.style.display = 'block';
+  if (_searchContext !== 'recipe') {
+    var hint = document.getElementById('search-hint');
+    if (hint) hint.style.display = 'block';
+  }
   fresh.addEventListener('input', function() {
-    var h = document.getElementById('search-hint');
-    if (h) h.style.display = this.value.length === 0 ? 'block' : 'none';
+    if (_searchContext !== 'recipe') {
+      var h = document.getElementById('search-hint');
+      if (h) h.style.display = this.value.length === 0 ? 'block' : 'none';
+    }
     runFoodSearch(this.value.trim());
   });
   clearSearchResults();
-  document.getElementById('food-search-loading').style.display = 'none';
+  if (_searchContext !== 'recipe') {
+    var loadEl = document.getElementById('food-search-loading');
+    if (loadEl) loadEl.style.display = 'none';
+  }
   fresh.focus();
 }
 
@@ -7567,6 +7681,11 @@ function openModal(id) {
     var rdEl = document.getElementById('recipe-ingredients-list'); if (rdEl) rdEl.innerHTML = '';
     var psEl = document.getElementById('recipe-perserve-display'); if (psEl) psEl.style.display = 'none';
     document.querySelectorAll('#recipe-tags-container .tag-pill.active').forEach(function(t) { t.classList.remove('active'); });
+    clearRecipeBuilderSearch();
+  }
+  if (id === 'modal-recipe') {
+    // Ensure recipe context is set for the shared search system
+    _searchContext = 'recipe';
   }
 }
 function closeModal(id) {
@@ -7967,11 +8086,13 @@ function openRecipeDetail(id) {
   const tagsEl = document.getElementById('recipe-detail-tags');
   if (tagsEl) tagsEl.innerHTML = (r.tags||[]).map(t => `<span class="tag-pill active">${t}</span>`).join('');
   const ingEl = document.getElementById('recipe-detail-ingredients');
-  if (ingEl) ingEl.innerHTML = (r.ingredients||[]).map(ing => `
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--s2)">
-      <span style="font-size:13px">${ing.name}</span>
-      <span style="font-size:12px;color:var(--txt2)">${ing.grams}g · ${Math.round(ing.macros?.calories||0)} kcal</span>
-    </div>`).join('');
+  if (ingEl) ingEl.innerHTML = (r.ingredients||[]).map(ing => {
+    var servingText = ing.servingLabel ? ing.servingLabel + ' (' + ing.grams + 'g)' : ing.grams + 'g';
+    return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--s2)">' +
+      '<span style="font-size:13px">' + ing.name + '</span>' +
+      '<span style="font-size:12px;color:var(--txt2)">' + servingText + ' \xb7 ' + Math.round(ing.macros?.calories||0) + ' kcal</span>' +
+      '</div>';
+  }).join('');
   const macrosEl = document.getElementById('recipe-detail-macros');
   if (macrosEl) macrosEl.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -7996,6 +8117,8 @@ function openRecipeDetail(id) {
     </div>`;
   const logBtn = document.getElementById('recipe-detail-log-btn');
   if (logBtn) logBtn.onclick = () => logRecipe(id);
+  const editBtn = document.getElementById('recipe-detail-edit-btn');
+  if (editBtn) editBtn.onclick = function() { closeModal('modal-recipe-detail'); editRecipe(id); };
   openModal('modal-recipe-detail');
 }
 
