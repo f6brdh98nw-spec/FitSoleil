@@ -4218,8 +4218,8 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
     var globalBrandUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' +
       searchTerms + '&' + baseParams;
     return Promise.all([
-      fetch(nzBrandUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};}),
-      fetch(globalBrandUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};})
+      fetch(nzBrandUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(e){if(e&&e.name==='AbortError')throw e;return {products:[]};}),
+      fetch(globalBrandUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(e){if(e&&e.name==='AbortError')throw e;return {products:[]};})
     ]).then(function(results) {
       var all = parseOpenFoodFacts(results[0].products || [], true)
         .concat(parseOpenFoodFacts(results[1].products || [], false));
@@ -4239,8 +4239,8 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
     searchTerms + '&' + baseParams;
 
   return Promise.all([
-    fetch(nzUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};}),
-    fetch(globalUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(){return {products:[]};})
+    fetch(nzUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(e){if(e&&e.name==='AbortError')throw e;return {products:[]};}),
+    fetch(globalUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(e){if(e&&e.name==='AbortError')throw e;return {products:[]};})
   ]).then(function(results) {
     var nzProducts = parseOpenFoodFacts(results[0].products || [], true);
     var globalProducts = parseOpenFoodFacts(results[1].products || [], false);
@@ -4275,6 +4275,7 @@ function _sortByCountryAndRelevance(products, query) {
 var searchDebounceTimer = null;
 var activeSearchController = null;
 var _lastSearchState = null; // tracks current search for "load more"
+var _searchGen = 0; // incremented on each new search; guards stale promise callbacks
 
 function runFoodSearch(query) {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
@@ -4314,7 +4315,7 @@ function executeFoodSearch(query) {
   var foodQuery = parsed.food;
   var brandFilter = parsed.brand;
 
-
+  var myGen = ++_searchGen;
   if (activeSearchController) activeSearchController.abort();
   activeSearchController = new AbortController();
   var signal = activeSearchController.signal;
@@ -4337,6 +4338,7 @@ function executeFoodSearch(query) {
 
   offPromise
     .then(function(offResults) {
+      if (myGen !== _searchGen) return; // stale — a newer search has taken over
       activeSearchController = null;
       var usedIds = new Set(instantResults.map(function(f){return f.id;}));
       var newOff = _sortByCountryAndRelevance(
@@ -4369,10 +4371,8 @@ function executeFoodSearch(query) {
       }
     })
     .catch(function(err) {
-      if (err && err.name === 'AbortError') {
-        // A newer search superseded this one — don't touch the UI
-        return;
-      }
+      if (err && err.name === 'AbortError') return;
+      if (myGen !== _searchGen) return; // stale
       activeSearchController = null;
       if (instantResults.length === 0) {
         renderSearchResults([], []);
@@ -6896,6 +6896,7 @@ var _foodModalOpen = false; // true while the food modal is open
 
 function initFoodSearch() {
   _foodModalOpen = true;
+  _searchGen++; // invalidate any in-flight search from previous modal open
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   searchDebounceTimer = null;
   // Don't abort activeSearchController here — if openModal fires a second time
