@@ -2428,7 +2428,6 @@ const EXERCISES = {
 // TEST DATA
 // ============================================================
 function loadTestData() {
-  // Generate dates helper — uses local date to avoid NZ/UTC timezone bugs
   function localStr(d) {
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   }
@@ -2437,61 +2436,158 @@ function loadTestData() {
   function monthsFromNow(n) { const d=new Date(); d.setMonth(d.getMonth()+n); return localStr(d); }
   const todayStr = localStr(new Date());
 
-  // Weight log — 90 days, 75.8 → 72.4 with ±0.3 noise, includes timeOfDay
-  const weightLog = [];
-  const tods = ['morning','morning','midday','evening'];
-  for (let i=89; i>=0; i--) {
-    const trend = 75.8 - (3.4*(89-i)/89);
-    const noise = (Math.random()-0.5)*0.6;
-    weightLog.push({ date: daysAgo(i), kg: Math.round((trend+noise)*10)/10, timeOfDay: tods[i%4] });
-  }
+  // Weight log — 7 days, 73.2 → 72.6 gradual loss
+  const baseWeights = [73.2, 73.0, 72.9, 72.8, 72.8, 72.7, 72.6];
+  const weightLog = baseWeights.map(function(kg, i) {
+    return { date: daysAgo(6 - i), kg: kg, timeOfDay: 'morning' };
+  });
 
-  // Food log — 90 days; meal field lowercase for H11.05 compatibility
-  // Today: only breakfast logged, lunch planned only → tests H3.08 planned/logged mix
-  const logs = {};
-  const breakfasts = [
-    {name:'Oats with banana',calories:380,protein:14,carbs:68,fat:7,fibre:6},
-    {name:'Greek yogurt & berries',calories:210,protein:18,carbs:24,fat:4,fibre:3},
-    {name:'Eggs on toast',calories:340,protein:22,carbs:28,fat:12,fibre:2},
-    {name:'Protein smoothie',calories:290,protein:30,carbs:32,fat:5,fibre:4},
-  ];
-  const lunches = [
-    {name:'Chicken & rice bowl',calories:520,protein:45,carbs:58,fat:9,fibre:3},
-    {name:'Tuna salad wrap',calories:410,protein:38,carbs:36,fat:10,fibre:4},
-    {name:'Lentil soup',calories:320,protein:18,carbs:48,fat:5,fibre:9},
-    {name:'Turkey sandwich',calories:450,protein:35,carbs:42,fat:11,fibre:3},
-  ];
-  const dinners = [
-    {name:'Salmon & veg stir-fry',calories:480,protein:40,carbs:30,fat:18,fibre:7},
-    {name:'Beef & sweet potato',calories:560,protein:42,carbs:50,fat:14,fibre:5},
-    {name:'Chicken pasta',calories:540,protein:38,carbs:62,fat:10,fibre:4},
-    {name:'Tofu Buddha bowl',calories:420,protein:22,carbs:55,fat:12,fibre:8},
-  ];
-  // Past 89 days — full meals logged
-  for (let i=89; i>=1; i--) {
-    const d = daysAgo(i);
-    const bfood = breakfasts[i%4];
-    const lfood = lunches[(i+1)%4];
-    const dfood = dinners[(i+2)%4];
-    const water = 1600 + Math.floor(Math.random()*600);
-    logs[d] = {
-      meals: [
-        {...bfood, meal:'Breakfast'},
-        {...lfood, meal:'Lunch'},
-        {...dfood, meal:'Dinner'},
+  // ── Recipes ──────────────────────────────────────────────────────────────
+  const recipes = [
+    {
+      id: 1, name: 'Protein Smoothie', servings: 2,
+      ingredients: [
+        {name:'Whey protein powder', grams:60,  macros:{calories:240, protein:48, carbs:6,  fat:4,  fiber:0}},
+        {name:'Banana (frozen)',     grams:200, macros:{calories:178, protein:2,  carbs:46, fat:0,  fiber:5}},
+        {name:'Almond milk',         grams:400, macros:{calories:56,  protein:2,  carbs:4,  fat:5,  fiber:0}},
+        {name:'Peanut butter',       grams:30,  macros:{calories:180, protein:8,  carbs:4,  fat:16, fiber:2}},
       ],
-      water,
+      macros:{calories:654, protein:60, carbs:60, fat:25, fiber:7},
+      // per serve (÷2): cal 327, prot 30, carbs 30, fat 12.5, fiber 3.5
+    },
+    {
+      id: 2, name: 'Chicken & Rice Bowl', servings: 2,
+      ingredients: [
+        {name:'Chicken breast (cooked)', grams:280, macros:{calories:336, protein:62, carbs:0,  fat:7,  fiber:0}},
+        {name:'Brown rice (cooked)',     grams:320, macros:{calories:416, protein:9,  carbs:86, fat:3,  fiber:5}},
+        {name:'Edamame',                 grams:100, macros:{calories:122, protein:11, carbs:10, fat:5,  fiber:5}},
+        {name:'Sesame oil',              grams:10,  macros:{calories:88,  protein:0,  carbs:0,  fat:10, fiber:0}},
+      ],
+      macros:{calories:962, protein:82, carbs:96, fat:25, fiber:10},
+      // per serve (÷2): cal 481, prot 41, carbs 48, fat 12.5, fiber 5
+    },
+    {
+      id: 3, name: 'Bolognese', servings: 4,
+      ingredients: [
+        {name:'Lean beef mince',       grams:500, macros:{calories:740, protein:100, carbs:0,   fat:30, fiber:0}},
+        {name:'Penne pasta (cooked)',  grams:400, macros:{calories:560, protein:20,  carbs:112, fat:3,  fiber:6}},
+        {name:'Tomato passata',        grams:400, macros:{calories:120, protein:4,   carbs:20,  fat:1,  fiber:4}},
+        {name:'Onion',                 grams:150, macros:{calories:60,  protein:2,   carbs:14,  fat:0,  fiber:2}},
+      ],
+      macros:{calories:1480, protein:126, carbs:146, fat:34, fiber:12},
+      // per serve (÷4): cal 370, prot 31.5, carbs 36.5, fat 8.5, fiber 3
+    },
+    {
+      id: 4, name: 'Avocado Toast', servings: 2,
+      ingredients: [
+        {name:'Wholegrain bread',    grams:140, macros:{calories:350, protein:14, carbs:58, fat:6,  fiber:8}},
+        {name:'Avocado',             grams:160, macros:{calories:256, protein:3,  carbs:14, fat:23, fiber:7}},
+        {name:'Eggs (scrambled)',    grams:120, macros:{calories:186, protein:14, carbs:0,  fat:14, fiber:0}},
+        {name:'Cherry tomatoes',     grams:100, macros:{calories:18,  protein:1,  carbs:4,  fat:0,  fiber:1}},
+      ],
+      macros:{calories:810, protein:32, carbs:76, fat:43, fiber:16},
+      // per serve (÷2): cal 405, prot 16, carbs 38, fat 21.5, fiber 8
+    },
+  ];
+
+  // Helper: compute per-serve macros from a recipe object
+  function perServe(r) {
+    var s = r.servings || 1;
+    return {
+      calories: Math.round(r.macros.calories / s),
+      protein:  Math.round(r.macros.protein  / s * 10) / 10,
+      carbs:    Math.round(r.macros.carbs    / s * 10) / 10,
+      fat:      Math.round(r.macros.fat      / s * 10) / 10,
+      fiber:    Math.round(r.macros.fiber    / s * 10) / 10,
     };
   }
-  // Today: only breakfast logged (tests H3.08 — lunch shows planned, dinner shows planned)
+  var smoothieServe    = perServe(recipes[0]); // cal:327
+  var chickenRiceServe = perServe(recipes[1]); // cal:481
+  var bologneseServe   = perServe(recipes[2]); // cal:370
+  var avocadoServe     = perServe(recipes[3]); // cal:405
+
+  // ── Diary (state.logs) ───────────────────────────────────────────────────
+  const logs = {};
+
+  // Today — ~1,240 kcal: USDA(330)+USDA(105)+recipe(481)+custom(120)+OFF(204) = 1240
   logs[todayStr] = {
+    water: 1500,
     meals: [
-      {...breakfasts[0], meal:'Breakfast'},
-    ],
-    water: 750,
+      {name:'Rolled Oats with Honey', meal:'Breakfast',       serving:90,  calories:330, protein:12, carbs:66, fat:6,                fiber:9, time:todayStr+'T07:30:00.000Z'},
+      {name:'Banana, medium',         meal:'Morning Snack',   serving:118, calories:105, protein:1,  carbs:27, fat:0,                fiber:3, time:todayStr+'T10:00:00.000Z'},
+      Object.assign({name:'Chicken & Rice Bowl', meal:'Lunch',  serving:chickenRiceServe.calories, recipeId:2, time:todayStr+'T12:30:00.000Z'}, chickenRiceServe),
+      {name:'Trim Flat White',        meal:'Afternoon Snack', serving:250, calories:120, protein:9,  carbs:11, fat:2,  source:'Custom', fiber:0, time:todayStr+'T15:00:00.000Z'},
+      {name:'Seared Salmon Fillet',   meal:'Dinner',          serving:130, calories:204, protein:30, carbs:0,  fat:9,                fiber:0, time:todayStr+'T18:30:00.000Z'},
+    ]
+  };
+  // 330+105+481+120+204 = 1240 ✓
+
+  // Yesterday — USDA, recipe, recipe, custom, OFF
+  var yesterday = daysAgo(1);
+  logs[yesterday] = {
+    water: 1800,
+    meals: [
+      Object.assign({name:'Protein Smoothie',  meal:'Breakfast',       serving:smoothieServe.calories,    recipeId:1, time:yesterday+'T07:00:00.000Z'}, smoothieServe),
+      {name:'Blueberries',                     meal:'Morning Snack',   serving:150, calories:86,  protein:1,  carbs:21, fat:1,  fiber:4, time:yesterday+'T10:30:00.000Z'},
+      Object.assign({name:'Avocado Toast',     meal:'Lunch',           serving:avocadoServe.calories,     recipeId:4, time:yesterday+'T13:00:00.000Z'}, avocadoServe),
+      {name:'Vogels Crispbread & Almond Butter', meal:'Afternoon Snack', serving:60, calories:200, protein:6, carbs:20, fat:11, source:'Custom', fiber:3, time:yesterday+'T15:30:00.000Z'},
+      {name:'Countdown Butter Chicken',        meal:'Dinner',          serving:350, calories:455, protein:32, carbs:42, fat:18, fiber:4, time:yesterday+'T18:30:00.000Z'},
+    ]
   };
 
-  // Workouts — ~3-4/week over 12 weeks; yesterday marked complete to test H3.06
+  // 5 days ago — USDA, custom, USDA, recipe, OFF
+  var fiveDaysAgo = daysAgo(5);
+  logs[fiveDaysAgo] = {
+    water: 2000,
+    meals: [
+      {name:'Greek Yogurt with Mixed Berries', meal:'Breakfast',       serving:300, calories:214, protein:19, carbs:26, fat:4,  fiber:4, time:fiveDaysAgo+'T07:30:00.000Z'},
+      {name:'Apple, medium',                   meal:'Morning Snack',   serving:182, calories:95,  protein:0,  carbs:25, fat:0,  fiber:4, time:fiveDaysAgo+'T10:00:00.000Z'},
+      {name:"Mum's Frittata",                  meal:'Lunch',           serving:200, calories:280, protein:16, carbs:8,  fat:20, source:'Custom', fiber:1, time:fiveDaysAgo+'T12:30:00.000Z'},
+      {name:'Walnuts',                         meal:'Afternoon Snack', serving:30,  calories:196, protein:5,  carbs:4,  fat:19, fiber:2, time:fiveDaysAgo+'T15:00:00.000Z'},
+      Object.assign({name:'Bolognese',         meal:'Dinner',          serving:bologneseServe.calories, recipeId:3, time:fiveDaysAgo+'T18:30:00.000Z'}, bologneseServe),
+      {name:'Whittakers Dark Chocolate',       meal:'Evening Snack',   serving:30,  calories:160, protein:2,  carbs:17, fat:10, fiber:1, time:fiveDaysAgo+'T21:00:00.000Z'},
+    ]
+  };
+
+  // ── Custom foods ─────────────────────────────────────────────────────────
+  const customFoods = [
+    {id:'CF_001', name:'Trim Flat White',                    brand:'Café',     source:'Custom', per100g:{calories:48,  protein:3.6, carbs:4.4, fat:0.8, fibre:0},   createdAt:daysAgo(10)+'T09:00:00.000Z'},
+    {id:'CF_002', name:'Vogels Crispbread & Almond Butter',  brand:'Homemade', source:'Custom', per100g:{calories:333, protein:10,  carbs:33,  fat:18,  fibre:5},   createdAt:daysAgo(7)+'T12:00:00.000Z'},
+    {id:'CF_003', name:"Mum's Frittata",                     brand:'Homemade', source:'Custom', per100g:{calories:140, protein:8,   carbs:4,   fat:10,  fibre:0.5}, createdAt:daysAgo(14)+'T18:00:00.000Z'},
+  ];
+
+  // ── Meal plan: current week Mon–Sun ──────────────────────────────────────
+  const now = new Date();
+  const dow = now.getDay();
+  const daysFromMon = dow === 0 ? 6 : dow - 1;
+  const weekDates = [];
+  for (var wi = 0; wi < 7; wi++) {
+    var wd = new Date(now); wd.setDate(now.getDate() - daysFromMon + wi);
+    weekDates.push(localStr(wd));
+  }
+  const mealPlan = {};
+  mealPlan[weekDates[0]] = {Breakfast:'Protein Smoothie',   Lunch:'Chicken & Rice Bowl', Dinner:'Bolognese'};
+  mealPlan[weekDates[1]] = {Breakfast:'Avocado Toast',      Lunch:'Bolognese',           Dinner:'Chicken & Rice Bowl'};
+  mealPlan[weekDates[2]] = {Breakfast:'Protein Smoothie',   Lunch:'Avocado Toast',       Dinner:'Bolognese'};
+  mealPlan[weekDates[3]] = {Breakfast:'Avocado Toast',      Lunch:'Chicken & Rice Bowl', Dinner:'Protein Smoothie'};
+  mealPlan[weekDates[4]] = {Breakfast:'Protein Smoothie',   Lunch:'Bolognese'};           // Fri: no dinner
+  mealPlan[weekDates[5]] = {Lunch:'Chicken & Rice Bowl',    Dinner:'Avocado Toast'};       // Sat: no breakfast
+  // Sun (weekDates[6]): all empty — tests empty-cell behaviour
+
+  // ── Fast log: 3 completed fasts, last one ending yesterday ───────────────
+  const fastLog = [
+    {id:'F001', start:daysAgo(7)+'T19:00:00.000', end:daysAgo(6)+'T11:00:00.000', protocol:'16:8', hours:16, lengthHours:16},
+    {id:'F002', start:daysAgo(4)+'T19:30:00.000', end:daysAgo(3)+'T11:30:00.000', protocol:'16:8', hours:16, lengthHours:16},
+    {id:'F003', start:daysAgo(2)+'T20:00:00.000', end:daysAgo(1)+'T12:00:00.000', protocol:'16:8', hours:16, lengthHours:16},
+  ];
+
+  // Cycle log — 2 periods
+  const cycleLog = [
+    {start: daysAgo(33), end: daysAgo(28)},
+    {start: daysAgo(9), end: daysAgo(4)},
+  ];
+
+  // ── Workouts ─────────────────────────────────────────────────────────────
   const workouts = [];
   const exLib = [
     {name:'Bench Press',sets:[{reps:8,weight:60,done:true},{reps:8,weight:62.5,done:true},{reps:8,weight:65,done:true}]},
@@ -2500,115 +2596,22 @@ function loadTestData() {
     {name:'Overhead Press',sets:[{reps:10,weight:40,done:true},{reps:10,weight:40,done:true},{reps:10,weight:42.5,done:true}]},
     {name:'Pull-up',sets:[{reps:8,weight:0,done:true},{reps:7,weight:0,done:true},{reps:6,weight:0,done:true}]},
   ];
-  for (let week=11; week>=0; week--) {
-    [2,4,6].forEach(dayOfWeek => {
+  for (var week=5; week>=0; week--) {
+    [2,4,6].forEach(function(dayOfWeek) {
       if (Math.random()>0.2) {
-        const baseDay = 89 - week*7;
-        const d = daysAgo(baseDay - dayOfWeek);
-        workouts.push({
-          id: Date.now()-week*100000-dayOfWeek*1000,
-          date: d,
-          name: dayOfWeek===2?'Push Day A':dayOfWeek===4?'Leg Day':'Pull Day',
-          exercises: [exLib[dayOfWeek%5],exLib[(dayOfWeek+1)%5]],
-          duration: 45+Math.floor(Math.random()*20),
-          started: new Date(d+'T08:00:00').getTime(),
-        });
+        var baseDay = 41 - week*7;
+        var d = daysAgo(baseDay - dayOfWeek);
+        workouts.push({id:Date.now()-week*100000-dayOfWeek*1000, date:d,
+          name:dayOfWeek===2?'Push Day A':dayOfWeek===4?'Leg Day':'Pull Day',
+          exercises:[exLib[dayOfWeek%5],exLib[(dayOfWeek+1)%5]],
+          duration:45+Math.floor(Math.random()*20), started:new Date(d+'T08:00:00').getTime()});
       }
     });
   }
-  // Yesterday completed — tests H3.06 (completed workout state)
-  workouts.push({
-    id: Date.now()-1000,
-    date: daysAgo(1),
-    name: 'Push Day A',
-    exercises: [exLib[0], exLib[3], exLib[4]],
-    duration: 52,
-    started: new Date(daysAgo(1)+'T07:30:00').getTime(),
-  });
+  workouts.push({id:Date.now()-1000, date:daysAgo(1), name:'Push Day A',
+    exercises:[exLib[0],exLib[3],exLib[4]], duration:52, started:new Date(daysAgo(1)+'T07:30:00').getTime()});
 
-  // Fast log — ~4-5/week over 90 days; all entries have id + lengthHours for H12.02
-  const fastLog = [];
-  for (let i=89; i>=1; i--) {
-    if ([0,3,4].includes(i%7) || Math.random()>0.6) {
-      const hours = 14 + Math.floor(Math.random()*7);
-      const startHour = String(20).padStart(2,'0');
-      const endHour = String(8+Math.floor(Math.random()*4)).padStart(2,'0');
-      fastLog.push({
-        id: String(Date.now()-i*100000),
-        start: daysAgo(i)+'T'+startHour+':00:00.000',
-        end: daysAgo(i-1)+'T'+endHour+':00:00.000',
-        protocol:'16:8',
-        hours,
-        lengthHours: 16,
-      });
-    }
-  }
-
-  // Cycle log — 2 periods
-  const cycleLog = [
-    {start: daysAgo(33), end: daysAgo(28)},
-    {start: daysAgo(9), end: daysAgo(4)},
-  ];
-
-  // Recipes
-  const recipes = [
-    {
-      id:1, name:'Chicken & Rice Bowl',
-      servings:1,
-      ingredients:[
-        {name:'Chicken breast',grams:200,macros:{calories:220,protein:46,carbs:0,fat:3,fiber:0}},
-        {name:'Brown rice',grams:150,macros:{calories:195,protein:4,carbs:40,fat:2,fiber:2}},
-        {name:'Mixed veg',grams:100,macros:{calories:50,protein:2,carbs:10,fat:0,fiber:3}},
-      ],
-      macros:{calories:465,protein:52,carbs:50,fat:5,fiber:5},
-    },
-    {
-      id:2, name:'Salmon & Veg Stir-fry',
-      servings:1,
-      ingredients:[
-        {name:'Salmon fillet',grams:180,macros:{calories:340,protein:36,carbs:0,fat:20,fiber:0}},
-        {name:'Broccoli',grams:200,macros:{calories:68,protein:6,carbs:12,fat:1,fiber:5}},
-        {name:'Soy sauce',grams:30,macros:{calories:20,protein:2,carbs:3,fat:0,fiber:0}},
-      ],
-      macros:{calories:428,protein:44,carbs:15,fat:21,fiber:5},
-    },
-    {
-      id:3, name:'Greek Yogurt Bowl',
-      servings:1,
-      ingredients:[
-        {name:'Greek yogurt',grams:200,macros:{calories:120,protein:20,carbs:6,fat:2,fiber:0}},
-        {name:'Mixed berries',grams:100,macros:{calories:60,protein:1,carbs:14,fat:0,fiber:4}},
-        {name:'Honey',grams:15,macros:{calories:45,protein:0,carbs:12,fat:0,fiber:0}},
-        {name:'Granola',grams:30,macros:{calories:130,protein:3,carbs:20,fat:4,fiber:2}},
-      ],
-      macros:{calories:355,protein:24,carbs:52,fat:6,fiber:6},
-    },
-    {
-      id:4, name:'Protein Smoothie',
-      servings:1,
-      ingredients:[
-        {name:'Whey protein',grams:30,macros:{calories:120,protein:24,carbs:3,fat:2,fiber:0}},
-        {name:'Banana',grams:120,macros:{calories:107,protein:1,carbs:27,fat:0,fiber:3}},
-        {name:'Almond milk',grams:250,macros:{calories:35,protein:1,carbs:2,fat:3,fiber:0}},
-        {name:'Peanut butter',grams:20,macros:{calories:120,protein:5,carbs:3,fat:10,fiber:1}},
-      ],
-      macros:{calories:382,protein:31,carbs:35,fat:15,fiber:4},
-    },
-  ];
-
-  // Meal plan — date-keyed for 2 weeks + legacy day-keyed fallback
-  const bfNames = ['Oats with banana','Greek yogurt & berries','Eggs on toast','Protein smoothie'];
-  const lnNames = ['Chicken & Rice Bowl','Tuna salad wrap','Lentil soup','Turkey sandwich'];
-  const dnNames = ['Salmon & Veg Stir-fry','Beef & sweet potato','Chicken pasta','Tofu Buddha bowl'];
-  const mealPlan = {};
-  for (let i = -7; i <= 13; i++) {
-    const d = new Date(); d.setDate(d.getDate() + i);
-    const ds = localStr(d);
-    const idx = ((i % 4) + 4) % 4;
-    mealPlan[ds] = {Breakfast: bfNames[idx], Lunch: lnNames[(idx+1)%4], Dinner: dnNames[(idx+2)%4]};
-  }
-
-  // Plans — both Push Day A AND Cardio are scheduled for today to test multi-row workout display
+  // Plans
   const todayDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
   const pushDays = ['Monday','Thursday'];
   if (!pushDays.includes(todayDayName)) pushDays.push(todayDayName);
@@ -2713,9 +2716,10 @@ function loadTestData() {
     profile: { name:'Alix', height:168, dob:'1990-03-15' },
     goalWeight: 65,
     goalDate: monthsFromNow(3),
-    targets: { calories:1800, protein:140, carbs:180, fat:55, fibre:25, water:2000, macroMode:'auto', macroSplit:'balanced', nutritionDaysPerWeek:5 },
+    targets: { calories:1800, protein:135, carbs:185, fat:60, fibre:25, water:2000, macroMode:'auto', macroSplit:'balanced', nutritionDaysPerWeek:5 },
     weightLog,
     logs,
+    customFoods,
     workouts,
     fastLog,
     activeFast,
