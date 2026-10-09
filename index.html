@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-title" content="FitSoleil">
 <title>FitSoleil</title>
 <style>
+  button, [role="button"] { cursor: pointer; }
+  button *, [role="button"] * { pointer-events: none; }
+
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
   @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css');
 
@@ -1043,6 +1046,10 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           <button onclick="changeMealPlanWeek(1)" style="background:none;border:none;color:var(--txt);font-size:22px;cursor:pointer;padding:4px 10px">›</button>
         </div>
         <button class="btn btn-secondary btn-sm" style="margin-bottom:8px;width:100%" onclick="copyLastMealPlanWeek()">↺ Copy last week</button>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button class="btn btn-outline btn-sm" style="flex:1;font-size:11px" onclick="showSaveTemplatePrompt()">💾 Save template</button>
+          <button class="btn btn-outline btn-sm" style="flex:1;font-size:11px" onclick="showTemplatesSheet()">📋 Load template</button>
+        </div>
         <div style="text-align:right;margin-bottom:6px">
           <button id="plan-snack-toggle" class="btn btn-sm btn-outline" onclick="togglePlanSnacks()" style="font-size:11px;padding:4px 10px">Show snacks</button>
         </div>
@@ -2788,6 +2795,7 @@ function loadState() {
   state.currentDate = state.activeDate; // keep alias for backward compat
   if (state.diaryShowSnacks === undefined) state.diaryShowSnacks = false;
   if (state.planShowSnacks === undefined) state.planShowSnacks = false;
+  if (!Array.isArray(state.planTemplates)) state.planTemplates = [];
 }
 
 function saveState() {
@@ -4135,7 +4143,7 @@ const FOODFILES_DB = [{"id": "FF_A1122", "name": "Bagels, white, toasted", "sour
 // USDA standard nutritional values for common raw/basic foods missing from FOODfiles NZ
 var USDA_DB = [
   // --- Poultry, raw ---
-  {"id":"US_CB01","name":"Chicken, breast, flesh only, raw","source":"USDA","per100g":{"calories":120,"protein":22.5,"carbs":0,"fat":2.6,"fibre":0},"servings":[{"label":"1 fillet","g":180}]},
+  {"id":"US_CB01","name":"Chicken, breast, flesh only, raw","source":"USDA","per100g":{"calories":120,"protein":22.5,"carbs":0,"fat":2.6,"fibre":0},"servings":[{"label":"1 small fillet","g":120},{"label":"1 medium fillet","g":180},{"label":"1 large fillet","g":240}]},
   {"id":"US_CB02","name":"Chicken, thigh, flesh only, raw","source":"USDA","per100g":{"calories":119,"protein":19.1,"carbs":0,"fat":3.9,"fibre":0}},
   {"id":"US_CB03","name":"Chicken, drumstick, flesh only, raw","source":"USDA","per100g":{"calories":119,"protein":19.3,"carbs":0,"fat":3.4,"fibre":0}},
   {"id":"US_CB04","name":"Chicken, wing, flesh only, raw","source":"USDA","per100g":{"calories":126,"protein":18.3,"carbs":0,"fat":5.6,"fibre":0}},
@@ -4207,10 +4215,10 @@ var USDA_DB = [
   {"id":"US_PB02","name":"Peanut butter, crunchy","source":"USDA","per100g":{"calories":593,"protein":24.1,"carbs":22.3,"fat":50.4,"fibre":5.6}},
   {"id":"US_AB01","name":"Almond butter, smooth","source":"USDA","per100g":{"calories":614,"protein":20.9,"carbs":18.8,"fat":55.5,"fibre":10.3}},
   // --- Eggs ---
-  {"id":"US_EG01","name":"Egg, whole, raw","source":"USDA","per100g":{"calories":143,"protein":12.6,"carbs":0.7,"fat":9.5,"fibre":0},"servings":[{"label":"1 egg","g":60}]},
+  {"id":"US_EG01","name":"Egg, whole, raw","source":"USDA","per100g":{"calories":143,"protein":12.6,"carbs":0.7,"fat":9.5,"fibre":0},"servings":[{"label":"1 small egg","g":38},{"label":"1 medium egg","g":44},{"label":"1 large egg","g":50}]},
   {"id":"US_EG02","name":"Egg white, raw","source":"USDA","per100g":{"calories":52,"protein":10.9,"carbs":0.7,"fat":0.2,"fibre":0},"servings":[{"label":"1 egg white","g":33}]},
   // --- Fruit ---
-  {"id":"US_FT01","name":"Banana, fresh","source":"USDA","per100g":{"calories":89,"protein":1.1,"carbs":22.8,"fat":0.3,"fibre":2.6},"servings":[{"label":"1 medium","g":118},{"label":"1 small","g":81}]},
+  {"id":"US_FT01","name":"Banana, fresh","source":"USDA","per100g":{"calories":89,"protein":1.1,"carbs":22.8,"fat":0.3,"fibre":2.6},"servings":[{"label":"1 small banana","g":81},{"label":"1 medium banana","g":118},{"label":"1 large banana","g":136}]},
   {"id":"US_FT02","name":"Apple, fresh, with skin","source":"USDA","per100g":{"calories":52,"protein":0.3,"carbs":13.8,"fat":0.2,"fibre":2.4},"servings":[{"label":"1 medium","g":182}]},
   {"id":"US_FT03","name":"Orange, fresh","source":"USDA","per100g":{"calories":47,"protein":0.9,"carbs":11.8,"fat":0.1,"fibre":2.4},"servings":[{"label":"1 medium","g":131}]},
   {"id":"US_FT04","name":"Strawberries, fresh","source":"USDA","per100g":{"calories":32,"protein":0.7,"carbs":7.7,"fat":0.3,"fibre":2.0}},
@@ -4219,16 +4227,16 @@ var USDA_DB = [
   {"id":"US_FT07","name":"Grapes, fresh","source":"USDA","per100g":{"calories":69,"protein":0.7,"carbs":18.1,"fat":0.2,"fibre":0.9}},
   {"id":"US_FT08","name":"Kiwifruit, fresh","source":"USDA","per100g":{"calories":61,"protein":1.1,"carbs":14.7,"fat":0.5,"fibre":3.0},"servings":[{"label":"1 medium","g":76}]},
   // --- Bread & Bakery ---
-  {"id":"US_BD01","name":"Bread, white, sliced","source":"USDA","per100g":{"calories":265,"protein":9.0,"carbs":49.4,"fat":3.2,"fibre":2.3},"servings":[{"label":"1 slice","g":35}]},
+  {"id":"US_BD01","name":"Bread, white, sliced","source":"USDA","per100g":{"calories":265,"protein":9.0,"carbs":49.4,"fat":3.2,"fibre":2.3},"servings":[{"label":"1 slice","g":30}]},
   {"id":"US_BD02","name":"Bread, wholemeal, sliced","source":"USDA","per100g":{"calories":247,"protein":12.3,"carbs":41.4,"fat":3.4,"fibre":6.0},"servings":[{"label":"1 slice","g":38}]},
   {"id":"US_BD03","name":"Bread, multigrain, sliced","source":"USDA","per100g":{"calories":255,"protein":10.2,"carbs":44.1,"fat":3.8,"fibre":5.0},"servings":[{"label":"1 slice","g":38}]},
   // --- Dairy ---
-  {"id":"US_DY01","name":"Milk, full fat (whole)","source":"USDA","per100g":{"calories":61,"protein":3.2,"carbs":4.8,"fat":3.3,"fibre":0},"servings":[{"label":"1 cup (250ml)","g":244}]},
+  {"id":"US_DY01","name":"Milk, full fat (whole)","source":"USDA","per100g":{"calories":61,"protein":3.2,"carbs":4.8,"fat":3.3,"fibre":0},"servings":[{"label":"1 cup (250ml)","g":244},{"label":"1/2 cup","g":122}]},
   {"id":"US_DY02","name":"Milk, reduced fat (2%)","source":"USDA","per100g":{"calories":50,"protein":3.3,"carbs":4.9,"fat":1.9,"fibre":0},"servings":[{"label":"1 cup (250ml)","g":244}]},
-  {"id":"US_DY03","name":"Yoghurt, Greek, plain, full fat","source":"USDA","per100g":{"calories":97,"protein":9.0,"carbs":3.6,"fat":5.0,"fibre":0},"servings":[{"label":"1 cup","g":227}]},
+  {"id":"US_DY03","name":"Yoghurt, Greek, plain, full fat","source":"USDA","per100g":{"calories":97,"protein":9.0,"carbs":3.6,"fat":5.0,"fibre":0},"servings":[{"label":"1/2 cup","g":113},{"label":"1 cup","g":226}]},
   {"id":"US_DY04","name":"Butter, salted","source":"USDA","per100g":{"calories":717,"protein":0.9,"carbs":0.1,"fat":81.1,"fibre":0},"servings":[{"label":"1 tbsp","g":14}]},
   // --- Oats & Cereals ---
-  {"id":"US_OT01","name":"Oats, rolled, dry","source":"USDA","per100g":{"calories":389,"protein":16.9,"carbs":66.3,"fat":6.9,"fibre":10.6},"servings":[{"label":"1/2 cup","g":40}]},
+  {"id":"US_OT01","name":"Oats, rolled, dry","source":"USDA","per100g":{"calories":389,"protein":16.9,"carbs":66.3,"fat":6.9,"fibre":10.6},"servings":[{"label":"1/2 cup dry","g":40},{"label":"1 cup dry","g":80}]},
   {"id":"US_OT02","name":"Oats, rolled, cooked with water","source":"USDA","per100g":{"calories":71,"protein":2.5,"carbs":12.0,"fat":1.4,"fibre":1.7},"servings":[{"label":"1 cup cooked","g":234}]}
 ];
 
@@ -4560,7 +4568,8 @@ function executeFoodSearch(query) {
 }
 
 function _appendLoadMoreButton() {
-  var container = document.getElementById('food-search-results');
+  var containerId = (_searchContext && _searchContext.resultsId) ? _searchContext.resultsId : 'food-search-results';
+  var container = document.getElementById(containerId);
   if (!container) return;
   var btn = document.createElement('div');
   btn.id = 'load-more-btn';
@@ -4592,7 +4601,8 @@ function _loadMoreResults() {
       // Too few new results — we've hit the bottom, don't show another page button
       return;
     }
-    var container = document.getElementById('food-search-results');
+    var lmContainerId = (_searchContext && _searchContext.resultsId) ? _searchContext.resultsId : 'food-search-results';
+    var container = document.getElementById(lmContainerId);
     if (container) {
       var frag = document.createElement('div');
       frag.innerHTML = newOff.map(renderFoodResult).join('');
@@ -4615,8 +4625,7 @@ function _loadMoreResults() {
 }
 
 function clearSearchResults() {
-  var containerId = (typeof _searchContext !== 'undefined' && _searchContext === 'recipe')
-    ? 'recipe-ingredient-results' : 'food-search-results';
+  var containerId = (_searchContext && _searchContext.resultsId) ? _searchContext.resultsId : 'food-search-results';
   var r = document.getElementById(containerId);
   if (r) r.innerHTML = '';
   _setFoodSourceLine('');
@@ -4649,9 +4658,7 @@ function renderFoodResult(food) {
     brand = parts.slice(1).join(' — ').trim();
   }
   var badge = '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;flex-shrink:0;background:' + c.bg + ';color:' + c.text + '">' + food.source + '</span>';
-  var onclickFn = (typeof _searchContext !== 'undefined' && _searchContext === 'recipe')
-    ? 'selectRecipeIngredient(\'' + encoded + '\')'
-    : 'selectFood(\'' + encoded + '\')';
+  var onclickFn = '_foodSelectBridge(\'' + encoded + '\')';
   return '<div class="search-result-item" onclick="' + onclickFn + '">' +
     (brand ? '<div style="font-size:10px;font-weight:700;color:#9A98A0;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:1px">' + brand + '</div>' : '') +
     '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">' +
@@ -4663,8 +4670,7 @@ function renderFoodResult(food) {
 }
 
 function renderSearchResults(wholeFoods, brandedFoods) {
-  var containerId = (typeof _searchContext !== 'undefined' && _searchContext === 'recipe')
-    ? 'recipe-ingredient-results' : 'food-search-results';
+  var containerId = (_searchContext && _searchContext.resultsId) ? _searchContext.resultsId : 'food-search-results';
   var container = document.getElementById(containerId);
   if (!container) return;
   var html = '';
@@ -4674,7 +4680,7 @@ function renderSearchResults(wholeFoods, brandedFoods) {
     html += brandedFoods.map(renderFoodResult).join('');
   }
   container.innerHTML = html || '<div style="padding:16px;text-align:center;color:#5A5860;font-size:13px">No results</div>';
-  if (_searchContext !== 'recipe') {
+  if (!_searchContext || !_searchContext.isRecipe) {
     var loadEl = document.getElementById('food-search-loading');
     if (loadEl) loadEl.style.display = 'none';
   }
@@ -4725,13 +4731,10 @@ function selectFood(encoded) {
   var servingSel = document.getElementById('fd-serving-select');
   if (servingOpts && servingSel) {
     var servings = food.servings || [];
-    if (servings.length > 0) {
-      servingSel.innerHTML = '<option value="">Custom grams</option>' +
-        servings.map(function(s) { return '<option value="'+s.g+'">'+s.label+' ('+s.g+'g)</option>'; }).join('');
-      servingOpts.style.display = 'block';
-    } else {
-      servingOpts.style.display = 'none';
-    }
+    servingSel.innerHTML = '<option value="100">Per 100g</option>' +
+      servings.map(function(s) { return '<option value="'+s.g+'">'+(s.label||s.desc)+' ('+s.g+'g)</option>'; }).join('') +
+      '<option value="">Custom grams...</option>';
+    servingOpts.style.display = 'block';
   }
   var mealSel = document.getElementById('food-meal-select');
   var fdMeal = document.getElementById('fd-meal');
@@ -4742,7 +4745,7 @@ function selectFood(encoded) {
 }
 
 function applyServingOption(val) {
-  if (!val) return;
+  if (val === '') return; // "Custom grams..." — user types in fd-serving manually
   var inp = document.getElementById('fd-serving');
   if (inp) { inp.value = val; renderFoodDetailMacros(); }
 }
@@ -4934,7 +4937,7 @@ async function startBarcodeScanner() {
   if (resultDiv) resultDiv.innerHTML = '';
 
   if (!('BarcodeDetector' in window)) {
-    if (errorText) errorText.textContent = 'Barcode scanning requires a browser with BarcodeDetector support (Chrome on Android or Safari on iOS).';
+    if (errorText) errorText.textContent = 'Barcode scanning is not supported on this browser.';
     if (errorMsg) errorMsg.style.display = 'flex';
     if (instruction) instruction.textContent = 'Camera not available';
     return;
@@ -5074,7 +5077,7 @@ function renderMealSections() {
         </div>
       </div>
       ${items.map(item => {
-        const subLabel = item.recipeId ? '1 serve' : (item.serving ? item.serving + 'g' : '');
+        const subLabel = item.recipeId ? (item.servingLabel || '1 serve') : (item.serving ? item.serving + 'g' : '');
         const macroLine = item.recipeId
           ? 'P:' + (item.protein||0) + 'g · C:' + (item.carbs||0) + 'g · F:' + (item.fat||0) + 'g'
           : '';
@@ -5107,18 +5110,39 @@ function _bindMealSelectSync() {
   }
 }
 
-function openFoodModal() {
+function _getSmartMeal() {
+  var h = new Date().getHours();
+  if (h < 10) return 'Breakfast';
+  if (h < 14) return 'Lunch';
+  if (h < 18) return 'Dinner';
+  return 'Evening Snack';
+}
+
+function openFoodModal(mealPreset) {
   _modalLogDate = state.activeDate;
-  _preselectedMeal = null;
+  _preselectedMeal = mealPreset || null;
+  initFoodSearch(); // set context before openModal
   openModal('modal-food');
+  // Apply smart meal selection after modal opens (openModal may reset to Breakfast)
+  var meal = mealPreset || _getSmartMeal();
+  var mealSel = document.getElementById('food-meal-select');
+  if (mealSel) mealSel.value = meal;
+  var fdMeal = document.getElementById('fd-meal');
+  if (fdMeal) fdMeal.value = meal;
   _bindMealSelectSync();
 }
 
 function openNutritionFoodModal() {
   _modalLogDate = state.nutritionDate;
   _preselectedMeal = null;
-  initFoodSearch();
+  initFoodSearch(); // set context before openModal
   openModal('modal-food');
+  // Apply smart meal selection
+  var meal = _getSmartMeal();
+  var mealSel = document.getElementById('food-meal-select');
+  if (mealSel) mealSel.value = meal;
+  var fdMeal = document.getElementById('fd-meal');
+  if (fdMeal) fdMeal.value = meal;
   _bindMealSelectSync();
 }
 
@@ -5233,10 +5257,10 @@ function renderRecipesList() {
         '</div>'
       : '';
     var ingCount = r.ingredients && r.ingredients.length || 0;
-    return '<div class="recipe-card" style="position:relative">' +
+    return '<div class="recipe-card" style="position:relative;cursor:pointer" onclick="if(!event.target.closest(\'.recipe-menu-btn\')){openRecipeDetail(' + r.id + ')}">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px">' +
-        '<div style="font-weight:600;font-size:14px;flex:1" onclick="openRecipeDetail(' + r.id + ')" style="cursor:pointer">' + r.name + '</div>' +
-        '<button onclick="toggleRecipeMenu(' + r.id + ',event)" style="background:none;border:none;color:var(--txt2);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;pointer-events:auto">&#xB7;&#xB7;&#xB7;</button>' +
+        '<div style="font-weight:600;font-size:14px;flex:1">' + r.name + '</div>' +
+        '<button class="recipe-menu-btn" onclick="toggleRecipeMenu(' + r.id + ',event)" style="background:none;border:none;color:var(--txt2);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;pointer-events:auto">&#xB7;&#xB7;&#xB7;</button>' +
       '</div>' +
       tagPills +
       '<div style="font-size:10px;color:#5A5860;text-align:right;margin-bottom:8px">' + ingCount + ' ingredient' + (ingCount!==1?'s':'') + ' \xb7 ' + serves + ' serve' + (serves!==1?'s':'') + '</div>' +
@@ -5376,7 +5400,8 @@ function logRecipe(id) {
     var ratio = selectedServes / totalServes;
     var log = getDayLog(_modalLogDate || state.nutritionDate);
     log.meals.push({
-      name: r.name + (selectedServes !== 1 ? ' (' + selectedServes + ' serve' + (selectedServes !== 1 ? 's' : '') + ')' : ''),
+      name: r.name,
+      servingLabel: selectedServes + ' serve' + (selectedServes !== 1 ? 's' : ''),
       meal: selectedMeal,
       calories: Math.round((r.macros&&r.macros.calories || 0) * ratio),
       protein:  Math.round((r.macros&&r.macros.protein  || 0) * ratio * 10) / 10,
@@ -5428,13 +5453,8 @@ function selectRecipeIngredient(encoded) {
     '<input id="ri-grams" type="text" inputmode="decimal" value="" placeholder="0" style="width:72px;text-align:center" oninput="updateRiMacroPreview()"/>' +
     '<span style="font-size:12px;color:var(--txt2)">g</span>' +
     '<div id="ri-macro-preview" style="font-size:11px;color:var(--txt3);flex:1"></div>' +
-    '</div>' +
-    '<div style="margin-bottom:8px">' +
-    '<input id="ri-serving-label" type="text" placeholder="Serving label (optional, e.g. 1 fillet)" style="width:100%"/>' +
-    '</div>' +
-    '<div style="display:flex;gap:8px">' +
-    '<button class="btn btn-primary btn-sm" style="flex:1" onclick="confirmRecipeIngredient(\'' + encoded + '\')">&#10003; Add</button>' +
-    '<button class="btn btn-outline btn-sm" onclick="clearRecipeIngredientEntry()">Cancel</button>' +
+    '<button onclick="confirmRecipeIngredient(\'' + encoded + '\')" style="background:var(--acc);color:#0F0F13;border:none;border-radius:99px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">&#10003; Add</button>' +
+    '<button onclick="clearRecipeIngredientEntry()" style="background:none;border:1px solid var(--s3);border-radius:99px;padding:5px 10px;font-size:12px;color:var(--txt2);cursor:pointer;flex-shrink:0">&#x2715;</button>' +
     '</div></div>';
   var inp = document.getElementById('ri-grams');
   if (inp) inp.focus();
@@ -6048,6 +6068,88 @@ function copyLastMealPlanWeek() {
   saveState();
   renderMealPlanGrid();
   showToast(copied ? 'Last week copied ✓' : 'No previous plan to copy');
+}
+
+function saveCurrentWeekAsTemplate(name) {
+  var dates = getMealPlanWeekDates();
+  var weekData = {};
+  dates.forEach(function(d) {
+    var ds = localDateStr(d);
+    if (state.mealPlan && state.mealPlan[ds]) weekData[ds] = Object.assign({}, state.mealPlan[ds]);
+  });
+  var tpl = { id: Date.now(), name: name || ('Template ' + new Date().toLocaleDateString()), week: weekData, savedAt: new Date().toISOString() };
+  if (!Array.isArray(state.planTemplates)) state.planTemplates = [];
+  state.planTemplates.push(tpl);
+  saveState();
+  showToast('Template saved ✓');
+}
+
+function loadTemplate(templateId) {
+  var tpl = (state.planTemplates || []).find(function(t) { return t.id === templateId; });
+  if (!tpl) return;
+  var dates = getMealPlanWeekDates();
+  if (!state.mealPlan) state.mealPlan = {};
+  var tplDates = Object.keys(tpl.week);
+  dates.forEach(function(d, i) {
+    var tplKey = tplDates[i];
+    var ds = localDateStr(d);
+    if (tplKey && tpl.week[tplKey]) state.mealPlan[ds] = Object.assign({}, tpl.week[tplKey]);
+  });
+  saveState();
+  renderMealPlanGrid();
+  showToast(tpl.name + ' loaded ✓');
+}
+
+function deleteTemplate(templateId) {
+  if (!Array.isArray(state.planTemplates)) return;
+  state.planTemplates = state.planTemplates.filter(function(t) { return t.id !== templateId; });
+  saveState();
+  showTemplatesSheet();
+}
+
+function showTemplatesSheet() {
+  var templates = state.planTemplates || [];
+  var inner = document.createElement('div');
+  inner.style.cssText = 'position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;justify-content:flex-end';
+  inner.innerHTML = '<div onclick="this.parentElement.remove()" style="flex:1;background:rgba(0,0,0,0.5)"></div>' +
+    '<div style="background:var(--s1);border-radius:16px 16px 0 0;padding:20px 16px;max-height:70vh;overflow-y:auto">' +
+    '<div style="font-weight:700;font-size:15px;margin-bottom:12px">Load template</div>' +
+    (templates.length ? templates.map(function(t) {
+      return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--s2)">' +
+        '<div style="flex:1"><div style="font-size:13px;font-weight:600">' + t.name + '</div>' +
+        '<div style="font-size:11px;color:var(--txt3)">' + new Date(t.savedAt).toLocaleDateString() + '</div></div>' +
+        '<button onclick="loadTemplate(' + t.id + ');this.closest(\'[style*=z-index:9000]\').remove()" style="background:var(--acc);color:#0F0F13;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">Load</button>' +
+        '<button onclick="deleteTemplate(' + t.id + ')" style="background:none;border:1px solid var(--s3);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--txt2);cursor:pointer">Delete</button>' +
+        '</div>';
+    }).join('') : '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No templates saved</div>') +
+    '</div>';
+  document.body.appendChild(inner);
+}
+
+function showSaveTemplatePrompt() {
+  var existing = document.getElementById('save-template-overlay');
+  if (existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'save-template-overlay';
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'display:flex;z-index:10000';
+  overlay.innerHTML = '<div class="modal" style="max-width:340px">' +
+    '<div class="modal-handle"></div>' +
+    '<div style="font-size:15px;font-weight:600;color:var(--txt1);margin-bottom:16px;text-align:center">Save as template</div>' +
+    '<input id="save-template-name-input" type="text" class="ob-input" placeholder="Template name" value="My plan template" style="margin-bottom:16px" />' +
+    '<button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="_saveTemplateConfirm()">Save template</button>' +
+    '<button class="btn btn-outline" style="width:100%" onclick="document.getElementById(\'save-template-overlay\').remove()">Cancel</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  var inp = document.getElementById('save-template-name-input');
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+function _saveTemplateConfirm() {
+  var inp = document.getElementById('save-template-name-input');
+  var name = inp ? inp.value.trim() : '';
+  document.getElementById('save-template-overlay')?.remove();
+  if (name) saveCurrentWeekAsTemplate(name);
 }
 
 function getMealPlanWeekDates() {
@@ -7637,35 +7739,49 @@ function addSwipe(el, onLeft, onRight, threshold=50) {
 }
 
 var _foodModalOpen = false; // true while the food modal is open
-var _searchContext = 'modal'; // 'modal' | 'recipe'
+var _searchContext = null; // Object: {inputId, resultsId, onSelect, isRecipe}
+
+// Bridge called from onclick strings in renderFoodResult HTML
+function _foodSelectBridge(encoded) {
+  if (_searchContext && typeof _searchContext.onSelect === 'function') {
+    _searchContext.onSelect(encoded);
+  }
+}
 
 function initFoodSearch(context) {
-  _searchContext = context || 'modal';
+  // Support legacy string context ('modal'|'recipe') and new object context
+  if (!context || context === 'modal') {
+    _searchContext = { inputId: 'food-search-input', resultsId: 'food-search-results', onSelect: selectFood, isRecipe: false };
+  } else if (context === 'recipe') {
+    _searchContext = { inputId: 'recipe-ingredient-search', resultsId: 'recipe-ingredient-results', onSelect: selectRecipeIngredient, isRecipe: true };
+  } else {
+    _searchContext = Object.assign({ isRecipe: false }, context);
+  }
   _foodModalOpen = true;
   _searchGen++; // invalidate any in-flight search from previous modal open
   _offCache.clear(); // each fresh modal open gets fresh OFF results
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   searchDebounceTimer = null;
 
-  var inputId = _searchContext === 'recipe' ? 'recipe-ingredient-search' : 'food-search-input';
+  var inputId = _searchContext.inputId;
   var input = document.getElementById(inputId);
   if (!input) return;
   var fresh = input.cloneNode(true);
   input.parentNode.replaceChild(fresh, input);
   fresh.value = '';
-  if (_searchContext !== 'recipe') {
+  if (!_searchContext.isRecipe) {
     var hint = document.getElementById('search-hint');
     if (hint) hint.style.display = 'block';
   }
   fresh.addEventListener('input', function() {
-    if (_searchContext !== 'recipe') {
+    if (!_searchContext.isRecipe) {
       var h = document.getElementById('search-hint');
       if (h) h.style.display = this.value.length === 0 ? 'block' : 'none';
     }
     runFoodSearch(this.value.trim());
   });
   clearSearchResults();
-  if (_searchContext !== 'recipe') {
+  if (!_searchContext.isRecipe) {
     var loadEl = document.getElementById('food-search-loading');
     if (loadEl) loadEl.style.display = 'none';
   }
@@ -7691,13 +7807,15 @@ function openModal(id) {
   if (id === 'modal-plan-rows') openPlanRowsModal();
   if (id === 'modal-start-plan') renderWorkoutPlans();
   if (id === 'modal-food') {
-    var mealSel = document.getElementById('food-meal-select');
-    if (mealSel) mealSel.value = 'Breakfast';
     renderRecipesList();
     ['custom-food-name','custom-brand','custom-cals','custom-protein','custom-carbs','custom-fat','custom-fiber','custom-serving'].forEach(function(fid) { var el = document.getElementById(fid); if(el) el.value=''; });
     var searchTab = document.querySelector('#modal-food .tabs .tab');
     if (searchTab) searchTab.click();
-    initFoodSearch();
+    // initFoodSearch is called by the specific open functions (openFoodModal / openNutritionFoodModal)
+    // which also set the meal selector; only init here if not already set by caller
+    if (!_searchContext || _searchContext.isRecipe) {
+      initFoodSearch();
+    }
   }
   if (id === 'modal-weight') {
     const dateEl = document.getElementById('modal-weight-date');
@@ -7720,7 +7838,7 @@ function openModal(id) {
   }
   if (id === 'modal-recipe') {
     // Ensure recipe context is set for the shared search system
-    _searchContext = 'recipe';
+    _searchContext = { inputId: 'recipe-ingredient-search', resultsId: 'recipe-ingredient-results', onSelect: selectRecipeIngredient, isRecipe: true };
   }
 }
 function closeModal(id) {
