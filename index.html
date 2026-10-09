@@ -2044,7 +2044,6 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     </div>
     <div class="tabs">
       <div class="tab active" onclick="switchTab(this,'ft-search')">Search</div>
-      <div class="tab" onclick="switchTab(this,'ft-scan')">Scan</div>
       <div class="tab" onclick="switchTab(this,'ft-custom');resetCustomFoodForm()">Custom</div>
       <div class="tab" onclick="switchTab(this,'ft-recipes')">Meals / Recipes</div>
     </div>
@@ -2059,26 +2058,6 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       <div id="food-search-loading" class="hidden" style="display:flex;justify-content:center;padding:16px"><div class="spinner"></div></div>
       <div id="food-source-line" style="font-size:10px;color:#9A98A0;padding:2px 4px 4px;min-height:14px"></div>
       <div id="food-search-results" class="search-results"></div>
-    </div>
-
-    <!-- BARCODE SCAN -->
-    <div id="ft-scan" class="hidden">
-      <div id="barcode-view" style="position:relative;width:100%;min-height:280px;max-height:60vh;background:#000;border-radius:var(--r-sm);overflow:hidden">
-        <video id="barcode-video" style="width:100%;height:100%;min-height:280px;max-height:60vh;object-fit:cover;display:block" autoplay playsinline></video>
-        <canvas id="barcode-canvas" style="display:none"></canvas>
-        <div id="barcode-overlay" style="position:absolute;inset:0;pointer-events:none">
-          <div style="position:absolute;inset:20%;border:2px solid #E8C547;border-radius:6px;box-shadow:0 0 0 9999px rgba(0,0,0,.5)"></div>
-        </div>
-        <div id="barcode-tap-prompt" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:rgba(0,0,0,.6);cursor:pointer" onclick="startBarcodeScanner()">
-          <i class="ti ti-camera" style="font-size:36px;color:#fff"></i>
-          <div style="font-size:13px;color:rgba(255,255,255,.8)">Tap to retry</div>
-        </div>
-        <div id="barcode-error-msg" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;padding:16px;text-align:center">
-          <div style="font-size:12px;color:rgba(255,255,255,.7)" id="barcode-error-text"></div>
-        </div>
-      </div>
-      <div style="text-align:center;font-size:12px;color:var(--txt2);margin-top:8px" id="barcode-instruction">Point camera at barcode</div>
-      <div id="barcode-result" style="margin-top:12px"></div>
     </div>
 
     <!-- CUSTOM FOOD -->
@@ -3578,8 +3557,6 @@ function goBack() {
 
 let _prevScreen = 'home';
 function switchTab(el, targetId) {
-  const scanTab = document.getElementById('ft-scan');
-  if (scanTab && !scanTab.classList.contains('hidden') && targetId !== 'ft-scan') stopBarcodeScanner();
   el.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   let parent = el.closest('.screen') || el.closest('.modal');
@@ -3598,7 +3575,6 @@ function switchTab(el, targetId) {
   if (targetId === 'ph-compare') renderPhotoGallery();
   if (targetId === 'nt-meals') renderRecipesList();
   if (targetId === 'nt-mealplan') initMealPlan();
-  if (targetId === 'ft-scan') startBarcodeScanner();
 }
 
 // ============================================================
@@ -4919,100 +4895,6 @@ function addCustomFood() {
   showToast(name.trim() + ' added ✓');
 }
 
-// ============================================================
-// BARCODE SCANNER
-// ============================================================
-var _barcodeStream = null;
-
-async function startBarcodeScanner() {
-  var video = document.getElementById('barcode-video');
-  var resultDiv = document.getElementById('barcode-result');
-  var tapPrompt = document.getElementById('barcode-tap-prompt');
-  var errorMsg = document.getElementById('barcode-error-msg');
-  var errorText = document.getElementById('barcode-error-text');
-  var instruction = document.getElementById('barcode-instruction');
-
-  if (tapPrompt) tapPrompt.style.display = 'none';
-  if (errorMsg) errorMsg.style.display = 'none';
-  if (resultDiv) resultDiv.innerHTML = '';
-
-  if (!('BarcodeDetector' in window)) {
-    if (errorText) errorText.textContent = 'Barcode scanning is not supported on this browser.';
-    if (errorMsg) errorMsg.style.display = 'flex';
-    if (instruction) instruction.textContent = 'Camera not available';
-    return;
-  }
-  try {
-    var stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    _barcodeStream = stream;
-    video.srcObject = stream;
-    if (instruction) instruction.textContent = 'Point camera at barcode...';
-
-    var detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
-    var scan = async function() {
-      if (!_barcodeStream) return;
-      try {
-        var codes = await detector.detect(video);
-        if (codes.length > 0) {
-          var barcode = codes[0].rawValue;
-          stopBarcodeScanner();
-          lookupBarcode(barcode, resultDiv);
-          return;
-        }
-      } catch(e) {}
-      requestAnimationFrame(scan);
-    };
-    video.addEventListener('loadedmetadata', function() { requestAnimationFrame(scan); }, { once: true });
-  } catch(e) {
-    if (errorText) errorText.textContent = 'Camera access denied. Please allow camera access in your browser settings.';
-    if (errorMsg) errorMsg.style.display = 'flex';
-    if (tapPrompt) { tapPrompt.style.display = 'flex'; }
-    if (instruction) instruction.textContent = 'Camera unavailable';
-  }
-}
-
-function stopBarcodeScanner() {
-  if (_barcodeStream) {
-    _barcodeStream.getTracks().forEach(function(t) { t.stop(); });
-    _barcodeStream = null;
-  }
-  var video = document.getElementById('barcode-video');
-  if (video) { video.srcObject = null; }
-}
-
-function lookupBarcode(barcode, resultDiv) {
-  resultDiv.innerHTML = '<div style="display:flex;justify-content:center;padding:12px"><div class="spinner"></div></div>';
-  fetch('https://world.openfoodfacts.org/api/v0/product/' + barcode + '.json')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.status === 1 && data.product) {
-        var parsed = parseOpenFoodFacts([data.product]);
-        var food = parsed.length > 0 ? parsed[0] : null;
-        if (food) {
-          var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(food))));
-          resultDiv.innerHTML = '<div class="card card-sm" style="margin-top:0">' +
-            '<div style="font-weight:600;margin-bottom:6px">' + food.name + '</div>' +
-            '<div style="font-size:12px;color:var(--txt2)">' + food.per100g.calories + ' kcal \xb7 P:' + food.per100g.protein + 'g C:' + food.per100g.carbs + 'g F:' + food.per100g.fat + 'g (per 100g)</div>' +
-            '<button class="btn btn-primary" style="margin-top:10px" onclick="selectFood(\'' + encoded + '\')">Add This Food</button>' +
-          '</div>';
-        } else {
-          resultDiv.innerHTML = '<div style="font-size:12px;color:var(--txt2);text-align:center">Product not found. <span style="color:var(--acc);cursor:pointer;text-decoration:underline" onclick="openCustomFoodForm(\'' + barcode + '\')">Add it manually</span></div>';
-        }
-      } else {
-        resultDiv.innerHTML = '<div style="font-size:12px;color:var(--txt2);text-align:center">Product not found. <span style="color:var(--acc);cursor:pointer;text-decoration:underline" onclick="openCustomFoodForm(\'' + barcode + '\')">Add it manually</span></div>';
-      }
-    })
-    .catch(function() {
-      resultDiv.innerHTML = '<div style="font-size:12px;color:var(--danger)">Lookup failed.</div>';
-    });
-}
-
-function openCustomFoodForm(barcode) {
-  var customTabBtn = document.querySelector('#modal-food .tabs .tab:nth-child(3)');
-  if (customTabBtn) customTabBtn.click();
-  var nameEl = document.getElementById('custom-food-name');
-  if (nameEl) { nameEl.value = 'Barcode: ' + barcode; nameEl.focus(); }
-}
 
 // ============================================================
 // MEALS LIST
@@ -7799,7 +7681,6 @@ function closeFoodModal() {
   if (activeSearchController) activeSearchController.abort();
   searchDebounceTimer = null;
   activeSearchController = null;
-  stopBarcodeScanner();
 }
 
 function openModal(id) {
