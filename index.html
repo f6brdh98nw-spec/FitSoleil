@@ -220,6 +220,16 @@
     font-size: 13px; font-weight: 600; cursor: pointer;
     font-family: inherit; min-height: 44px;
   }
+  .btn-accent-blue {
+    background: rgba(96,165,250,0.15); color: #60A5FA;
+    border: 0.5px solid rgba(96,165,250,0.4);
+    border-radius: 10px; padding: 12px 20px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; min-height: 44px;
+  }
+  .btn-accent-blue.btn-sm {
+    border-radius: 8px; padding: 7px 14px; font-size: 11px; min-height: 36px;
+  }
 
   /* Full width utility */
   .btn-full { width: 100%; display: block; text-align: center; }
@@ -725,7 +735,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
 
       <div id="ob-keto-hint" class="ob-hint" style="display:none">5% carbs · 20% protein · fat fills remainder. Adjust carbs and protein — both are net values.</div>
 
-      <button id="ob-macro-reset" onclick="obResetMacros()" style="align-self:flex-start;font-size:11px;padding:5px 12px;border-radius:8px;background:rgba(232,197,71,0.08);border:0.5px solid rgba(232,197,71,0.3);color:#E8C547;cursor:pointer;display:none">Reset macros</button>
+      <button id="ob-macro-reset" class="btn btn-ghost btn-sm" onclick="obResetMacros()" style="align-self:flex-start;display:none">Reset macros</button>
       <div id="ob-kcal-check" class="ob-kcal-check" style="display:none"></div>
       <div id="ob-kcal-note" class="ob-hint" style="display:none"></div>
 
@@ -1027,9 +1037,9 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <div class="progress-bar" style="margin-bottom:12px"><div class="progress-fill" id="water-progress-bar" style="background:var(--water);width:0%"></div></div>
         <div style="display:flex;gap:8px">
           <input type="number" id="water-custom-ml" placeholder="ml" min="1" max="2000" style="flex:1"/>
-          <button class="btn btn-sm" onclick="addWaterCustom()" style="background:#60A5FA;color:#0F0F13;white-space:nowrap;width:auto;flex-shrink:0">+ Add</button>
+          <button class="btn btn-accent-blue btn-sm" onclick="addWaterCustom()" style="white-space:nowrap;width:auto;flex-shrink:0">+ Add</button>
         </div>
-        <button style="background:rgba(248,113,113,0.08);border:0.5px solid rgba(248,113,113,0.3);color:#F87171;font-size:11px;border-radius:8px;padding:5px 12px;margin-top:8px;cursor:pointer;width:auto;align-self:flex-start" onclick="resetWater()">Reset water</button>
+        <button class="btn btn-danger btn-sm" onclick="resetWater()" style="margin-top:8px;align-self:flex-start;width:auto">Reset water</button>
       </div>
 
     </div>
@@ -1565,16 +1575,16 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <div class="card">
           <div class="card-title">How did your workouts feel?</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px" id="rv-workout-feel">
-            <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:64px;font-size:11px" onclick="selectReviewOption('workout-feel',this,'😤')"><span style="font-size:20px">😤</span>Pushed</button>
-            <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:64px;font-size:11px" onclick="selectReviewOption('workout-feel',this,'💪')"><span style="font-size:20px">💪</span>Solid</button>
-            <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:64px;font-size:11px" onclick="selectReviewOption('workout-feel',this,'😐')"><span style="font-size:20px">😐</span>Average</button>
-            <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:64px;font-size:11px" onclick="selectReviewOption('workout-feel',this,'😔')"><span style="font-size:20px">😔</span>Struggled</button>
+            <button class="btn btn-secondary" style="font-size:11px" onclick="selectReviewOption('workout-feel',this,'😤')">Pushed</button>
+            <button class="btn btn-secondary" style="font-size:11px" onclick="selectReviewOption('workout-feel',this,'💪')">Solid</button>
+            <button class="btn btn-secondary" style="font-size:11px" onclick="selectReviewOption('workout-feel',this,'😐')">Average</button>
+            <button class="btn btn-secondary" style="font-size:11px" onclick="selectReviewOption('workout-feel',this,'😔')">Struggled</button>
           </div>
           <textarea style="margin-top:12px" id="rv-workout-note" placeholder="Any notes about your workouts..."></textarea>
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary" style="flex:1" onclick="goBack()">Exit</button>
-          <button class="btn btn-primary" style="flex:2;background:#F07C3A;color:#fff" onclick="reviewNext()">Next →</button>
+          <button class="btn btn-accent-orange" style="flex:2" onclick="reviewNext()">Next →</button>
         </div>
       </div>
 
@@ -1590,14 +1600,14 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <div class="card">
           <div class="card-title">How do you feel about your progress?</div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-            <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:64px;font-size:11px" onclick="selectReviewOption('weight-feel',this,'🎉')"><span style="font-size:20px">🎉</span>Thrilled</button>
-            <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:64px;font-size:11px" onclick="selectReviewOption('weight-feel',this,'👍')"><span style="font-size:20px">👍</span>Good</button>
-            <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:64px;font-size:11px" onclick="selectReviewOption('weight-feel',this,'😕')"><span style="font-size:20px">😕</span>Disappointed</button>
+            <button class="btn btn-secondary" style="font-size:11px" onclick="selectReviewOption('weight-feel',this,'🎉')">Thrilled</button>
+            <button class="btn btn-secondary" style="font-size:11px" onclick="selectReviewOption('weight-feel',this,'👍')">Good</button>
+            <button class="btn btn-secondary" style="font-size:11px" onclick="selectReviewOption('weight-feel',this,'😕')">Disappointed</button>
           </div>
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary" style="flex:1" onclick="reviewBack()">‹ Back</button>
-          <button class="btn btn-primary" style="flex:2;background:#C084FC;color:#fff" onclick="reviewNext()">Next →</button>
+          <button class="btn btn-accent-purple" style="flex:2" onclick="reviewNext()">Next →</button>
         </div>
       </div>
 
@@ -1613,15 +1623,15 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <div class="card">
           <div class="card-title">How was your nutrition?</div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-            <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:64px;font-size:11px" onclick="selectReviewOption('nutrition-feel',this,'🥗')"><span style="font-size:20px">🥗</span>On point</button>
-            <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:64px;font-size:11px" onclick="selectReviewOption('nutrition-feel',this,'😊')"><span style="font-size:20px">😊</span>Pretty good</button>
-            <button class="btn btn-secondary" style="flex-direction:column;gap:4px;height:64px;font-size:11px" onclick="selectReviewOption('nutrition-feel',this,'🍕')"><span style="font-size:20px">🍕</span>Off track</button>
+            <button class="btn btn-secondary" style="font-size:11px" onclick="selectReviewOption('nutrition-feel',this,'🥗')">On point</button>
+            <button class="btn btn-secondary" style="font-size:11px" onclick="selectReviewOption('nutrition-feel',this,'😊')">Pretty good</button>
+            <button class="btn btn-secondary" style="font-size:11px" onclick="selectReviewOption('nutrition-feel',this,'🍕')">Off track</button>
           </div>
           <textarea style="margin-top:12px" id="rv-nutrition-note" placeholder="Notes on eating this week..."></textarea>
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary" style="flex:1" onclick="reviewBack()">‹ Back</button>
-          <button class="btn btn-primary" style="flex:2;background:#4ADE80;color:#0F0F13" onclick="reviewNext()">Next →</button>
+          <button class="btn btn-accent-green" style="flex:2" onclick="reviewNext()">Next →</button>
         </div>
       </div>
 
@@ -1639,7 +1649,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <textarea id="rv-water-fast-note" placeholder="Notes on water and fasting this week..." style="margin-top:8px"></textarea>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button class="btn btn-secondary" style="flex:1" onclick="reviewBack()">‹ Back</button>
-          <button class="btn btn-primary" style="flex:2;background:#60A5FA;color:#0F0F13" onclick="reviewNext()">Next →</button>
+          <button class="btn btn-accent-blue" style="flex:2" onclick="reviewNext()">Next →</button>
         </div>
       </div>
 
@@ -1651,7 +1661,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <div class="card"><div class="card-title">Non-scale victories</div><textarea id="rv-nsv" placeholder="e.g. Lifted heavier, more energy, slept better..." style="min-height:80px"></textarea></div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary" style="flex:1" onclick="reviewBack()">‹ Back</button>
-          <button class="btn btn-primary" style="flex:2;background:#C084FC;color:#fff" onclick="reviewNext()">Next →</button>
+          <button class="btn btn-accent-purple" style="flex:2" onclick="reviewNext()">Next →</button>
         </div>
       </div>
 
@@ -1695,7 +1705,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
 
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary" style="flex:1" onclick="reviewBack()">‹ Back</button>
-          <button class="btn btn-primary" style="flex:2;background:#C084FC;color:#fff" onclick="completeReview()">Complete review</button>
+          <button class="btn btn-accent-purple" style="flex:2" onclick="completeReview()">Complete review</button>
         </div>
       </div>
 
@@ -1743,7 +1753,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           <div class="input-group"><label class="input-label">Fat (g)</label><input type="text" inputmode="decimal" id="s-fat" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1');settingsRecalcMacros()" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
           <div class="input-group"><label class="input-label">Fibre (g)</label><input type="text" inputmode="decimal" id="s-fibre" placeholder="e.g. 25" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1')" onblur="if(this.value)this.value=Math.round(parseFloat(this.value))||''"/></div>
         </div>
-        <button id="s-macro-reset" onclick="settingsResetMacros()" style="align-self:flex-start;font-size:11px;padding:5px 12px;border-radius:8px;background:rgba(232,197,71,0.08);border:0.5px solid rgba(232,197,71,0.3);color:#E8C547;cursor:pointer;margin-bottom:8px">Reset macros</button>
+        <button id="s-macro-reset" class="btn btn-ghost btn-sm" onclick="settingsResetMacros()" style="align-self:flex-start;margin-bottom:8px">Reset macros</button>
         <div id="s-kcal-check" class="ob-kcal-check" style="display:none;margin-top:8px"></div>
         <div id="s-kcal-note" class="ob-hint" style="display:none;margin-top:4px"></div>
         <div id="macro-calc-hint" style="font-size:11px;color:var(--txt2);margin-bottom:12px;padding:8px;background:var(--s2);border-radius:8px"></div>
@@ -1852,7 +1862,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:16px" id="fast-action-buttons">
-          <button class="btn" style="background:#2DD4BF;color:#0F0F13;flex:1" onclick="showStartFastForm()">Start a Fast</button>
+          <button class="btn btn-accent-teal" style="flex:1" onclick="showStartFastForm()">Start a Fast</button>
         </div>
       </div>
 
@@ -1880,7 +1890,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           <input type="datetime-local" id="fast-start-time"/>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn" style="background:#2DD4BF;color:#0F0F13;flex:1" onclick="startFast()">Start Fast</button>
+          <button class="btn btn-accent-teal" style="flex:1" onclick="startFast()">Start Fast</button>
           <button class="btn btn-secondary" style="flex:1" onclick="hideFastForm()">Cancel</button>
         </div>
       </div>
@@ -2014,14 +2024,14 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       <div class="card">
         <div class="card-title">Changes for next month</div>
         <div style="display:flex;flex-direction:column;gap:8px" id="mr-changes">
-          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-trending-up" style="margin-right:8px"></i>Increase workout frequency</button>
-          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-meat" style="margin-right:8px"></i>Raise protein target</button>
-          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-trending-down" style="margin-right:8px"></i>Reduce calorie target</button>
-          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-hourglass" style="margin-right:8px"></i>More consistent fasting</button>
-          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left"><i class="ti ti-droplet" style="margin-right:8px"></i>Improve hydration</button>
+          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">Increase workout frequency</button>
+          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">Raise protein target</button>
+          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">Reduce calorie target</button>
+          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">More consistent fasting</button>
+          <button class="btn btn-secondary" onclick="this.classList.toggle('btn-primary');this.classList.toggle('btn-secondary')" style="justify-content:flex-start;text-align:left">Improve hydration</button>
         </div>
       </div>
-      <button class="btn btn-primary" style="background:#C084FC" onclick="completeMonthlyReview()">Save Monthly Review</button>
+      <button class="btn btn-accent-purple" onclick="completeMonthlyReview()">Save Monthly Review</button>
       <div style="height:16px"></div>
     </div>
   </div>
@@ -2240,7 +2250,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
     </div>
     <div class="input-group"><label class="input-label">Instructions (optional)</label><textarea id="recipe-instructions" placeholder="Cooking steps..."></textarea></div>
-    <button class="btn btn-primary" onclick="saveRecipe()" style="background:#4ADE80;color:#0F0F13">Save Recipe</button>
+    <button class="btn btn-accent-green" onclick="saveRecipe()">Save Recipe</button>
     <button class="btn btn-outline" style="margin-top:8px" onclick="clearRecipeBuilderSearch();closeModal('modal-recipe')">Cancel</button>
   </div>
 </div>
@@ -2288,7 +2298,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     </div>
     <div id="plan-exercises-list" style="margin-bottom:8px"></div>
     <button class="btn btn-secondary" style="margin-bottom:12px" onclick="openModal('modal-add-exercise')">+ Add Exercise</button>
-    <button class="btn btn-primary" style="background:#F07C3A;border-color:#F07C3A" onclick="savePlan()">Save Plan</button>
+    <button class="btn btn-accent-orange" onclick="savePlan()">Save Plan</button>
     <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-create-plan')">Cancel</button>
   </div>
 </div>
@@ -2408,7 +2418,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     <div style="display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary" style="flex:1" id="recipe-detail-edit-btn">Edit recipe</button>
-        <button class="btn btn-primary" style="flex:1;background:#4ADE80;color:#0F0F13" id="recipe-detail-log-btn">Log to diary</button>
+        <button class="btn btn-accent-green" style="flex:1" id="recipe-detail-log-btn">Log to diary</button>
       </div>
       <button class="btn btn-outline" style="width:100%" onclick="closeModal('modal-recipe-detail')">Close</button>
     </div>
@@ -4498,20 +4508,21 @@ var searchDebounceTimer = null;
 var activeSearchController = null;
 var _lastSearchState = null; // tracks current search for "load more"
 var _searchGen = 0; // incremented on each new search; guards stale promise callbacks
-var _offCache = new Map(); // query -> OFF results, cleared on each fresh modal open
+var _offCache = new Map(); // query -> OFF results, cleared when query changes
+var _lastExecutedQuery = ''; // tracks last query to detect when OFF cache should be cleared
 
 function normaliseQuery(query) {
   var q = query.toLowerCase().trim();
-  var pluralMap = {
-    'egg': 'eggs', 'eggs': 'eggs',
-    'banana': 'bananas', 'bananas': 'bananas',
-    'potato': 'potatoes', 'potatoes': 'potatoes',
-    'tomato': 'tomatoes', 'tomatoes': 'tomatoes',
-    'carrot': 'carrots', 'carrots': 'carrots',
-    'strawberry': 'strawberries', 'strawberries': 'strawberries',
-    'cherry': 'cherries', 'cherries': 'cherries'
+  var map = {
+    'egg': 'egg', 'eggs': 'egg',
+    'banana': 'banana', 'bananas': 'banana',
+    'potato': 'potato', 'potatoes': 'potato',
+    'tomato': 'tomato', 'tomatoes': 'tomato',
+    'carrot': 'carrot', 'carrots': 'carrot',
+    'strawberry': 'strawberr', 'strawberries': 'strawberr',
+    'cherry': 'cherr', 'cherries': 'cherr',
   };
-  return pluralMap[q] || q;
+  return map[q] || q;
 }
 
 function runFoodSearch(query) {
@@ -4551,6 +4562,10 @@ function searchUSDA(query) {
 
 
 function executeFoodSearch(query) {
+  if (query !== _lastExecutedQuery) {
+    _offCache.clear();
+    _lastExecutedQuery = query;
+  }
   var parsed = parseFoodQuery(query);
   var foodQuery = parsed.food;
   var brandFilter = parsed.brand;
@@ -6108,7 +6123,7 @@ function deleteTemplate(templateId) {
   saveState();
   var tplSheet = document.getElementById('templates-sheet-overlay');
   if (tplSheet) tplSheet.remove();
-  showTemplatesSheet();
+  setTimeout(function() { showTemplatesSheet(); }, 50);
 }
 
 function _deleteTemplateWithConfirm(templateId, templateName) {
@@ -6988,7 +7003,7 @@ function reviewGoalAction(action) {
     if (panel) {
       panel.style.display = 'block';
       panel.innerHTML = `<div style="font-size:13px;margin-bottom:8px;color:var(--txt2)">Editing: ${goal.description||goal.type}</div>
-        <button class="btn btn-primary btn-sm" style="background:#C084FC" onclick="editGoal(${goal.id})">Open goal editor</button>`;
+        <button class="btn btn-accent-purple btn-sm" onclick="editGoal(${goal.id})">Open goal editor</button>`;
     }
     return;
   }
@@ -6997,7 +7012,7 @@ function reviewGoalAction(action) {
       panel.style.display = 'block';
       panel.innerHTML = `<div style="font-size:13px;margin-bottom:8px;color:var(--txt2)">Add milestone to: ${goal.description||goal.type}</div>
         <input type="text" id="rv-milestone-text" placeholder="Milestone description..." style="margin-bottom:8px"/>
-        <button class="btn btn-primary btn-sm" style="background:#C084FC" onclick="addMilestoneFromReview(${goal.id})">Add Milestone</button>`;
+        <button class="btn btn-accent-purple btn-sm" onclick="addMilestoneFromReview(${goal.id})">Add Milestone</button>`;
     }
     return;
   }
@@ -7104,7 +7119,7 @@ function showAddWorkoutModal() {
     <div style="max-height:200px;overflow-y:auto;margin-bottom:10px">${plans || '<div style="color:var(--txt3);font-size:13px">No saved plans</div>'}</div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-secondary" style="flex:1" onclick="document.getElementById('modal-add-workout-rv').remove()">Cancel</button>
-      <button class="btn btn-primary" style="flex:1;background:#F07C3A" onclick="confirmAddWorkoutRv()">Add</button>
+      <button class="btn btn-accent-orange" style="flex:1" onclick="confirmAddWorkoutRv()">Add</button>
     </div></div>`;
   document.body.appendChild(modal);
   window._rvSelectedDay = null; window._rvSelectedPlan = null;
@@ -7796,7 +7811,6 @@ function initFoodSearch(context) {
   }
   _foodModalOpen = true;
   _searchGen++; // invalidate any in-flight search from previous modal open
-  _offCache.clear(); // each fresh modal open gets fresh OFF results
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   searchDebounceTimer = null;
 
@@ -8004,7 +8018,7 @@ function updateFastDisplay() {
     if (elapsedDisplay) elapsedDisplay.textContent = '—';
     if (endDisplay) endDisplay.textContent = '—';
     if (protocolDisplay) protocolDisplay.textContent = '—';
-    if (actionBtns) actionBtns.innerHTML = '<button class="btn" style="background:#2DD4BF;color:#0F0F13;flex:1;width:100%" onclick="showStartFastForm()">Start a Fast</button>';
+    if (actionBtns) actionBtns.innerHTML = '<button class="btn btn-accent-teal" style="flex:1;width:100%" onclick="showStartFastForm()">Start a Fast</button>';
     return;
   }
   const now = new Date();
