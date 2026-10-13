@@ -1689,7 +1689,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <div class="card" style="border-left:3px solid #F07C3A">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <div class="card-title" style="margin:0;color:#F07C3A">Next Week — Workouts</div>
-            <button class="btn btn-secondary btn-sm" style="color:#F07C3A;border-color:#F07C3A" onclick="showAddWorkoutModal()">+ Add</button>
+            <button class="btn btn-accent-orange btn-sm" onclick="showAddWorkoutModal()">+ Add</button>
           </div>
           <div id="rv-next-workouts" style="font-size:13px;color:var(--txt3)">No workouts scheduled</div>
         </div>
@@ -4329,7 +4329,7 @@ function searchFoodFiles(query) {
 
   var firstWord = words[0];
 
-  return _COMBINED_DB
+  return FOODFILES_DB
     .filter(function(food) {
       var name = food.name.toLowerCase();
       return words.every(function(w) { return name.includes(w); });
@@ -4575,10 +4575,10 @@ function executeFoodSearch(query) {
   activeSearchController = new AbortController();
   var signal = activeSearchController.signal;
 
-  // Instant: custom foods + USDA bundled entries (FOODfiles hidden from display)
-  var instantResults = searchCustomFoods(foodQuery).concat(
-    brandFilter ? [] : searchUSDA(foodQuery)
-  );
+  // Instant: custom foods + FOODfiles NZ + USDA bundled entries
+  var instantResults = searchCustomFoods(foodQuery)
+    .concat(brandFilter ? [] : searchFoodFiles(foodQuery))
+    .concat(brandFilter ? [] : searchUSDA(foodQuery));
 
   if (instantResults.length > 0) {
     renderSearchResults(instantResults, []);
@@ -4601,8 +4601,10 @@ function executeFoodSearch(query) {
     if (total > 0) {
       renderSearchResults(instantResults, newOff);
       var parts = [];
+      var ffCount = instantResults.filter(function(f){return f.source==='FOODfiles NZ';}).length;
       var usdaCount = instantResults.filter(function(f){return f.source==='USDA';}).length;
       var customCount = instantResults.filter(function(f){return f.source==='Custom';}).length;
+      if (ffCount) parts.push('NZ (' + ffCount + ')');
       if (usdaCount) parts.push('USDA (' + usdaCount + ')');
       if (customCount) parts.push('Custom (' + customCount + ')');
       if (newOff.length) parts.push('OFF (' + newOff.length + ')');
@@ -4631,8 +4633,10 @@ function executeFoodSearch(query) {
       if (total > 0) {
         renderSearchResults(instantResults, newOff);
         var parts = [];
+        var ffCount = instantResults.filter(function(f){return f.source==='FOODfiles NZ';}).length;
         var usdaCount = instantResults.filter(function(f){return f.source==='USDA';}).length;
         var customCount = instantResults.filter(function(f){return f.source==='Custom';}).length;
+        if (ffCount) parts.push('NZ (' + ffCount + ')');
         if (usdaCount) parts.push('USDA (' + usdaCount + ')');
         if (customCount) parts.push('Custom (' + customCount + ')');
         if (newOff.length) parts.push('OFF (' + newOff.length + ')');
@@ -5041,7 +5045,7 @@ function renderMealsList() {
             <div style="font-size:11px;color:var(--txt2)">${item.serving}g · P:${item.protein}g C:${item.carbs}g F:${item.fat}g</div>
           </div>
           <div style="font-size:14px;font-weight:600;color:var(--acc)">${item.calories}</div>
-          <button onclick="removeFood(${log.meals.indexOf(item)})" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px">✕</button>
+          <button class="btn-x" onclick="removeFood(${log.meals.indexOf(item)})">&#x2715;</button>
         </div>
       `).join('')}
     </div>
@@ -5092,7 +5096,7 @@ function renderMealSections() {
             ${macroLine ? '<div style="font-size:10px;color:var(--txt3)">' + macroLine + '</div>' : ''}
           </div>
           <div style="font-size:13px;font-weight:600;color:#4ADE80">${item.calories} kcal</div>
-          <button onclick="removeFood(${(log.meals||[]).indexOf(item)})" style="min-width:32px;min-height:32px;background:none;border:none;color:#5A5860;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
+          <button class="btn-x" onclick="removeFood(${(log.meals||[]).indexOf(item)})">&#x2715;</button>
         </div>`;
       }).join('')}
       ${plannedName ? `<div style="font-size:12px;color:#9A98A0;padding:4px 0;font-style:italic">${plannedName} (planned)</div>` : ''}
@@ -7149,7 +7153,7 @@ function openMealPlanSlot(date, meal) {
     optSheet.innerHTML = '<div class="modal"><div class="modal-handle"></div>' +
       '<div class="modal-title" style="font-size:14px;margin-bottom:12px">' + meal + ': ' + currentName + '</div>' +
       '<button class="btn btn-secondary" style="width:100%;margin-bottom:8px" onclick="document.getElementById(\'modal-meal-slot\').remove();openRecipePicker(\'' + date + '\',\'' + meal + '\')">Change recipe</button>' +
-      '<button class="btn btn-danger" style="width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center" onclick="removeMealPlanSlot(\'' + date + '\',\'' + meal + '\')">Remove meal</button>' +
+      '<button class="btn btn-danger btn-full" onclick="removeMealPlanSlot(\'' + date + '\',\'' + meal + '\')">Remove meal</button>' +
       '<button class="btn btn-outline" style="width:100%" onclick="document.getElementById(\'modal-meal-slot\').remove()">Cancel</button>' +
       '</div>';
     document.body.appendChild(optSheet);
