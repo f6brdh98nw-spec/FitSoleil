@@ -123,21 +123,114 @@
     cursor: pointer; display: flex; align-items: center; justify-content: center;
   }
   [class*="modal"] button *, [class*="sheet"] button * { pointer-events: none; }
+
+  /* Base layout helper — individual variant classes own all sizing / colour */
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 12px 20px; border-radius: var(--r-sm); border: none;
-    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
-    cursor: pointer; transition: opacity 0.15s, transform 0.1s; width: 100%; min-height: 44px;
+    cursor: pointer; font-family: inherit; width: 100%;
   }
-  .btn-primary { background: var(--acc); color: #0F0F13; }
+
+  /* Primary — gold */
+  .btn-primary {
+    background: #E8C547; color: #0F0F13; border: none;
+    border-radius: 10px; padding: 12px 20px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; min-height: 44px;
+  }
   .btn-primary:active { transform: scale(0.97); opacity: 0.85; }
-  .btn-secondary { background: var(--s2); color: var(--txt); border: 0.5px solid var(--s3); }
+  .btn-primary.btn-sm {
+    border-radius: 8px; padding: 7px 14px; font-size: 11px; min-height: 36px;
+  }
+  .btn-primary.btn-pill {
+    border-radius: 99px; padding: 6px 14px; font-size: 11px; min-height: 32px;
+  }
+
+  /* Secondary — dark with border */
+  .btn-secondary {
+    background: #1A1A22; color: #F0EEE8; border: 0.5px solid #3A3845;
+    border-radius: 10px; padding: 12px 20px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: inherit; min-height: 44px;
+  }
   .btn-secondary:active { transform: scale(0.97); }
-  .btn-danger { background: var(--danger); color: white; }
-  .btn-sm { padding: 8px 14px; font-size: 12px; width: auto; }
+  .btn-secondary.btn-sm {
+    border-radius: 8px; padding: 7px 14px; font-size: 11px; min-height: 36px;
+  }
+
+  /* Ghost — transparent */
+  .btn-ghost {
+    background: transparent; color: #9A98A0; border: 0.5px solid #2C2C3A;
+    border-radius: 10px; padding: 12px 20px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: inherit; min-height: 44px;
+  }
+  .btn-ghost:active { transform: scale(0.97); }
+  .btn-ghost.btn-sm {
+    border-radius: 8px; padding: 7px 14px; font-size: 11px; min-height: 36px;
+  }
+
+  /* Danger — red tint */
+  .btn-danger {
+    background: rgba(248,113,113,0.1); color: #F87171;
+    border: 0.5px solid rgba(248,113,113,0.35);
+    border-radius: 10px; padding: 12px 20px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; min-height: 44px;
+  }
+  .btn-danger:active { transform: scale(0.97); }
+  .btn-danger.btn-sm {
+    border-radius: 8px; padding: 7px 14px; font-size: 11px; min-height: 36px;
+  }
+
+  /* Inline x removal */
+  .btn-x {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: transparent; border: none; color: #5A5860;
+    font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; line-height: 1;
+  }
+
+  /* Section accents */
+  .btn-accent-green {
+    background: rgba(74,222,128,0.15); color: #4ADE80;
+    border: 0.5px solid rgba(74,222,128,0.4);
+    border-radius: 10px; padding: 12px 20px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; min-height: 44px;
+  }
+  .btn-accent-orange {
+    background: rgba(240,124,58,0.15); color: #F07C3A;
+    border: 0.5px solid rgba(240,124,58,0.4);
+    border-radius: 10px; padding: 12px 20px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; min-height: 44px;
+  }
+  .btn-accent-purple {
+    background: rgba(192,132,252,0.15); color: #C084FC;
+    border: 0.5px solid rgba(192,132,252,0.4);
+    border-radius: 10px; padding: 12px 20px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; min-height: 44px;
+  }
+  .btn-accent-teal {
+    background: rgba(45,212,191,0.15); color: #2DD4BF;
+    border: 0.5px solid rgba(45,212,191,0.4);
+    border-radius: 10px; padding: 12px 20px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; min-height: 44px;
+  }
+
+  /* Full width utility */
+  .btn-full { width: 100%; display: block; text-align: center; }
+
+  /* Pointer-events fix */
+  button *, [role="button"] * { pointer-events: none; }
+
+  /* Legacy aliases — kept for compatibility */
+  .btn-outline { background: transparent; border: 0.5px solid #2C2C3A; color: #9A98A0; border-radius: 10px; padding: 12px 20px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; min-height: 44px; }
+  .btn-sm { border-radius: 8px !important; padding: 7px 14px !important; font-size: 11px !important; min-height: 36px !important; width: auto !important; }
   .btn-icon { width: 40px; height: 40px; padding: 0; border-radius: 50%; }
-  .btn-outline { background: transparent; border: 1px solid var(--s3); color: var(--txt); display: inline-flex; }
-  .btn-accent2 { background: #F07C3A; color: white; }
   /* Icon squares — 30×30, tinted in section accent */
   .isq {
     width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
@@ -1045,10 +1138,10 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           </div>
           <button onclick="changeMealPlanWeek(1)" style="background:none;border:none;color:var(--txt);font-size:22px;cursor:pointer;padding:4px 10px">›</button>
         </div>
-        <button class="btn btn-secondary btn-sm" style="margin-bottom:8px;width:100%" onclick="copyLastMealPlanWeek()">↺ Copy last week</button>
+        <button class="btn btn-ghost btn-sm" style="margin-bottom:8px;width:100%" onclick="copyLastMealPlanWeek()">Copy last week</button>
         <div style="display:flex;gap:6px;margin-bottom:8px">
-          <button class="btn btn-outline btn-sm" style="flex:1;font-size:11px" onclick="showSaveTemplatePrompt()">💾 Save template</button>
-          <button class="btn btn-outline btn-sm" style="flex:1;font-size:11px" onclick="showTemplatesSheet()">📋 Load template</button>
+          <button class="btn btn-secondary btn-sm" style="flex:1;font-size:11px" onclick="showSaveTemplatePrompt()">Save template</button>
+          <button class="btn btn-secondary btn-sm" style="flex:1;font-size:11px" onclick="showTemplatesSheet()">Load template</button>
         </div>
         <div style="text-align:right;margin-bottom:6px">
           <button id="plan-snack-toggle" class="btn btn-sm btn-outline" onclick="togglePlanSnacks()" style="font-size:11px;padding:4px 10px">Show snacks</button>
@@ -1595,7 +1688,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <div class="card" style="border-left:3px solid #4ADE80">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <div class="card-title" style="margin:0;color:#4ADE80">Next Week — Meal Plan</div>
-            <button class="btn btn-secondary btn-sm" style="color:#4ADE80;border-color:#4ADE80" onclick="copyLastWeekMealPlan()">↺ Copy last week</button>
+            <button class="btn btn-ghost btn-sm" onclick="copyLastWeekMealPlan()">Copy last week</button>
           </div>
           <div id="rv-next-meals" style="font-size:13px;color:var(--txt3)">Loading...</div>
         </div>
@@ -4407,10 +4500,24 @@ var _lastSearchState = null; // tracks current search for "load more"
 var _searchGen = 0; // incremented on each new search; guards stale promise callbacks
 var _offCache = new Map(); // query -> OFF results, cleared on each fresh modal open
 
+function normaliseQuery(query) {
+  var q = query.toLowerCase().trim();
+  var pluralMap = {
+    'egg': 'eggs', 'eggs': 'eggs',
+    'banana': 'bananas', 'bananas': 'bananas',
+    'potato': 'potatoes', 'potatoes': 'potatoes',
+    'tomato': 'tomatoes', 'tomatoes': 'tomatoes',
+    'carrot': 'carrots', 'carrots': 'carrots',
+    'strawberry': 'strawberries', 'strawberries': 'strawberries',
+    'cherry': 'cherries', 'cherries': 'cherries'
+  };
+  return pluralMap[q] || q;
+}
+
 function runFoodSearch(query) {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   if (!query || query.length < 2) { clearSearchResults(); return; }
-  searchDebounceTimer = setTimeout(function() { executeFoodSearch(query); }, 600);
+  searchDebounceTimer = setTimeout(function() { executeFoodSearch(normaliseQuery(query)); }, 600);
 }
 
 
@@ -5335,8 +5442,8 @@ function selectRecipeIngredient(encoded) {
     '<input id="ri-grams" type="text" inputmode="decimal" value="" placeholder="0" style="width:72px;text-align:center" oninput="updateRiMacroPreview()"/>' +
     '<span style="font-size:12px;color:var(--txt2)">g</span>' +
     '<div id="ri-macro-preview" style="font-size:11px;color:var(--txt3);flex:1"></div>' +
-    '<button onclick="confirmRecipeIngredient(\'' + encoded + '\')" style="background:var(--acc);color:#0F0F13;border:none;border-radius:99px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">&#10003; Add</button>' +
-    '<button onclick="clearRecipeIngredientEntry()" style="background:none;border:1px solid var(--s3);border-radius:99px;padding:5px 10px;font-size:12px;color:var(--txt2);cursor:pointer;flex-shrink:0">&#x2715;</button>' +
+    '<button class="btn-primary btn-pill" onclick="confirmRecipeIngredient(\'' + encoded + '\')" style="white-space:nowrap;flex-shrink:0">&#10003; Add</button>' +
+    '<button class="btn-x" onclick="clearRecipeIngredientEntry()" style="flex-shrink:0">&#x2715;</button>' +
     '</div></div>';
   var inp = document.getElementById('ri-grams');
   if (inp) inp.focus();
@@ -5982,30 +6089,78 @@ function loadTemplate(templateId) {
   showToast(tpl.name + ' loaded ✓');
 }
 
+function countTemplateMeals(template) {
+  var count = 0;
+  var week = template.week || {};
+  Object.keys(week).forEach(function(ds) {
+    var slot = week[ds] || {};
+    if (slot.Breakfast) count++;
+    if (slot.Lunch) count++;
+    if (slot.Dinner) count++;
+  });
+  return count;
+}
+
 function deleteTemplate(templateId) {
-  if (!Array.isArray(state.planTemplates)) return;
-  state.planTemplates = state.planTemplates.filter(function(t) { return t.id !== templateId; });
+  state.planTemplates = (state.planTemplates || []).filter(function(t) {
+    return t.id !== templateId;
+  });
   saveState();
+  var tplSheet = document.getElementById('templates-sheet-overlay');
+  if (tplSheet) tplSheet.remove();
   showTemplatesSheet();
 }
 
+function _deleteTemplateWithConfirm(templateId, templateName) {
+  showConfirmSheet({
+    message: 'Delete "' + templateName + '"? This can\'t be undone.',
+    confirmLabel: 'Delete',
+    confirmStyle: 'danger',
+    onConfirm: function() { deleteTemplate(templateId); }
+  });
+}
+
 function showTemplatesSheet() {
+  var existing = document.getElementById('templates-sheet-overlay');
+  if (existing) existing.remove();
   var templates = state.planTemplates || [];
   var inner = document.createElement('div');
+  inner.id = 'templates-sheet-overlay';
   inner.style.cssText = 'position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;justify-content:flex-end';
-  inner.innerHTML = '<div onclick="this.parentElement.remove()" style="flex:1;background:rgba(0,0,0,0.5)"></div>' +
+  var rowsHtml = templates.length ? templates.map(function(t) {
+    var mealCount = countTemplateMeals(t);
+    var savedDate = t.savedAt ? (function() {
+      var d = new Date(t.savedAt);
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return 'Saved ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+    })() : '';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--s2)">' +
+      '<div style="flex:1">' +
+      '<div style="font-size:13px;font-weight:600">' + t.name + '</div>' +
+      '<div style="font-size:11px;color:var(--txt3)">' + mealCount + ' meal' + (mealCount !== 1 ? 's' : '') + ' &middot; ' + savedDate + '</div>' +
+      '</div>' +
+      '<button class="btn btn-secondary btn-sm" onclick="_loadTemplateFromSheet(' + t.id + ')">Load</button>' +
+      '<button class="btn-x" onclick="_deleteTemplateWithConfirm(' + t.id + ',\'' + t.name.replace(/'/g,'\\\'') + '\')">&#x2715;</button>' +
+      '</div>';
+  }).join('') : '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No templates saved</div>';
+  inner.innerHTML = '<div onclick="document.getElementById(\'templates-sheet-overlay\').remove()" style="flex:1;background:rgba(0,0,0,0.5)"></div>' +
     '<div style="background:var(--s1);border-radius:16px 16px 0 0;padding:20px 16px;max-height:70vh;overflow-y:auto">' +
     '<div style="font-weight:700;font-size:15px;margin-bottom:12px">Load template</div>' +
-    (templates.length ? templates.map(function(t) {
-      return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--s2)">' +
-        '<div style="flex:1"><div style="font-size:13px;font-weight:600">' + t.name + '</div>' +
-        '<div style="font-size:11px;color:var(--txt3)">' + new Date(t.savedAt).toLocaleDateString() + '</div></div>' +
-        '<button onclick="loadTemplate(' + t.id + ');this.closest(\'[style*=z-index:9000]\').remove()" style="background:var(--acc);color:#0F0F13;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">Load</button>' +
-        '<button onclick="deleteTemplate(' + t.id + ')" style="background:none;border:1px solid var(--s3);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--txt2);cursor:pointer">Delete</button>' +
-        '</div>';
-    }).join('') : '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No templates saved</div>') +
+    rowsHtml +
     '</div>';
   document.body.appendChild(inner);
+}
+
+function _loadTemplateFromSheet(templateId) {
+  var tplSheet = document.getElementById('templates-sheet-overlay');
+  if (tplSheet) tplSheet.remove();
+  var tpl = (state.planTemplates || []).find(function(t) { return t.id === templateId; });
+  if (!tpl) return;
+  showConfirmSheet({
+    message: 'Load "' + tpl.name + '"? This will overwrite this week\'s meal plan.',
+    confirmLabel: 'Load',
+    onConfirm: function() { loadTemplate(templateId); }
+  });
 }
 
 function showSaveTemplatePrompt() {
@@ -6979,7 +7134,7 @@ function openMealPlanSlot(date, meal) {
     optSheet.innerHTML = '<div class="modal"><div class="modal-handle"></div>' +
       '<div class="modal-title" style="font-size:14px;margin-bottom:12px">' + meal + ': ' + currentName + '</div>' +
       '<button class="btn btn-secondary" style="width:100%;margin-bottom:8px" onclick="document.getElementById(\'modal-meal-slot\').remove();openRecipePicker(\'' + date + '\',\'' + meal + '\')">Change recipe</button>' +
-      '<button class="btn btn-sm" style="width:100%;margin-bottom:8px;background:none;border:1px solid #EF4444;color:#EF4444" onclick="removeMealPlanSlot(\'' + date + '\',\'' + meal + '\')">Remove meal</button>' +
+      '<button class="btn btn-danger" style="width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center" onclick="removeMealPlanSlot(\'' + date + '\',\'' + meal + '\')">Remove meal</button>' +
       '<button class="btn btn-outline" style="width:100%" onclick="document.getElementById(\'modal-meal-slot\').remove()">Cancel</button>' +
       '</div>';
     document.body.appendChild(optSheet);
