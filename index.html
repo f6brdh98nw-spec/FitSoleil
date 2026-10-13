@@ -7861,11 +7861,8 @@ function openModal(id) {
     ['custom-food-name','custom-brand','custom-cals','custom-protein','custom-carbs','custom-fat','custom-fiber','custom-serving'].forEach(function(fid) { var el = document.getElementById(fid); if(el) el.value=''; });
     var searchTab = document.querySelector('#modal-food .tabs .tab');
     if (searchTab) searchTab.click();
-    // initFoodSearch is called by the specific open functions (openFoodModal / openNutritionFoodModal)
-    // which also set the meal selector; only init here if not already set by caller
-    if (!_searchContext || _searchContext.isRecipe) {
-      initFoodSearch();
-    }
+    // initFoodSearch is always called by the opener (openFoodModal / openNutritionFoodModal)
+    // before reaching here — calling it again would increment _searchGen mid-fetch and break caching
   }
   if (id === 'modal-weight') {
     const dateEl = document.getElementById('modal-weight-date');
