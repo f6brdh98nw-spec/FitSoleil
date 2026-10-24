@@ -4330,30 +4330,43 @@ function searchFoodFiles(query) {
 
   var firstWord = words[0];
 
-  return FOODFILES_DB
-    .filter(function(food) {
-      var name = food.name.toLowerCase();
-      return words.every(function(w) { return name.includes(w); });
+  function score(food) {
+    var name = food.name.toLowerCase();
+    var firstName = name.split(',')[0].trim();
+    var s = 0;
+    if (name.startsWith(firstWord)) s += 100;
+    if (firstName === firstWord) s += 50;
+    var pos = name.indexOf(firstWord);
+    if (pos >= 0) s += Math.max(0, 50 - pos);
+    if (/\braw\b/.test(name)) s += 5;
+    s -= name.length * 0.1;
+    return s;
+  }
+
+  // Pass 1: all words must match
+  var strict = FOODFILES_DB.filter(function(food) {
+    var name = food.name.toLowerCase();
+    return words.every(function(w) { return name.includes(w); });
+  });
+
+  // Pass 2: if strict returns < 3 results and query has multiple words,
+  // broaden to the longest (most distinctive) word
+  var results = strict.slice();
+  if (strict.length < 3 && words.length > 1) {
+    var primary = words.reduce(function(a, b) { return b.length > a.length ? b : a; });
+    var strictIds = new Set(strict.map(function(f) { return f.id; }));
+    var loose = FOODFILES_DB.filter(function(food) {
+      return food.name.toLowerCase().includes(primary) && !strictIds.has(food.id);
+    });
+    results = results.concat(loose);
+  }
+
+  return results
+    .map(function(food) { return { food: food, score: score(food), strict: strict.some(function(s) { return s.id === food.id; }) }; })
+    .sort(function(a, b) {
+      if (a.strict !== b.strict) return a.strict ? -1 : 1;
+      return b.score - a.score;
     })
-    .map(function(food) {
-      var name = food.name.toLowerCase();
-      var firstName = name.split(',')[0].trim();
-      var score = 0;
-
-      if (name.startsWith(firstWord)) score += 100;
-      if (firstName === firstWord) score += 50;
-
-      var pos = name.indexOf(firstWord);
-      if (pos >= 0) score += Math.max(0, 50 - pos);
-
-      // Prefer unprocessed/raw entries as tiebreakers
-      if (/\braw\b/.test(name)) score += 5;
-
-      score -= name.length * 0.1;
-
-      return { food: food, score: score };
-    })
-    .sort(function(a, b) { return b.score - a.score; })
     .map(function(r) { return r.food; })
     .slice(0, 10);
 }
@@ -7831,9 +7844,9 @@ function initFoodSearch(context) {
     _searchContext = Object.assign({ isRecipe: false }, context);
   }
   _foodModalOpen = true;
-  _searchGen++; // invalidate any in-flight search from previous modal open
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   searchDebounceTimer = null;
+  if (activeSearchController) { activeSearchController.abort(); activeSearchController = null; }
 
   var inputId = _searchContext.inputId;
   var input = document.getElementById(inputId);
