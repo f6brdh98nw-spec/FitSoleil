@@ -4468,7 +4468,7 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
   var baseParams = 'page_size=50&fields=product_name,nutriments,brands,code,countries_tags&sort_by=unique_scans_n&page=' + pg;
 
   var normQuery = query.replace(/[–—‒\-]/g, ' ').replace(/[%#]/g, '').replace(/\s+/g, ' ').trim();
-  var searchTerms = 'search_terms=' + encodeURIComponent(normQuery);
+  var searchTerms = 'q=' + encodeURIComponent(normQuery);
 
   function offFetch(url) {
     return fetch(url, {signal: signal})
