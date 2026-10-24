@@ -2252,61 +2252,79 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
   </div>
 </div>
 
-<!-- ADD EXERCISE MODAL -->
-<div class="modal-overlay" id="modal-add-exercise" style="z-index:10000">
+<!-- ADD EXERCISE MODAL (workout) -->
+<div class="modal-overlay" id="modal-wk-add-ex">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">Add Exercise</div>
-    <div class="search-wrap" style="margin-bottom:8px">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="exercise-search-input" placeholder="Search exercises..." oninput="filterExercises()"/>
+    <div class="input-group" style="margin-bottom:8px">
+      <label class="input-label">Exercise name</label>
+      <input type="text" id="wk-add-ex-name" placeholder="e.g. Bench Press" style="background:#22222E"/>
     </div>
-    <div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px" id="exercise-muscle-filters">
-      <span class="exercise-tag selected" onclick="filterByMuscle(this,'all')">All</span>
-      <span class="exercise-tag" onclick="filterByMuscle(this,'chest')">Chest</span>
-      <span class="exercise-tag" onclick="filterByMuscle(this,'back')">Back</span>
-      <span class="exercise-tag" onclick="filterByMuscle(this,'legs')">Legs</span>
-      <span class="exercise-tag" onclick="filterByMuscle(this,'shoulders')">Shoulders</span>
-      <span class="exercise-tag" onclick="filterByMuscle(this,'arms')">Arms</span>
-      <span class="exercise-tag" onclick="filterByMuscle(this,'core')">Core</span>
-      <span class="exercise-tag" onclick="filterByMuscle(this,'cardio')">Cardio</span>
-    </div>
-    <div id="exercise-list" class="search-results" style="max-height:280px;overflow-y:auto;margin-bottom:12px"></div>
-    <button class="btn btn-outline" onclick="closeModal('modal-add-exercise')">Cancel</button>
-  </div>
-</div>
-
-<!-- CREATE PLAN MODAL -->
-<div class="modal-overlay" id="modal-create-plan">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Create Workout Plan</div>
-    <div class="input-group"><label class="input-label">Plan name</label><input id="plan-name" type="text" placeholder="e.g. Push Day A"/></div>
-    <div class="input-group"><label class="input-label">Scheduled days</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px" id="plan-days-selector">
-        <span class="exercise-tag" onclick="togglePlanDay(this)">Mon</span>
-        <span class="exercise-tag" onclick="togglePlanDay(this)">Tue</span>
-        <span class="exercise-tag" onclick="togglePlanDay(this)">Wed</span>
-        <span class="exercise-tag" onclick="togglePlanDay(this)">Thu</span>
-        <span class="exercise-tag" onclick="togglePlanDay(this)">Fri</span>
-        <span class="exercise-tag" onclick="togglePlanDay(this)">Sat</span>
-        <span class="exercise-tag" onclick="togglePlanDay(this)">Sun</span>
+    <div class="input-group" style="margin-bottom:8px">
+      <label class="input-label">Type</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px" id="wk-add-ex-types">
+        <span class="exercise-tag selected" onclick="wkSelectExType(this)" data-type="lift">Lift</span>
+        <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="bodyweight">Bodyweight</span>
+        <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="timed-hold">Timed hold</span>
+        <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="cardio-distance">Run</span>
+        <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="cardio-duration">Cardio</span>
+        <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="rehab">Rehab</span>
       </div>
     </div>
-    <div id="plan-exercises-list" style="margin-bottom:8px"></div>
-    <button class="btn btn-secondary" style="margin-bottom:12px" onclick="openModal('modal-add-exercise')">+ Add Exercise</button>
-    <button class="btn btn-accent-orange" onclick="savePlan()">Save Plan</button>
-    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-create-plan')">Cancel</button>
+    <div class="input-group" id="wk-add-ex-target-row" style="margin-bottom:8px">
+      <label class="input-label">Target (optional)</label>
+      <input type="text" id="wk-add-ex-target" placeholder="e.g. 4 × 6–10" style="background:#22222E"/>
+    </div>
+    <div class="input-group" id="wk-add-ex-metric-row" style="display:none;margin-bottom:8px">
+      <label class="input-label">Metric</label>
+      <div style="display:flex;gap:6px;margin-top:6px" id="wk-add-ex-metrics">
+        <span class="exercise-tag selected" onclick="wkSelectBwMetric(this)" data-metric="reps">Reps</span>
+        <span class="exercise-tag" onclick="wkSelectBwMetric(this)" data-metric="time">Time</span>
+      </div>
+    </div>
+    <button class="btn btn-accent-orange" onclick="wkConfirmAddExercise()">Add</button>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-add-ex')">Cancel</button>
   </div>
 </div>
 
-<!-- START PLAN MODAL -->
-<div class="modal-overlay" id="modal-start-plan">
+<!-- USE PLAN MODAL -->
+<div class="modal-overlay" id="modal-wk-use-plan">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">Start a Plan</div>
-    <div id="start-plan-list"></div>
-    <button class="btn btn-outline" style="margin-top:12px" onclick="closeModal('modal-start-plan')">Cancel</button>
+    <div class="modal-title">Load a Workout</div>
+    <div id="modal-wk-use-plan-list"></div>
+    <button class="btn btn-outline" style="margin-top:12px" onclick="closeModal('modal-wk-use-plan')">Cancel</button>
+  </div>
+</div>
+
+<!-- WORKOUT EDITOR MODAL -->
+<div class="modal-overlay" id="modal-wk-editor">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-wk-editor-title">Edit Workout</div>
+    <div class="input-group" style="margin-bottom:12px">
+      <label class="input-label">Name</label>
+      <input type="text" id="wk-editor-name" placeholder="e.g. Upper A" style="background:#22222E"/>
+    </div>
+    <div id="wk-editor-exercises"></div>
+    <button class="btn btn-secondary btn-sm" style="margin-bottom:12px;margin-top:8px" onclick="wkEditorAddExercise()">+ Add Exercise</button>
+    <button class="btn btn-accent-orange btn-full" onclick="wkSaveSavedWorkout()">Save</button>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-editor')">Cancel</button>
+  </div>
+</div>
+
+<!-- DAY PICKER MODAL -->
+<div class="modal-overlay" id="modal-wk-day-picker">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-wk-day-picker-title">Assign workout</div>
+    <div id="modal-wk-day-picker-list"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <button class="btn btn-secondary" onclick="wkPickDayRest()">Rest day</button>
+      <button class="btn btn-outline" onclick="wkPickDayClear()">Clear</button>
+    </div>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-day-picker')">Cancel</button>
   </div>
 </div>
 
@@ -5967,109 +5985,550 @@ function removeExerciseFromLog(idx) {
   renderActiveWorkout();
 }
 
-function endWorkout() {
-  if (!state.lastActiveWorkout) return;
-  state.lastActiveWorkout.duration = Math.round((Date.now() - state.lastActiveWorkout.started) / 60000);
-  if (state.activeWorkout) state.lastActiveWorkout.planId = state.activeWorkout.planId;
-  state.workouts.push({ ...state.lastActiveWorkout });
-  state.lastActiveWorkout = null;
-  state.workoutTimerStart = null;
-  state.activeWorkout = null;
-  document.getElementById('active-workout-banner').classList.add('hidden');
-  saveState();
-  renderActiveWorkout();
-  renderWorkoutHistory();
-  updateStreak();
-  showToast('Workout saved! 💪');
+// ============================================================
+// WORKOUT — full implementation
+// ============================================================
+var _wkSession = null;
+var _wkTodayWeekOff = 0;
+var _wkPlanWeekOff = 0;
+var _wkhSessionWeekOff = 0;
+var _wkEditorId = null;
+var _wkDayPickerIdx = null;
+var _wkEditorContext = 'today';
+var _wkEditorExercises = [];
+var _wkhMetric = 'max-kg';
+var _wkhSelectedEx = '';
+
+function _wkWeekDates(offset) {
+  var now = new Date();
+  var dow = now.getDay();
+  var monday = new Date(now);
+  monday.setDate(now.getDate() - ((dow + 6) % 7) + offset * 7);
+  monday.setHours(0,0,0,0);
+  return Array.from({length:7}, function(_,i) { var d = new Date(monday); d.setDate(monday.getDate()+i); return d; });
+}
+function _wkWeekISO(offset) { return localDateStr(_wkWeekDates(offset)[0]); }
+function _wkWeekLabel(dates) {
+  var d = dates[0];
+  return 'Week of ' + d.getDate() + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getFullYear();
 }
 
-function updateWorkoutTimer() {
-  if (!state.workoutTimerStart) return;
-  const elapsed = Math.round((Date.now() - state.workoutTimerStart) / 1000);
-  const m = String(Math.floor(elapsed/60)).padStart(2,'0');
-  const s = String(elapsed%60).padStart(2,'0');
-  const el = document.getElementById('workout-timer');
-  if (el) el.textContent = `${m}:${s}`;
+function wkTickTimer() {
+  if (!_wkSession) return;
+  var elapsed = Math.round((Date.now() - _wkSession.startTime) / 1000);
+  var h = Math.floor(elapsed/3600), m = Math.floor((elapsed%3600)/60), s = elapsed%60;
+  var str = (h ? String(h).padStart(2,'0')+':' : '') + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  var el = document.getElementById('wk-timer-display');
+  if (el) el.textContent = str;
 }
 
-function savePlan() {
-  const name = document.getElementById('plan-name').value.trim();
-  if (!name) { showToast('Please enter a plan name'); return; }
-  const days = [...document.querySelectorAll('#plan-days-selector .exercise-tag.selected')].map(el => el.textContent);
-  const plan = { id: Date.now(), name, days, exercises: state.planBeingBuilt.exercises || [] };
-  state.plans.push(plan);
-  state.planBeingBuilt = { name: '', days: [], exercises: [] };
-  saveState();
-  renderWorkoutPlans();
-  renderDashboard();
-  closeModal('modal-create-plan');
-  showToast(`Plan saved: ${name} ✓`);
-  scheduleWorkoutReminders(plan);
+function wkRenderToday() {
+  var dates = _wkWeekDates(_wkTodayWeekOff);
+  var today = localDateStr(new Date());
+  var weekISO = localDateStr(dates[0]);
+  var todayIdx = dates.findIndex(function(d) { return localDateStr(d) === today; });
+  var html = '<div class="row-between" style="margin-bottom:12px">';
+  html += '<button class="btn btn-sm btn-outline" onclick="changeWkTodayWeek(-1)">&#8249;</button>';
+  html += '<span style="font-size:13px;color:var(--txt2)">' + _wkWeekLabel(dates) + '</span>';
+  html += '<button class="btn btn-sm btn-outline" onclick="changeWkTodayWeek(1)">&#8250;</button></div>';
+  if (_wkSession) {
+    html += '<div class="card" style="border:1px solid rgba(240,124,58,0.4);background:rgba(240,124,58,0.05);margin-bottom:12px">';
+    html += '<div class="row-between"><div>';
+    html += '<div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + (_wkSession.name||'Quick session') + '</div>';
+    html += '<div style="font-size:12px;color:var(--txt2)" id="wk-timer-display">00:00</div>';
+    html += '</div><button class="btn btn-sm btn-danger" onclick="wkEndSession()">End</button></div></div>';
+  } else {
+    var schedule = (state.workoutSchedule||{})[weekISO]||{};
+    var todayAssignment = todayIdx >= 0 ? schedule[todayIdx] : null;
+    if (todayAssignment && todayAssignment !== 'rest') {
+      var sw = (state.savedWorkouts||[]).find(function(w) { return w.id === todayAssignment; });
+      if (sw) {
+        html += '<div class="card" style="margin-bottom:12px"><div class="row-between"><div>';
+        html += '<div style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em">Scheduled today</div>';
+        html += '<div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + sw.name + '</div>';
+        html += '<div style="font-size:12px;color:var(--txt2)">' + sw.exercises.length + ' exercises</div>';
+        html += '</div><button class="btn btn-sm btn-accent-orange" onclick="wkStartScheduled(\'' + sw.id + '\')">Start</button></div></div>';
+      }
+    } else if (todayAssignment === 'rest') {
+      html += '<div class="card" style="margin-bottom:12px;text-align:center;color:var(--txt2);font-size:13px">Rest day scheduled</div>';
+    } else if (_wkTodayWeekOff === 0) {
+      html += '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:12px 0 4px">No workout scheduled — start a quick session or load a plan</div>';
+    }
+  }
+  if (_wkSession && (_wkSession.exercises||[]).length) html += wkRenderExerciseCards();
+  document.getElementById('wk-today-content').innerHTML = html;
+  wkTickTimer();
 }
-
-function togglePlanDay(el) { el.classList.toggle('selected'); }
-
-function renderWorkoutPlans() {
-  const el = document.getElementById('plans-list');
-  const sel = document.getElementById('start-plan-list');
-  const html = state.plans.length ? state.plans.map(p => `
-    <div class="card" style="cursor:pointer" onclick="openPlanDetail(${p.id})">
-      <div class="row-between">
-        <div>
-          <div style="font-weight:600">${p.name}</div>
-          <div style="font-size:12px;color:var(--txt2)">${p.days.join(', ')||'No scheduled days'} · ${p.exercises?.length||0} exercises</div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();startPlan(${p.id})">Start</button>
-          <button onclick="event.stopPropagation();deletePlan(${p.id})" style="color:#F87171;background:none;border:none;font-size:12px;padding:4px 8px;cursor:pointer">Delete</button>
-        </div>
-      </div>
-    </div>
-  `).join('') : '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No plans yet</div>';
-  if (el) el.innerHTML = html;
-  if (sel) sel.innerHTML = html;
-}
-
-function deletePlan(id) {
-  state.plans = (state.plans||[]).filter(p => p.id !== id);
-  saveState();
-  renderWorkoutPlans();
-  showToast('Plan deleted');
-}
-
-function startPlan(id) {
-  const plan = state.plans.find(p => p.id === id);
-  if (!plan) return;
-  state.activeWorkout = { planId: id, startTime: new Date().toISOString(), date: state.activeDate };
-  state.lastActiveWorkout = {
-    id: Date.now(), date: state.activeDate, name: plan.name, planId: id,
-    exercises: plan.exercises.map(e => ({ ...e, sets: Array(e.defaultSets||3).fill(null).map(() => ({ weight: '', reps: e.defaultReps||'', done: false })) })),
-    duration: 0, started: Date.now()
+function changeWkTodayWeek(delta) { _wkTodayWeekOff += delta; wkRenderToday(); }
+function wkStartScheduled(swId) { var sw=(state.savedWorkouts||[]).find(function(w){return w.id===swId;}); if(sw) wkBeginSession(sw); }
+function wkBeginSession(sw) {
+  _wkSession = {
+    name: sw ? sw.name : 'Quick session',
+    startTime: Date.now(),
+    exercises: sw ? sw.exercises.map(function(ex) {
+      var e = { name:ex.name, type:ex.type, target:ex.target||'' };
+      if (ex.metric) e.metric = ex.metric;
+      if (ex.type==='lift') { e.sets = [{kg:_wkLastKg(ex.name),reps:'',done:false}]; }
+      else if (ex.type==='bodyweight') { e.sets = [{value:'',done:false}]; }
+      else if (ex.type==='timed-hold') { e.sets = [{seconds:30,done:false}]; }
+      else if (ex.type==='cardio-distance') { e.distanceKm=''; e.timeSeconds=0; e.paceSecPerKm=0; }
+      else if (ex.type==='cardio-duration') { e.timeMinutes=''; e.notes=''; }
+      else if (ex.type==='rehab') { e.rounds=0; }
+      return e;
+    }) : []
   };
-  state.workoutTimerStart = Date.now();
-  document.getElementById('active-workout-banner').classList.remove('hidden');
-  document.getElementById('active-plan-name').textContent = plan.name;
-  closeModal('modal-start-plan');
-  navigate('workout');
-  renderActiveWorkout();
+  wkRenderToday();
+}
+function _wkLastKg(exName) {
+  var log = state.workoutLog||{};
+  var dates = Object.keys(log).sort().reverse();
+  for (var i=0;i<dates.length;i++) {
+    var ex = (log[dates[i]].exercises||[]).find(function(e){return e.name===exName&&e.type==='lift';});
+    if (ex&&ex.sets) { var done=ex.sets.filter(function(s){return s.done;}); if(done.length) return done[done.length-1].kg||''; }
+  }
+  return '';
+}
+function wkEndSession() {
+  if (!_wkSession) return;
+  showConfirmSheet({title:'End session?',message:'This will save your workout to the log.',confirmText:'End',confirmClass:'btn-danger',onConfirm:function(){
+    var dateKey = localDateStr(new Date());
+    state.workoutLog = state.workoutLog||{};
+    state.workoutLog[dateKey] = {name:_wkSession.name,startTime:_wkSession.startTime,endTime:Date.now(),exercises:JSON.parse(JSON.stringify(_wkSession.exercises))};
+    _wkSession = null;
+    saveState();
+    wkRenderToday();
+    showToast('Workout saved!');
+  }});
 }
 
-function renderWorkoutHistory() {
-  const el = document.getElementById('workout-history-list');
-  if (!el) return;
-  const sorted = [...state.workouts].sort((a,b) => b.date.localeCompare(a.date));
-  el.innerHTML = sorted.length ? sorted.map(w => `
-    <div class="card" style="cursor:pointer" onclick="openWorkoutDetail(${w.id})">
-      <div class="row-between">
-        <div>
-          <div style="font-weight:600">${w.name}</div>
-          <div style="font-size:12px;color:var(--txt2)">${fmtDate(w.date)} · ${w.duration}min · ${w.exercises?.length||0} exercises</div>
-        </div>
-        <span class="pill pill-green">${w.exercises?.reduce((s,e)=>s+e.sets.filter(s=>s.done).length,0)} sets</span>
-      </div>
-    </div>
-  `).join('') : '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No workouts yet</div>';
+function _wkTypePill(type) {
+  var labels = {'lift':'Lift','bodyweight':'BW','timed-hold':'Hold','cardio-distance':'Run','cardio-duration':'Cardio','rehab':'Rehab'};
+  return '<span class="pill" style="background:rgba(240,124,58,0.15);color:#F07C3A;font-size:10px">'+(labels[type]||type)+'</span>';
 }
+function _wkSecToMMSS(s) { s=parseInt(s)||0; return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+
+function wkRenderExerciseCards() {
+  return (_wkSession.exercises||[]).map(function(ex,i){return wkBuildExerciseCard(ex,i);}).join('');
+}
+function wkBuildExerciseCard(ex,i) {
+  var html = '<div class="card" style="margin-bottom:8px">';
+  html += '<div class="row-between" style="margin-bottom:8px"><span style="font-weight:600">'+ex.name+'</span>';
+  html += '<div style="display:flex;gap:6px;align-items:center">'+_wkTypePill(ex.type);
+  if (ex.target) html += '<span style="font-size:11px;color:var(--txt2)">'+ex.target+'</span>';
+  html += '</div></div>';
+  if (ex.type==='lift') {
+    html += '<div style="display:grid;grid-template-columns:28px 1fr 1fr 32px;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>kg</span><span>Reps</span><span></span></div>';
+    (ex.sets||[]).forEach(function(set,si) {
+      var bg = set.done?'background:rgba(240,124,58,0.08);border-color:var(--orange)':'';
+      var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
+      html += '<div style="display:grid;grid-template-columns:28px 1fr 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
+      html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
+      html += '<input type="text" inputmode="decimal" value="'+(set.kg||'')+'" placeholder="kg" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'kg\',this.value)"/>';
+      html += '<input type="text" inputmode="decimal" value="'+(set.reps||'')+'" placeholder="reps" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'reps\',this.value)"/>';
+      html += '<button class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
+    });
+    html += '<button class="btn btn-sm btn-outline" style="margin-top:4px" onclick="wkAddSet('+i+')">+ Set</button>';
+  } else if (ex.type==='bodyweight') {
+    var metric = ex.metric||'reps';
+    html += '<div style="display:flex;gap:6px;margin-bottom:8px">';
+    html += '<span class="exercise-tag'+(metric==='reps'?' selected':'')+'" onclick="wkToggleBwMetric('+i+',\'reps\')">Reps</span>';
+    html += '<span class="exercise-tag'+(metric==='time'?' selected':'')+'" onclick="wkToggleBwMetric('+i+',\'time\')">Time</span></div>';
+    html += '<div style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>'+(metric==='reps'?'Reps':'Time (sec)')+'</span><span></span></div>';
+    (ex.sets||[]).forEach(function(set,si) {
+      var bg = set.done?'background:rgba(240,124,58,0.08);border-color:var(--orange)':'';
+      var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
+      html += '<div style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
+      html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
+      html += '<input type="text" inputmode="decimal" value="'+(set.value||'')+'" placeholder="'+(metric==='reps'?'reps':'sec')+'" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'value\',this.value)"/>';
+      html += '<button class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
+    });
+    html += '<button class="btn btn-sm btn-outline" style="margin-top:4px" onclick="wkAddSet('+i+')">+ Set</button>';
+  } else if (ex.type==='timed-hold') {
+    html += '<div style="font-size:12px;color:var(--txt2);margin-bottom:6px">Duration per set (seconds)</div>';
+    html += '<div style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>Seconds</span><span></span></div>';
+    (ex.sets||[]).forEach(function(set,si) {
+      var bg = set.done?'background:rgba(240,124,58,0.08);border-color:var(--orange)':'';
+      var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
+      html += '<div style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
+      html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
+      html += '<input type="text" inputmode="decimal" value="'+(set.seconds||'')+'" placeholder="sec" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'seconds\',this.value)"/>';
+      html += '<button class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
+    });
+    html += '<button class="btn btn-sm btn-outline" style="margin-top:4px" onclick="wkAddSet('+i+')">+ Set</button>';
+  } else if (ex.type==='cardio-distance') {
+    var pace = '';
+    if (ex.distanceKm&&ex.timeSeconds){var ps=Math.round(ex.timeSeconds/ex.distanceKm);pace=_wkSecToMMSS(ps)+' /km';}
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end">';
+    html += '<div><label class="input-label" style="font-size:11px">Distance</label><div style="display:flex;align-items:center;gap:4px"><input type="text" inputmode="decimal" value="'+(ex.distanceKm||'')+'" placeholder="3.2" style="background:#22222E" oninput="wkCardioDistInput('+i+',this.value)"/> <span style="font-size:12px;color:var(--txt2)">km</span></div></div>';
+    html += '<div><label class="input-label" style="font-size:11px">Time (mm:ss)</label><input type="text" inputmode="decimal" value="'+(ex.timeSeconds?_wkSecToMMSS(ex.timeSeconds):'')+'" placeholder="19:45" style="background:#22222E" oninput="wkCardioTimeInput('+i+',this.value)"/></div>';
+    html += '<div><label class="input-label" style="font-size:11px">Pace</label><div style="font-size:14px;color:#F07C3A;padding:8px 0">'+(pace||'&#8212;')+'</div></div></div>';
+  } else if (ex.type==='cardio-duration') {
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    html += '<div><label class="input-label" style="font-size:11px">Duration</label><div style="display:flex;align-items:center;gap:4px"><input type="text" inputmode="decimal" value="'+(ex.timeMinutes||'')+'" placeholder="60" style="background:#22222E" onchange="wkExVal('+i+',\'timeMinutes\',this.value)"/> <span style="font-size:12px;color:var(--txt2)">min</span></div></div>';
+    html += '<div><label class="input-label" style="font-size:11px">Notes (optional)</label><input type="text" value="'+(ex.notes||'')+'" placeholder="7:15&#8211;8:15pm" style="background:#22222E" onchange="wkExVal('+i+',\'notes\',this.value)"/></div></div>';
+  } else if (ex.type==='rehab') {
+    html += '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--txt2)">Rounds:</span>';
+    [0,1,2,3].forEach(function(r) {
+      var act = ex.rounds===r;
+      html += '<button class="isq" style="width:32px;height:32px;border-radius:50%;'+(act?'background:#F07C3A;color:#fff;border-color:#F07C3A':'background:none;border:2px solid var(--border);color:var(--txt2)')+'" onclick="wkRehabRounds('+i+','+r+')">'+r+'</button>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function wkTickSet(exIdx,setIdx) { if(!_wkSession)return; _wkSession.exercises[exIdx].sets[setIdx].done=!_wkSession.exercises[exIdx].sets[setIdx].done; wkRenderToday(); }
+function wkAddSet(exIdx) {
+  if(!_wkSession)return;
+  var ex=_wkSession.exercises[exIdx];
+  if(ex.type==='lift'){var p=ex.sets[ex.sets.length-1]||{};ex.sets.push({kg:p.kg||'',reps:'',done:false});}
+  else if(ex.type==='bodyweight'){ex.sets.push({value:'',done:false});}
+  else if(ex.type==='timed-hold'){var p2=ex.sets[ex.sets.length-1]||{};ex.sets.push({seconds:p2.seconds||30,done:false});}
+  wkRenderToday();
+}
+function wkSetVal(exIdx,setIdx,field,val){if(_wkSession)_wkSession.exercises[exIdx].sets[setIdx][field]=val;}
+function wkExVal(exIdx,field,val){if(_wkSession)_wkSession.exercises[exIdx][field]=val;}
+function wkCardioDistInput(exIdx,val){
+  if(!_wkSession)return;
+  var ex=_wkSession.exercises[exIdx]; ex.distanceKm=parseFloat(val)||0;
+  if(ex.distanceKm&&ex.timeSeconds) ex.paceSecPerKm=Math.round(ex.timeSeconds/ex.distanceKm);
+  wkRenderToday();
+}
+function wkCardioTimeInput(exIdx,val){
+  if(!_wkSession)return;
+  var ex=_wkSession.exercises[exIdx];
+  var parts=val.split(':'); ex.timeSeconds=parts.length===2?(parseInt(parts[0])||0)*60+(parseInt(parts[1])||0):parseInt(val)||0;
+  if(ex.distanceKm&&ex.timeSeconds) ex.paceSecPerKm=Math.round(ex.timeSeconds/ex.distanceKm);
+  wkRenderToday();
+}
+function wkToggleBwMetric(exIdx,metric){if(_wkSession){_wkSession.exercises[exIdx].metric=metric;wkRenderToday();}}
+function wkRehabRounds(exIdx,r){if(_wkSession){_wkSession.exercises[exIdx].rounds=r;wkRenderToday();}}
+
+function wkOpenAddExercise(context) {
+  _wkEditorContext=context;
+  var nameEl=document.getElementById('wk-add-ex-name');if(nameEl)nameEl.value='';
+  var targetEl=document.getElementById('wk-add-ex-target');if(targetEl)targetEl.value='';
+  document.querySelectorAll('#wk-add-ex-types .exercise-tag').forEach(function(t){t.classList.toggle('selected',t.dataset.type==='lift');});
+  var mr=document.getElementById('wk-add-ex-metric-row');if(mr)mr.style.display='none';
+  var tr=document.getElementById('wk-add-ex-target-row');if(tr)tr.style.display='';
+  document.querySelectorAll('#wk-add-ex-metrics .exercise-tag').forEach(function(t){t.classList.toggle('selected',t.dataset.metric==='reps');});
+  openModal('modal-wk-add-ex');
+}
+function wkSelectExType(btn) {
+  btn.closest('#wk-add-ex-types').querySelectorAll('.exercise-tag').forEach(function(t){t.classList.remove('selected');});btn.classList.add('selected');
+  var type=btn.dataset.type;
+  var mr=document.getElementById('wk-add-ex-metric-row');if(mr)mr.style.display=(type==='bodyweight')?'':'none';
+  var tr=document.getElementById('wk-add-ex-target-row');if(tr)tr.style.display=(type==='cardio-distance'||type==='cardio-duration')?'none':'';
+}
+function wkSelectBwMetric(btn){btn.closest('#wk-add-ex-metrics').querySelectorAll('.exercise-tag').forEach(function(t){t.classList.remove('selected');});btn.classList.add('selected');}
+function wkConfirmAddExercise() {
+  var name=(document.getElementById('wk-add-ex-name').value||'').trim();
+  if(!name){showToast('Enter an exercise name');return;}
+  var typeSel=document.querySelector('#wk-add-ex-types .exercise-tag.selected');
+  var type=typeSel?typeSel.dataset.type:'lift';
+  var target=(document.getElementById('wk-add-ex-target').value||'').trim();
+  var metricSel=document.querySelector('#wk-add-ex-metrics .exercise-tag.selected');
+  var metric=metricSel?metricSel.dataset.metric:'reps';
+  var ex={name:name,type:type};if(target)ex.target=target;
+  if(_wkEditorContext==='today'){
+    if(!_wkSession)_wkSession={name:'Quick session',startTime:Date.now(),exercises:[]};
+    if(type==='lift'){ex.sets=[{kg:_wkLastKg(name),reps:'',done:false}];}
+    else if(type==='bodyweight'){ex.metric=metric;ex.sets=[{value:'',done:false}];}
+    else if(type==='timed-hold'){ex.sets=[{seconds:30,done:false}];}
+    else if(type==='cardio-distance'){ex.distanceKm='';ex.timeSeconds=0;ex.paceSecPerKm=0;}
+    else if(type==='cardio-duration'){ex.timeMinutes='';ex.notes='';}
+    else if(type==='rehab'){ex.rounds=0;}
+    _wkSession.exercises.push(ex);
+    closeModal('modal-wk-add-ex');wkRenderToday();
+  } else {
+    if(type==='bodyweight')ex.metric=metric;
+    _wkEditorExercises.push(ex);
+    closeModal('modal-wk-add-ex');wkRenderEditorExercises();
+  }
+}
+
+function wkOpenUsePlan(){
+  var list=document.getElementById('modal-wk-use-plan-list');if(!list)return;
+  var workouts=state.savedWorkouts||[];
+  list.innerHTML=workouts.length?workouts.map(function(w){
+    return '<div class="card" style="cursor:pointer;margin-bottom:8px" onclick="wkLoadPlan(\''+w.id+'\')"><div style="font-weight:600">'+w.name+'</div><div style="font-size:12px;color:var(--txt2)">'+w.exercises.length+' exercises</div></div>';
+  }).join(''):'<div style="text-align:center;color:var(--txt3);padding:16px">No saved workouts yet</div>';
+  openModal('modal-wk-use-plan');
+}
+function wkLoadPlan(id){
+  var sw=(state.savedWorkouts||[]).find(function(w){return w.id===id;});if(!sw)return;
+  if(_wkSession&&(_wkSession.exercises||[]).length){
+    showConfirmSheet({title:'Replace exercises?',message:'This will replace your current exercise list.',confirmText:'Replace',onConfirm:function(){closeModal('modal-wk-use-plan');wkBeginSession(sw);}});
+  } else {closeModal('modal-wk-use-plan');wkBeginSession(sw);}
+}
+
+function wkRenderPlans(){
+  var dates=_wkWeekDates(_wkPlanWeekOff);
+  var weekISO=localDateStr(dates[0]);
+  var schedule=(state.workoutSchedule||{})[weekISO]||{};
+  var today=localDateStr(new Date());
+  var html='<div class="row-between" style="margin-bottom:12px">';
+  html+='<button class="btn btn-sm btn-outline" onclick="changeWkPlanWeek(-1)">&#8249;</button>';
+  html+='<span style="font-size:13px;color:var(--txt2)">'+_wkWeekLabel(dates)+'</span>';
+  html+='<button class="btn btn-sm btn-outline" onclick="changeWkPlanWeek(1)">&#8250;</button></div>';
+  html+=wkRenderMiniGrid(dates,schedule);
+  html+='<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn btn-secondary btn-sm" onclick="wkSaveTemplate()">Save as template</button><button class="btn btn-secondary btn-sm" onclick="wkShowTemplates()">Load template</button></div>';
+  html+=wkRenderDaySchedule(dates,schedule,today);
+  html+='<div style="margin-top:16px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--txt3);margin-bottom:8px">Saved Workouts</div>';
+  html+=wkRenderSavedWorkouts();
+  html+='<button class="btn btn-secondary" style="margin-top:8px" onclick="wkNewSavedWorkout()">+ New workout</button></div>';
+  document.getElementById('wk-plans-content').innerHTML=html;
+}
+function changeWkPlanWeek(delta){_wkPlanWeekOff+=delta;wkRenderPlans();}
+
+function wkRenderMiniGrid(dates,schedule){
+  var labels=['M','T','W','T','F','S','S'],today=localDateStr(new Date());
+  var html='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px">';
+  dates.forEach(function(d,i){
+    var asgn=schedule[i];
+    var isToday=localDateStr(d)===today;
+    var sw=asgn&&asgn!=='rest'?(state.savedWorkouts||[]).find(function(w){return w.id===asgn;}):null;
+    var abbr=asgn==='rest'?'&#8211;':(sw?sw.name.replace(/\s+/g,'').substring(0,3):'');
+    var bdr=isToday?'border:2px solid #F07C3A':(sw||asgn==='rest'?'border:1px solid rgba(240,124,58,0.4)':'border:1px solid var(--border)');
+    var bg=(sw||asgn==='rest')?'background:rgba(240,124,58,0.08)':'';
+    html+='<div style="border-radius:8px;padding:6px 2px;text-align:center;'+bdr+';'+bg+'">';
+    html+='<div style="font-size:10px;color:var(--txt3)">'+labels[i]+'</div>';
+    html+='<div style="font-size:11px;font-weight:600;color:'+(asgn?'#F07C3A':'var(--txt2)')+'">'+abbr+'</div></div>';
+  });
+  return html+'</div>';
+}
+function wkRenderDaySchedule(dates,schedule,today){
+  var names=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  var html='';
+  dates.forEach(function(d,i){
+    var asgn=schedule[i];
+    var sw=asgn&&asgn!=='rest'?(state.savedWorkouts||[]).find(function(w){return w.id===asgn;}):null;
+    var isToday=localDateStr(d)===today;
+    var planName=asgn==='rest'?'Rest':(sw?sw.name:'&#8212; Tap to assign');
+    var preview=sw?sw.exercises.slice(0,3).map(function(e){return e.name;}).join(' · ')+(sw.exercises.length>3?'…':''):'';
+    html+='<div class="card" style="cursor:pointer;margin-bottom:8px" onclick="wkOpenDayPicker('+i+')">';
+    html+='<div class="row-between"><div>';
+    html+='<div style="font-size:12px;color:var(--txt2)">'+names[i]+(isToday?' <span class="pill" style="background:#F07C3A;color:#fff;font-size:10px">Today</span>':'')+'</div>';
+    html+='<div style="font-weight:600">'+planName+'</div>';
+    if(preview)html+='<div style="font-size:11px;color:var(--txt3);margin-top:2px">'+preview+'</div>';
+    html+='</div><span style="color:var(--txt3)">&#8250;</span></div></div>';
+  });
+  return html;
+}
+
+function wkOpenDayPicker(dayIdx){
+  _wkDayPickerIdx=dayIdx;
+  var dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  var titleEl=document.getElementById('modal-wk-day-picker-title');if(titleEl)titleEl.textContent=dayNames[dayIdx]+' — assign workout';
+  var list=document.getElementById('modal-wk-day-picker-list');if(!list)return;
+  var workouts=state.savedWorkouts||[];
+  list.innerHTML=workouts.map(function(w){
+    return '<div class="card" style="cursor:pointer;margin-bottom:8px" onclick="wkPickDay(\''+w.id+'\')"><div class="row-between"><div><div style="font-weight:600">'+w.name+'</div><div style="font-size:12px;color:var(--txt2)">'+w.exercises.length+' exercises</div></div><span style="color:var(--txt3)">&#8250;</span></div></div>';
+  }).join('')||'<div style="color:var(--txt3);padding:12px 0;font-size:13px">No saved workouts yet</div>';
+  openModal('modal-wk-day-picker');
+}
+function wkPickDay(id){_wkAssignDay(_wkDayPickerIdx,id);}
+function wkPickDayRest(){_wkAssignDay(_wkDayPickerIdx,'rest');}
+function wkPickDayClear(){_wkAssignDay(_wkDayPickerIdx,null);}
+function _wkAssignDay(dayIdx,value){
+  var weekISO=_wkWeekISO(_wkPlanWeekOff);
+  if(!state.workoutSchedule)state.workoutSchedule={};
+  if(!state.workoutSchedule[weekISO])state.workoutSchedule[weekISO]={};
+  if(value===null)delete state.workoutSchedule[weekISO][dayIdx];else state.workoutSchedule[weekISO][dayIdx]=value;
+  saveState();closeModal('modal-wk-day-picker');wkRenderPlans();
+}
+
+function wkSaveTemplate(){
+  var weekISO=_wkWeekISO(_wkPlanWeekOff);
+  var schedule=(state.workoutSchedule||{})[weekISO]||{};
+  if(!Object.keys(schedule).length){showToast('No workouts scheduled this week');return;}
+  var name=prompt('Template name:');if(!name||!name.trim())return;
+  if(!Array.isArray(state.workoutTemplates))state.workoutTemplates=[];
+  state.workoutTemplates.push({id:'tpl-'+Date.now(),name:name.trim(),savedAt:localDateStr(new Date()),week:JSON.parse(JSON.stringify(schedule))});
+  saveState();showToast('Template saved ✓');
+}
+function wkShowTemplates(){
+  var templates=state.workoutTemplates||[];
+  if(!templates.length){showToast('No templates saved yet');return;}
+  var existing=document.getElementById('modal-wk-template-list');
+  if(existing)existing.remove();
+  var html=templates.map(function(t){
+    var days=Object.keys(t.week).filter(function(k){return t.week[k]&&t.week[k]!=='rest';}).length;
+    return '<div class="card" style="cursor:pointer;margin-bottom:8px" onclick="wkLoadTemplate(\''+t.id+'\')"><div style="font-weight:600">'+t.name+'</div><div style="font-size:12px;color:var(--txt2)">'+t.savedAt+' · '+days+' training days</div></div>';
+  }).join('');
+  var el=document.createElement('div');el.className='modal-overlay';el.id='modal-wk-template-list';
+  el.innerHTML='<div class="modal"><div class="modal-handle"></div><div class="modal-title">Load template</div>'+html+'<button class="btn btn-outline" style="margin-top:8px" onclick="closeModal(\'modal-wk-template-list\')">Cancel</button></div>';
+  document.body.appendChild(el);el.classList.add('open');
+}
+function wkLoadTemplate(id){
+  var tpl=(state.workoutTemplates||[]).find(function(t){return t.id===id;});if(!tpl)return;
+  closeModal('modal-wk-template-list');
+  var weekISO=_wkWeekISO(_wkPlanWeekOff);
+  var existing=(state.workoutSchedule||{})[weekISO]||{};
+  var doLoad=function(){if(!state.workoutSchedule)state.workoutSchedule={};state.workoutSchedule[weekISO]=JSON.parse(JSON.stringify(tpl.week));saveState();wkRenderPlans();showToast('Template loaded ✓');};
+  if(Object.keys(existing).length){showConfirmSheet({title:'Load template?',message:'This will replace the current week\'s schedule.',confirmText:'Load',onConfirm:doLoad});}else doLoad();
+}
+function wkDeleteTemplate(id){state.workoutTemplates=(state.workoutTemplates||[]).filter(function(t){return t.id!==id;});saveState();}
+
+function wkRenderSavedWorkouts(){
+  var workouts=state.savedWorkouts||[];
+  if(!workouts.length)return'<div style="color:var(--txt3);font-size:13px;padding:8px 0">No saved workouts yet</div>';
+  return workouts.map(function(w){
+    var preview=w.exercises.slice(0,3).map(function(e){return e.name;}).join(' · ')+(w.exercises.length>3?'…':'');
+    return'<div class="card" style="cursor:pointer;margin-bottom:8px" onclick="wkEditSavedWorkout(\''+w.id+'\')"><div class="row-between"><div style="min-width:0;flex:1"><div style="font-weight:600">'+w.name+'</div><div style="font-size:11px;color:var(--txt3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+preview+'</div><div style="font-size:12px;color:var(--txt2)">'+w.exercises.length+' exercises</div></div><button class="btn btn-sm btn-outline" style="margin-left:8px;flex-shrink:0" onclick="event.stopPropagation();wkDeleteSavedWorkout(\''+w.id+'\')">Delete</button></div></div>';
+  }).join('');
+}
+function wkNewSavedWorkout(){
+  _wkEditorId=null;_wkEditorExercises=[];
+  var n=document.getElementById('wk-editor-name');if(n)n.value='';
+  var t=document.getElementById('modal-wk-editor-title');if(t)t.textContent='New Workout';
+  wkRenderEditorExercises();openModal('modal-wk-editor');
+}
+function wkEditSavedWorkout(id){
+  var sw=(state.savedWorkouts||[]).find(function(w){return w.id===id;});if(!sw)return;
+  _wkEditorId=id;_wkEditorExercises=JSON.parse(JSON.stringify(sw.exercises));
+  var n=document.getElementById('wk-editor-name');if(n)n.value=sw.name;
+  var t=document.getElementById('modal-wk-editor-title');if(t)t.textContent='Edit Workout';
+  wkRenderEditorExercises();openModal('modal-wk-editor');
+}
+function wkDeleteSavedWorkout(id){
+  showConfirmSheet({title:'Delete workout?',confirmText:'Delete',confirmClass:'btn-danger',onConfirm:function(){
+    state.savedWorkouts=(state.savedWorkouts||[]).filter(function(w){return w.id!==id;});saveState();wkRenderPlans();
+  }});
+}
+function wkRenderEditorExercises(){
+  var el=document.getElementById('wk-editor-exercises');if(!el)return;
+  if(!_wkEditorExercises.length){el.innerHTML='<div style="color:var(--txt3);font-size:13px;padding:8px 0">No exercises yet</div>';return;}
+  el.innerHTML=_wkEditorExercises.map(function(ex,i){
+    return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">'+ex.name+'</div><div style="display:flex;gap:4px;align-items:center;margin-top:2px">'+_wkTypePill(ex.type)+(ex.target?'<span style="font-size:11px;color:var(--txt2)">'+ex.target+'</span>':'')+'</div></div><button class="btn btn-sm btn-outline" style="padding:4px" onclick="wkEditorMoveEx('+i+',-1)"'+(i===0?' disabled':'')+'>&#8593;</button><button class="btn btn-sm btn-outline" style="padding:4px" onclick="wkEditorMoveEx('+i+',1)"'+(i===_wkEditorExercises.length-1?' disabled':'')+'>&#8595;</button><button class="btn btn-sm btn-outline" style="padding:4px;color:#F87171" onclick="wkEditorRemoveEx('+i+')">&#10005;</button></div>';
+  }).join('');
+}
+function wkEditorAddExercise(){wkOpenAddExercise('editor');}
+function wkEditorMoveEx(idx,dir){var ni=idx+dir;if(ni<0||ni>=_wkEditorExercises.length)return;var tmp=_wkEditorExercises[idx];_wkEditorExercises[idx]=_wkEditorExercises[ni];_wkEditorExercises[ni]=tmp;wkRenderEditorExercises();}
+function wkEditorRemoveEx(idx){_wkEditorExercises.splice(idx,1);wkRenderEditorExercises();}
+function wkSaveSavedWorkout(){
+  var name=(document.getElementById('wk-editor-name').value||'').trim();
+  if(!name){showToast('Enter a workout name');return;}
+  if(!state.savedWorkouts)state.savedWorkouts=[];
+  if(_wkEditorId){
+    var idx=state.savedWorkouts.findIndex(function(w){return w.id===_wkEditorId;});
+    if(idx>-1){state.savedWorkouts[idx].name=name;state.savedWorkouts[idx].exercises=JSON.parse(JSON.stringify(_wkEditorExercises));}
+  } else {
+    state.savedWorkouts.push({id:'sw-'+Date.now(),name:name,exercises:JSON.parse(JSON.stringify(_wkEditorExercises))});
+  }
+  saveState();closeModal('modal-wk-editor');wkRenderPlans();showToast('Workout saved ✓');
+}
+
+function wkRenderHistory(){
+  var progressContent=document.getElementById('wkh-progress-content');if(!progressContent)return;
+  var log=state.workoutLog||{};
+  var names={};
+  Object.values(log).forEach(function(entry){(entry.exercises||[]).forEach(function(ex){names[ex.name]=ex.type;});});
+  var nameList=Object.keys(names);
+  if(!_wkhSelectedEx&&nameList.length)_wkhSelectedEx=nameList[0];
+  var html='<div class="input-group" style="margin-bottom:8px"><label class="input-label">Exercise</label>';
+  html+='<select id="wkh-ex-select" style="background:#22222E;color:var(--txt);border:1px solid var(--border);border-radius:8px;padding:8px 12px;width:100%" onchange="_wkhSelectedEx=this.value;_wkhMetric=\'max-kg\';wkRenderHistory()">';
+  if(!nameList.length){html+='<option value="">No exercises logged yet</option>';}
+  else{nameList.forEach(function(n){html+='<option value="'+n+'"'+(_wkhSelectedEx===n?' selected':'')+'>'+n+'</option>';});}
+  html+='</select></div>';
+  if(_wkhSelectedEx&&names[_wkhSelectedEx]==='lift'){
+    html+='<div style="display:flex;gap:6px;margin-bottom:12px">';
+    [{m:'max-kg',l:'Max kg'},{m:'volume',l:'Volume'},{m:'reps',l:'Reps'}].forEach(function(item){
+      html+='<span class="exercise-tag'+(_wkhMetric===item.m?' selected':'')+'" onclick="_wkhMetric=\''+item.m+'\';wkRenderHistory()">'+item.l+'</span>';
+    });
+    html+='</div>';
+  }
+  html+='<div id="wkh-chart-container" style="margin-bottom:12px"></div><div id="wkh-stats-card"></div>';
+  progressContent.innerHTML=html;
+  renderWkhProgressChart();
+}
+
+function renderWkhProgressChart(){
+  var container=document.getElementById('wkh-chart-container');
+  var statsCard=document.getElementById('wkh-stats-card');
+  if(!container)return;
+  var log=state.workoutLog||{};
+  var vals=[];
+  Object.keys(log).sort().forEach(function(date){
+    var entry=log[date];
+    var ex=(entry.exercises||[]).find(function(e){return e.name===_wkhSelectedEx;});
+    if(!ex)return;
+    var v=null;
+    if(ex.type==='lift'&&ex.sets){
+      var done=ex.sets.filter(function(s){return s.done;});if(!done.length)return;
+      if(_wkhMetric==='max-kg')v=Math.max.apply(null,done.map(function(s){return parseFloat(s.kg)||0;}));
+      else if(_wkhMetric==='volume')v=done.reduce(function(a,s){return a+(parseFloat(s.kg)||0)*(parseFloat(s.reps)||0);},0);
+      else v=done.reduce(function(a,s){return a+(parseFloat(s.reps)||0);},0);
+    }else if(ex.type==='bodyweight'&&ex.sets){var done2=ex.sets.filter(function(s){return s.done;});if(!done2.length)return;v=done2.reduce(function(a,s){return a+(parseFloat(s.value)||0);},0);}
+    else if(ex.type==='cardio-distance'){v=parseFloat(ex.distanceKm)||0;}
+    else if(ex.type==='cardio-duration'){v=parseFloat(ex.timeMinutes)||0;}
+    else if(ex.type==='rehab'){v=ex.rounds||0;}
+    else if(ex.type==='timed-hold'&&ex.sets){var done3=ex.sets.filter(function(s){return s.done;});if(!done3.length)return;v=done3.reduce(function(a,s){return a+(parseFloat(s.seconds)||0);},0);}
+    if(v!==null)vals.push({x:date,v:v});
+  });
+  if(!vals.length){
+    container.innerHTML='<div style="text-align:center;color:var(--txt3);padding:24px">No data yet for '+(_wkhSelectedEx||'this exercise')+'</div>';
+    if(statsCard)statsCard.innerHTML='';return;
+  }
+  var todayStr=localDateStr(new Date());
+  var todayIdx=vals.findIndex(function(v){return v.x===todayStr;});
+  if(typeof drawLineChart==='function')drawLineChart(container,vals,'#F07C3A',{todayIdx:todayIdx>=0?todayIdx:null,gradientId:'wkh-grad'});
+  var current=vals[vals.length-1].v,best=Math.max.apply(null,vals.map(function(v){return v.v;}));
+  var fourWk=new Date();fourWk.setDate(fourWk.getDate()-28);
+  var recent=vals.filter(function(v){return v.x>=localDateStr(fourWk);});
+  var change=recent.length>1?recent[recent.length-1].v-recent[0].v:null;
+  var chStr=change!==null?(change>=0?'+':'')+change.toFixed(1):'—';
+  if(statsCard)statsCard.innerHTML='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><div style="font-size:11px;color:var(--txt3)">Current</div><div style="font-size:18px;font-weight:600;color:#F07C3A">'+current.toFixed(1)+'</div></div><div><div style="font-size:11px;color:var(--txt3)">All-time best</div><div style="font-size:18px;font-weight:600">'+best.toFixed(1)+'</div></div><div><div style="font-size:11px;color:var(--txt3)">4-week change</div><div style="font-size:18px;font-weight:600">'+chStr+'</div></div><div><div style="font-size:11px;color:var(--txt3)">Sessions</div><div style="font-size:18px;font-weight:600">'+vals.length+'</div></div></div></div>';
+}
+
+function renderWkhSessionCards(){
+  var dates=_wkWeekDates(_wkhSessionWeekOff);
+  var weekISO=localDateStr(dates[0]);
+  var schedule=(state.workoutSchedule||{})[weekISO]||{};
+  var log=state.workoutLog||{};
+  var dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  var html='<div class="row-between" style="margin-bottom:12px"><button class="btn btn-sm btn-outline" onclick="changeWkhSessionWeek(-1)">&#8249;</button><span style="font-size:13px;color:var(--txt2)">'+_wkWeekLabel(dates)+'</span><button class="btn btn-sm btn-outline" onclick="changeWkhSessionWeek(1)">&#8250;</button></div>';
+  var rendered=false;
+  dates.forEach(function(d,i){
+    var dateStr=localDateStr(d);
+    var entry=log[dateStr];
+    var asgn=schedule[i];
+    if(entry){
+      rendered=true;
+      var dur=entry.endTime?Math.round((entry.endTime-entry.startTime)/60000):null;
+      html+='<div class="card" style="margin-bottom:8px"><div style="font-size:12px;color:var(--txt2);margin-bottom:2px">'+dayNames[i]+' · '+dateStr+'</div><div class="row-between"><div style="font-weight:600">'+entry.name+'</div>'+(dur?'<span style="font-size:12px;color:var(--txt2)">'+dur+'min</span>':'')+'</div><div style="margin-top:6px;font-size:12px;color:var(--txt2)">';
+      (entry.exercises||[]).forEach(function(ex){
+        var sum='';
+        if(ex.type==='lift'&&ex.sets)sum=ex.sets.filter(function(s){return s.done;}).length+' sets';
+        else if(ex.type==='bodyweight'&&ex.sets)sum=ex.sets.filter(function(s){return s.done;}).length+' sets';
+        else if(ex.type==='cardio-distance')sum=(ex.distanceKm||0)+' km';
+        else if(ex.type==='cardio-duration')sum=(ex.timeMinutes||0)+' min';
+        else if(ex.type==='rehab')sum=(ex.rounds||0)+' rounds';
+        else if(ex.type==='timed-hold'&&ex.sets)sum=ex.sets.filter(function(s){return s.done;}).length+' sets';
+        html+='<div>'+ex.name+(sum?' · '+sum:'')+'</div>';
+      });
+      html+='</div></div>';
+    }else if(asgn==='rest'){html+='<div style="padding:8px 0;color:var(--txt3);font-size:13px">'+dayNames[i]+' — Rest</div>';}
+  });
+  if(!rendered)html+='<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No sessions logged this week</div>';
+  document.getElementById('wkh-sessions-content').innerHTML=html;
+}
+function changeWkhSessionWeek(delta){_wkhSessionWeekOff+=delta;renderWkhSessionCards();}
+
+// Legacy stubs
+function renderWorkoutPlans(){if(typeof wkRenderPlans==='function')wkRenderPlans();}
+function renderWorkoutHistory(){}
+function savePlan(){}
+function startPlan(){}
+function deletePlan(){}
+function togglePlanDay(){}
+function openPlanDetail(){}
+function renderPlanBeingBuilt(){}
+function addExerciseToPlan(){}
+function renderExerciseList(){}
+function filterExercises(){}
+function filterByMuscle(){}
 
 // ============================================================
 // MEAL PLAN
