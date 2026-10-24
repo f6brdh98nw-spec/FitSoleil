@@ -575,7 +575,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
 <div id="build-banner" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(255,180,0,0.18);backdrop-filter:blur(4px);text-align:center;font-size:10px;font-family:monospace;color:#FFB400;padding:2px 0;letter-spacing:0.05em;pointer-events:none;border-bottom:1px solid rgba(255,180,0,0.3);">BUILD <span id="build-hash">…</span></div>
 <script>
 (function(){
-  fetch('https://api.github.com/repos/f6brdh98nw-spec/FitSoliel/commits?sha=claude%2Fexciting-cerf-1xq5na&per_page=1')
+  fetch('https://api.github.com/repos/f6brdh98nw-spec/FitSoleil/commits?sha=claude%2Fexciting-cerf-1xq5na&per_page=1')
     .then(function(r){return r.json();})
     .then(function(d){if(d&&d[0])document.getElementById('build-hash').textContent=d[0].sha.slice(0,7);})
     .catch(function(){});
