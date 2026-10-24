@@ -4464,8 +4464,15 @@ function parseFoodQuery(query) {
 function searchOpenFoodFacts(query, brandFilter, signal, page) {
   var pg = page || 1;
   var normQuery = query.replace(/[–—‒\-]/g, ' ').replace(/[%#]/g, '').replace(/\s+/g, ' ').trim();
-  // Minimal params — no fields filter, no sort_by, to confirm text search works
-  var baseParams = 'tagtype_0=product_name&tag_contains_0=contains&tag_0=' + encodeURIComponent(normQuery) + '&action=process&json=1&page_size=50&page=' + pg;
+
+  // First significant word for the broader NZ-friendly search
+  var words = normQuery.split(' ').filter(function(w) { return w.length > 1; });
+  var firstWord = words[0] || normQuery;
+  var multiWord = words.length > 1;
+
+  function offUrl(term) {
+    return 'https://world.openfoodfacts.org/cgi/search.pl?tagtype_0=product_name&tag_contains_0=contains&tag_0=' + encodeURIComponent(term) + '&action=process&json=1&page_size=50&page=' + pg;
+  }
 
   var _offErr = null;
   function offFetch(url, attempt) {
@@ -4483,40 +4490,36 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
       });
   }
 
-  if (brandFilter) {
-    var brandLower = brandFilter.toLowerCase();
-    return Promise.all([
-      offFetch('https://world.openfoodfacts.org/cgi/search.pl?' + baseParams + '&tagtype_1=countries&tag_contains_1=contains&tag_1=new-zealand'),
-      offFetch('https://world.openfoodfacts.org/cgi/search.pl?' + baseParams)
-    ]).then(function(results) {
-      var all = parseOpenFoodFacts(results[0].products || [], true)
-        .concat(parseOpenFoodFacts(results[1].products || [], false));
-      var seen = new Set();
-      return all.filter(function(p) {
-        if (seen.has(p.id)) return false;
-        seen.add(p.id);
-        return p.name.toLowerCase().includes(brandLower);
-      }).slice(0, 25);
-    });
-  }
+  // Always fetch exact phrase globally.
+  // For multi-word queries also fetch first-word globally to catch NZ products
+  // (e.g. "LUPI Balsamic Vinegar" when searching "balsamic vinegar").
+  var fetches = [offFetch(offUrl(normQuery))];
+  if (multiWord) fetches.push(offFetch(offUrl(firstWord)));
 
-  var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + baseParams + '&tagtype_1=countries&tag_contains_1=contains&tag_1=new-zealand';
-  var globalUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + baseParams;
+  return Promise.all(fetches).then(function(results) {
+    var exactRaw = results[0].products || [];
+    var broadRaw = multiWord ? (results[1].products || []) : [];
 
-  return Promise.all([offFetch(nzUrl), offFetch(globalUrl)]).then(function(results) {
-    var nzRaw = results[0].products || [];
-    var glRaw = results[1].products || [];
-    var nzProducts = parseOpenFoodFacts(nzRaw, true);
-    var globalProducts = parseOpenFoodFacts(glRaw, false);
-    var nzIds = new Set(nzProducts.map(function(p) { return p.id; }));
-    var extra = globalProducts.filter(function(p) { return !nzIds.has(p.id); });
-    var combined = nzProducts.concat(extra).slice(0, 25);
-    var glNames = glRaw.slice(0, 5).map(function(p) {
-      var n = p.nutriments || {};
-      var kcal = parseFloat(n['energy-kcal_100g']) || parseFloat(n['energy_100g']||0)/4.184;
-      return (p.product_name||'?').slice(0,20) + '(' + Math.round(kcal) + ')';
-    }).join('|');
-    combined._offStatus = 'NZ:' + nzRaw.length + '/' + nzProducts.length + ' GL:' + glRaw.length + '/' + globalProducts.length + (_offErr ? ' ERR:' + _offErr : '') + ' RAW:' + glNames;
+    // Merge: exact phrase first, then broad results not already seen
+    var seenIds = new Set(exactRaw.map(function(p) { return p.id || p.code; }));
+    var merged = exactRaw.concat(broadRaw.filter(function(p) {
+      var id = p.id || p.code;
+      if (seenIds.has(id)) return false;
+      seenIds.add(id);
+      // Only include broad results where product name contains at least one query word
+      var n = (p.product_name || '').toLowerCase();
+      return words.some(function(w) { return n.includes(w); });
+    }));
+
+    var parsed = parseOpenFoodFacts(merged, false);
+
+    if (brandFilter) {
+      var bl = brandFilter.toLowerCase();
+      parsed = parsed.filter(function(p) { return p.name.toLowerCase().includes(bl); });
+    }
+
+    var combined = parsed.slice(0, 25);
+    combined._offStatus = 'EX:' + exactRaw.length + ' BR:' + broadRaw.length + ' OK:' + parsed.length + (_offErr ? ' ERR:' + _offErr : '');
     return combined;
   });
 }
