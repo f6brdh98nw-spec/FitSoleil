@@ -4505,9 +4505,9 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
       return words.length === 0 || words.some(function(w) { return n.includes(w); });
     });
 
-    // Merge: global text-matched first, then NZ-popular not already seen
-    var seenIds = new Set(glRaw.map(function(p) { return p.id || p.code; }));
-    var merged = glRaw.concat(nzFiltered.filter(function(p) {
+    // Merge: NZ-popular first, then global text-matched not already seen
+    var seenIds = new Set(nzFiltered.map(function(p) { return p.id || p.code; }));
+    var merged = nzFiltered.concat(glRaw.filter(function(p) {
       var id = p.id || p.code;
       if (seenIds.has(id)) return false;
       seenIds.add(id);
