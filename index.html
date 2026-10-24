@@ -575,9 +575,9 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
 <div id="build-banner" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(255,180,0,0.18);backdrop-filter:blur(4px);text-align:center;font-size:10px;font-family:monospace;color:#FFB400;padding:2px 0;letter-spacing:0.05em;pointer-events:none;border-bottom:1px solid rgba(255,180,0,0.3);">BUILD <span id="build-hash">…</span></div>
 <script>
 (function(){
-  fetch('https://api.github.com/repos/f6brdh98nw-spec/FitSoleil/commits?sha=claude%2Fexciting-cerf-1xq5na&per_page=1')
+  fetch('./version.json?_=' + Date.now())
     .then(function(r){return r.json();})
-    .then(function(d){if(d&&d[0])document.getElementById('build-hash').textContent=d[0].sha.slice(0,7);})
+    .then(function(d){if(d&&d.hash)document.getElementById('build-hash').textContent=d.hash.slice(0,7);})
     .catch(function(){});
 })();
 </script>
@@ -4468,11 +4468,16 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
   var baseParams = 'tagtype_0=product_name&tag_contains_0=contains&tag_0=' + encodeURIComponent(normQuery) + '&action=process&json=1&page_size=50&page=' + pg;
 
   var _offErr = null;
-  function offFetch(url) {
+  function offFetch(url, attempt) {
     return fetch(url, {signal: signal})
       .then(function(r) { return r.json(); })
       .catch(function(e) {
         if (e && e.name === 'AbortError') throw e;
+        var tries = attempt || 0;
+        if (tries < 2) {
+          return new Promise(function(res) { setTimeout(res, 800 * (tries + 1)); })
+            .then(function() { return offFetch(url, tries + 1); });
+        }
         _offErr = (e && e.message) || String(e);
         return {products: [], _err: true};
       });

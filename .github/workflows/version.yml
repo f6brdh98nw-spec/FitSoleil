@@ -1,0 +1,25 @@
+name: Write version.json
+on:
+  push:
+    branches: [claude/exciting-cerf-1xq5na]
+    paths-ignore: ['version.json']
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/exciting-cerf-1xq5na
+      - name: Write version
+        run: echo '{"hash":"${{ github.sha }}"}' > version.json
+      - name: Commit and push
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add version.json
+          git diff --cached --quiet || git commit -m "chore: update version.json [skip ci]"
+          git push
