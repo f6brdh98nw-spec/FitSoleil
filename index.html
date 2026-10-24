@@ -2231,7 +2231,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     <div class="input-group"><label class="input-label">Servings</label><input id="recipe-servings" type="number" value="1" min="1" oninput="updateRecipePerServe()"/></div>
     <div class="search-wrap" style="margin-bottom:8px">
       <span class="search-icon">&#128269;</span>
-      <input type="text" id="recipe-ingredient-search" placeholder="Search ingredient to add..." onfocus="initFoodSearch('recipe')" oninput="runFoodSearch(this.value.trim())"/>
+      <input type="text" id="recipe-ingredient-search" placeholder="Search ingredient to add..." oninput="runFoodSearch(this.value.trim())"/>
     </div>
     <div id="recipe-ingredient-results" class="search-results" style="margin-bottom:12px;max-height:200px;overflow-y:auto"></div>
     <div id="recipe-ingredients-list" style="margin-bottom:8px"></div>
@@ -5449,30 +5449,20 @@ function clearRecipeBuilderSearch() {
 function selectRecipeIngredient(encoded) {
   var food;
   try { food = JSON.parse(decodeURIComponent(escape(atob(encoded)))); } catch(e) { return; }
+  if (!state.recipeBeingBuilt.ingredients) state.recipeBeingBuilt.ingredients = [];
+  state.recipeBeingBuilt.ingredients.push({
+    name: food.name,
+    grams: 0,
+    per100g: food.per100g || {},
+    servingLabel: null,
+    macros: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+  });
   var results = document.getElementById('recipe-ingredient-results');
-  if (!results) return;
-  var p = food.per100g || {};
-  var servingOptionsHtml = '';
-  if (food.servings && food.servings.length > 0) {
-    servingOptionsHtml = '<div style="margin-bottom:6px">' +
-      '<select id="ri-serving-select" onchange="applyRecipeServingOption(this.value)" style="width:100%;background:var(--s2);border:1px solid var(--s3);border-radius:6px;padding:6px 8px;color:var(--txt1);font-size:12px">' +
-      '<option value="">Custom grams...</option>' +
-      food.servings.map(function(s) { return '<option value="' + s.g + '">' + (s.label||s.desc) + ' (' + s.g + 'g)</option>'; }).join('') +
-      '</select></div>';
-  }
-  results.innerHTML = '<div style="padding:10px;background:var(--s2);border-radius:8px;border-left:2px solid var(--acc)">' +
-    '<div style="font-size:13px;font-weight:600;margin-bottom:8px">' + food.name + '</div>' +
-    (servingOptionsHtml) +
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
-    '<input id="ri-grams" type="text" inputmode="decimal" value="" placeholder="0" style="width:72px;text-align:center" oninput="updateRiMacroPreview()"/>' +
-    '<span style="font-size:12px;color:var(--txt2)">g</span>' +
-    '<div id="ri-macro-preview" style="font-size:11px;color:var(--txt3);flex:1"></div>' +
-    '<button class="btn-primary btn-pill" onclick="confirmRecipeIngredient(\'' + encoded + '\')" style="white-space:nowrap;flex-shrink:0">&#10003; Add</button>' +
-    '<button class="btn-x" onclick="clearRecipeIngredientEntry()" style="flex-shrink:0">&#x2715;</button>' +
-    '</div></div>';
-  var inp = document.getElementById('ri-grams');
-  if (inp) inp.focus();
-  window._riCurrentFood = food;
+  if (results) results.innerHTML = '';
+  var inp = document.getElementById('recipe-ingredient-search');
+  if (inp) { inp.value = ''; inp.focus(); }
+  window._riCurrentFood = null;
+  renderRecipeIngredients();
 }
 
 function applyRecipeServingOption(val) {
@@ -5539,11 +5529,13 @@ function confirmRecipeIngredient(encoded) {
 function renderRecipeIngredients() {
   const list = document.getElementById('recipe-ingredients-list');
   list.innerHTML = (state.recipeBeingBuilt.ingredients||[]).map((ing, i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--s2)">
-      <div style="flex:1"><div style="font-size:13px">${ing.name}</div></div>
-      <input type="number" value="${ing.grams}" style="width:64px" onchange="updateRecipeIngredientGrams(${i},this.value)"/>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--s2)">
+      <div style="flex:1;font-size:13px;color:var(--txt1)">${ing.name}</div>
+      <input type="text" inputmode="decimal" value="${ing.grams || ''}" placeholder="0"
+        style="width:64px;text-align:center;background:var(--s2);border:1px solid var(--s3);border-radius:6px;padding:4px 8px;color:var(--txt1);font-size:13px"
+        oninput="updateRecipeIngredientGrams(${i}, this.value)" />
       <span style="font-size:11px;color:var(--txt2)">g</span>
-      <button onclick="removeRecipeIngredient(${i})" style="background:none;border:none;color:var(--txt3);cursor:pointer">✕</button>
+      <button class="btn-x" onclick="removeRecipeIngredient(${i})">&#x2715;</button>
     </div>
   `).join('');
   updateRecipePerServe();
@@ -5557,13 +5549,30 @@ function updateRecipePerServe() {
   var tot = calcTotals(ings.map(i => i.macros));
   if (!el) return;
   el.style.display = 'block';
-  el.textContent = 'Per serve (÷' + serves + '): ' +
-    Math.round(tot.calories/serves) + ' kcal · P:' + Math.round(tot.protein/serves) + 'g · C:' +
-    Math.round(tot.carbs/serves) + 'g · F:' + Math.round(tot.fat/serves) + 'g';
+  el.innerHTML =
+    '<div style="font-size:11px;color:var(--txt2);margin-bottom:2px">Total: ' +
+      Math.round(tot.calories) + ' kcal · P:' + Math.round(tot.protein) + 'g · C:' +
+      Math.round(tot.carbs) + 'g · F:' + Math.round(tot.fat) + 'g</div>' +
+    '<div style="font-size:11px;color:var(--txt2)">Per serve (÷' + serves + '): ' +
+      Math.round(tot.calories/serves) + ' kcal · P:' + Math.round(tot.protein/serves*10)/10 + 'g · C:' +
+      Math.round(tot.carbs/serves*10)/10 + 'g · F:' + Math.round(tot.fat/serves*10)/10 + 'g</div>';
 }
 
-function updateRecipeIngredientGrams(idx, grams) {
-  state.recipeBeingBuilt.ingredients[idx].grams = +grams;
+function updateRecipeIngredientGrams(idx, val) {
+  var grams = parseFloat(val) || 0;
+  var ing = state.recipeBeingBuilt.ingredients[idx];
+  if (!ing) return;
+  ing.grams = grams;
+  var p = ing.per100g || {};
+  var ratio = grams / 100;
+  ing.macros = {
+    calories: Math.round((p.calories||0) * ratio),
+    protein:  Math.round((p.protein||0)  * ratio * 10) / 10,
+    carbs:    Math.round((p.carbs||0)    * ratio * 10) / 10,
+    fat:      Math.round((p.fat||0)      * ratio * 10) / 10,
+    fiber:    Math.round((p.fibre||0)    * ratio * 10) / 10
+  };
+  updateRecipePerServe();
 }
 
 function editRecipe(recipeId) {
