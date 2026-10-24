@@ -4513,6 +4513,7 @@ function _sortByCountryAndRelevance(products, query) {
     else if (n.startsWith(q)) tier = 800;
     else if (words.length > 1 && words.every(function(w){return n.includes(w);})) tier = 600;
     else if (words.length > 0 && n.startsWith(words[0])) tier = 400;
+    else if (words.length > 1 && words.some(function(w){return n.startsWith(w);})) tier = 350;
     else if (words.length > 0 && words.some(function(w){return n.includes(w);})) tier = 200;
     else tier = 0;
     return {p: p, tier: tier, country: p.countryRank !== undefined ? p.countryRank : 99, name: p.name};
@@ -4684,8 +4685,8 @@ function _loadMoreResults() {
     );
     var newOff = offResults.filter(function(f){return !usedIds.has(f.id);});
     if (btn) btn.remove();
-    if (newOff.length < 3) {
-      // Too few new results — we've hit the bottom, don't show another page button
+    if (newOff.length === 0) {
+      // Genuinely no more results
       return;
     }
     var lmContainerId = (_searchContext && _searchContext.resultsId) ? _searchContext.resultsId : 'food-search-results';
