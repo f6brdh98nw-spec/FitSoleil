@@ -7879,9 +7879,9 @@ function backToFoodSearch() {
 function closeFoodModal() {
   _foodModalOpen = false;
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-  if (activeSearchController) activeSearchController.abort();
   searchDebounceTimer = null;
-  activeSearchController = null;
+  // Do NOT abort activeSearchController here — let it complete and cache results
+  // so the next modal open can use the cached OFF results immediately
 }
 
 function openModal(id) {
