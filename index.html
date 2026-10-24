@@ -1190,52 +1190,37 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
   <div class="screen" id="screen-workout">
     <div class="header">
       <h1>Workout</h1>
-      <button class="isq" style="width:34px;height:34px;font-size:16px" onclick="openModal('modal-add-exercise')">+</button>
+      <div style="width:34px"></div>
     </div>
     <div class="tabs" style="margin:12px 16px 0">
-      <div class="tab active" onclick="switchTab(this,'wk-log')">Today</div>
-      <div class="tab" onclick="switchTab(this,'wk-plans')">Plans</div>
-      <div class="tab" onclick="switchTab(this,'wk-history')">History</div>
+      <div class="tab active" onclick="switchTab(this,'wk-log');wkRenderToday()">Today</div>
+      <div class="tab" onclick="switchTab(this,'wk-plans');wkRenderPlans()">Plans</div>
+      <div class="tab" onclick="switchTab(this,'wk-history');wkRenderHistory()">History</div>
     </div>
     <div class="scroll-content">
 
-      <!-- TODAY'S WORKOUT -->
+      <!-- TODAY tab -->
       <div id="wk-log">
-        <div id="active-workout-banner" class="hidden">
-          <div class="card" style="border:1px solid var(--acc);background:rgba(232,197,71,0.05)">
-            <div class="row-between">
-              <div>
-                <div style="font-weight:700" id="active-plan-name">No active plan</div>
-                <div style="font-size:12px;color:var(--txt2)" id="workout-timer">00:00</div>
-              </div>
-              <button class="btn btn-sm btn-danger" onclick="endWorkout()">End</button>
-            </div>
-          </div>
-        </div>
-
-        <div id="exercise-log-list">
-          <div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">Start a plan or add exercises</div>
-        </div>
-
+        <div id="wk-today-content"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <button class="btn btn-accent-orange" onclick="openModal('modal-add-exercise')">+ Add Exercise</button>
-          <button class="btn btn-secondary" onclick="openModal('modal-start-plan')">Use Plan</button>
+          <button class="btn btn-accent-orange" onclick="wkOpenAddExercise('today')">+ Add Exercise</button>
+          <button class="btn btn-secondary" onclick="wkOpenUsePlan()">Use Plan</button>
         </div>
       </div>
 
-      <!-- PLANS -->
+      <!-- PLANS tab -->
       <div id="wk-plans" class="hidden">
-        <button class="btn btn-primary" style="margin-bottom:12px" onclick="openModal('modal-create-plan')">+ Create Plan</button>
-        <div id="plans-list">
-          <div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No workout plans yet</div>
-        </div>
+        <div id="wk-plans-content"></div>
       </div>
 
-      <!-- HISTORY -->
+      <!-- HISTORY tab -->
       <div id="wk-history" class="hidden">
-        <div id="workout-history-list">
-          <div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No workouts logged yet</div>
+        <div class="tabs" style="margin:0 0 12px">
+          <div class="tab active" onclick="switchTab(this,'wkh-progress');renderWkhProgressChart()">Exercise progress</div>
+          <div class="tab" onclick="switchTab(this,'wkh-sessions');renderWkhSessionCards()">Past sessions</div>
         </div>
+        <div id="wkh-progress"><div id="wkh-progress-content"></div></div>
+        <div id="wkh-sessions" class="hidden"><div id="wkh-sessions-content"></div></div>
       </div>
 
     </div>
@@ -2870,7 +2855,7 @@ window.addEventListener('load', () => {
     document.getElementById('app').style.display = '';
     initApp();
   }
-  setInterval(updateWorkoutTimer, 1000);
+  setInterval(wkTickTimer, 1000);
   setInterval(checkReminders, 60000);
 });
 
@@ -2890,6 +2875,10 @@ function loadState() {
   if (state.diaryShowSnacks === undefined) state.diaryShowSnacks = false;
   if (state.planShowSnacks === undefined) state.planShowSnacks = false;
   if (!Array.isArray(state.planTemplates)) state.planTemplates = [];
+  if (!state.workoutLog) state.workoutLog = {};
+  if (!state.workoutSchedule) state.workoutSchedule = {};
+  if (!Array.isArray(state.workoutTemplates)) state.workoutTemplates = [];
+  if (!Array.isArray(state.savedWorkouts)) state.savedWorkouts = [];
 }
 
 function saveState() {
@@ -3656,7 +3645,7 @@ function navigate(screen) {
     const diaryEl = document.getElementById('nt-diary');
     if (diaryEl && !diaryEl._swipe) { addSwipe(diaryEl, () => changeNutritionDay(1), () => changeNutritionDay(-1)); diaryEl._swipe = true; }
   }
-  if (screen === 'workout') { renderWorkoutPlans(); renderWorkoutHistory(); }
+  if (screen === 'workout') { wkRenderToday(); }
   if (screen === 'cycle') { renderCycleCalendar(); updateCycleInfo(); }
   if (screen === 'review') startWeeklyReview();
   if (screen === 'fasting') initFasting();
@@ -7896,7 +7885,7 @@ function closeFoodModal() {
 function openModal(id) {
   document.getElementById(id)?.classList.add('open');
   if (id === 'modal-plan-rows') openPlanRowsModal();
-  if (id === 'modal-start-plan') renderWorkoutPlans();
+  if (id === 'modal-wk-use-plan') wkOpenUsePlan();
   if (id === 'modal-food') {
     renderRecipesList();
     ['custom-food-name','custom-brand','custom-cals','custom-protein','custom-carbs','custom-fat','custom-fiber','custom-serving'].forEach(function(fid) { var el = document.getElementById(fid); if(el) el.value=''; });
@@ -7912,8 +7901,7 @@ function openModal(id) {
     const delRow = document.getElementById('modal-weight-delete-row');
     if (delRow) delRow.style.display = hasEntry ? 'block' : 'none';
   }
-  if (id === 'modal-add-exercise') renderExerciseList('', state.selectedMuscle);
-  if (id === 'modal-create-plan') { state.planBeingBuilt = { name: '', days: [], exercises: [] }; renderPlanBeingBuilt(); }
+  if (id === 'modal-wk-add-ex') { /* reset handled by wkOpenAddExercise */ }
   if (id === 'modal-recipe' && !state._editingRecipeId) {
     state.recipeBeingBuilt = { ingredients: [] };
     var rnEl = document.getElementById('recipe-name'); if (rnEl) rnEl.value = '';
