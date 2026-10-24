@@ -4466,16 +4466,14 @@ var _offCache = {}; // in-memory OFF result cache keyed by "query|page"
 function searchOpenFoodFacts(query, brandFilter, signal, page) {
   var pg = page || 1;
   var normQuery = query.replace(/[–—‒\-]/g, ' ').replace(/[%#]/g, '').replace(/\s+/g, ' ').trim();
-
   var words = normQuery.split(' ').filter(function(w) { return w.length > 1; });
-  var firstWord = words[0] || normQuery;
-  var multiWord = words.length > 1;
-
   var cacheKey = normQuery.toLowerCase() + '|' + pg;
+  var commonParams = 'action=process&json=1&page_size=50&sort_by=unique_scans_n&fields=product_name,nutriments,brands,code,countries_tags&page=' + pg;
 
-  function offUrl(term) {
-    return 'https://world.openfoodfacts.org/cgi/search.pl?tagtype_0=product_name&tag_contains_0=contains&tag_0=' + encodeURIComponent(term) + '&action=process&json=1&page_size=50&page=' + pg;
-  }
+  // Accurate text-search URL using tag-based product_name filter
+  var globalUrl = 'https://world.openfoodfacts.org/cgi/search.pl?tagtype_0=product_name&tag_contains_0=contains&tag_0=' + encodeURIComponent(normQuery) + '&' + commonParams;
+  // NZ-popular URL: top-scanned NZ products (no text filter — filtered client-side)
+  var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand&' + commonParams;
 
   var _offErr = null;
   function offFetch(url, attempt) {
@@ -4484,7 +4482,7 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
       .catch(function(e) {
         if (e && e.name === 'AbortError') throw e;
         var tries = attempt || 0;
-        if (tries < 3) {
+        if (tries < 2) {
           return new Promise(function(res) { setTimeout(res, 1000 * (tries + 1)); })
             .then(function() { return offFetch(url, tries + 1); });
         }
@@ -4493,30 +4491,27 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
       });
   }
 
-  // Fetch exact phrase, then first-word sequentially to avoid simultaneous rate limiting
-  function doFetch() {
-    return offFetch(offUrl(normQuery)).then(function(exactResult) {
-      var exactRaw = exactResult.products || [];
-      if (!multiWord) return {exactRaw: exactRaw, broadRaw: []};
-      // Only bother with broad fetch if exact returned few results
-      if (exactRaw.length >= 20 && !exactResult._err) return {exactRaw: exactRaw, broadRaw: []};
-      return offFetch(offUrl(firstWord)).then(function(broadResult) {
-        return {exactRaw: exactRaw, broadRaw: broadResult.products || []};
-      });
+  var fetches = brandFilter
+    ? [offFetch(globalUrl)]
+    : [offFetch(globalUrl), offFetch(nzUrl)];
+
+  return Promise.all(fetches).then(function(results) {
+    var glRaw = results[0].products || [];
+    var nzRaw = brandFilter ? [] : (results[1].products || []);
+
+    // NZ results: client-side filter to only products containing at least one query word
+    var nzFiltered = nzRaw.filter(function(p) {
+      var n = (p.product_name || '').toLowerCase();
+      return words.length === 0 || words.some(function(w) { return n.includes(w); });
     });
-  }
 
-  return doFetch().then(function(r) {
-    var exactRaw = r.exactRaw;
-    var broadRaw = r.broadRaw;
-
-    var seenIds = new Set(exactRaw.map(function(p) { return p.id || p.code; }));
-    var merged = exactRaw.concat(broadRaw.filter(function(p) {
+    // Merge: global text-matched first, then NZ-popular not already seen
+    var seenIds = new Set(glRaw.map(function(p) { return p.id || p.code; }));
+    var merged = glRaw.concat(nzFiltered.filter(function(p) {
       var id = p.id || p.code;
       if (seenIds.has(id)) return false;
       seenIds.add(id);
-      var n = (p.product_name || '').toLowerCase();
-      return words.some(function(w) { return n.includes(w); });
+      return true;
     }));
 
     var parsed = parseOpenFoodFacts(merged, false);
@@ -4528,34 +4523,21 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
     var combined = parsed.slice(0, 25);
     var fromCache = false;
 
-    if (_offErr && parsed.length === 0) {
-      // Fall back to in-memory cache
+    if (_offErr && combined.length === 0) {
       var cached = _offCache[cacheKey];
-      if (cached) {
-        combined = cached;
-        fromCache = true;
-        _offErr = null;
+      if (cached) { combined = cached; fromCache = true; _offErr = null; }
+      else {
+        try {
+          var ls = localStorage.getItem('off_v2_' + cacheKey);
+          if (ls) { var entry = JSON.parse(ls); if (Date.now() - entry.ts < 86400000) { combined = entry.products; fromCache = true; _offErr = null; } }
+        } catch(e) {}
       }
-    } else if (parsed.length > 0) {
-      // Persist successful results to cache
+    } else if (combined.length > 0) {
       try { _offCache[cacheKey] = combined; } catch(e) {}
-      try {
-        localStorage.setItem('off_v2_' + cacheKey, JSON.stringify({ts: Date.now(), products: combined}));
-      } catch(e) {}
+      try { localStorage.setItem('off_v2_' + cacheKey, JSON.stringify({ts: Date.now(), products: combined})); } catch(e) {}
     }
 
-    // Populate in-memory cache from localStorage on first miss
-    if (!fromCache && combined.length === 0 && _offErr) {
-      try {
-        var ls = localStorage.getItem('off_v2_' + cacheKey);
-        if (ls) {
-          var entry = JSON.parse(ls);
-          if (Date.now() - entry.ts < 86400000) { combined = entry.products; fromCache = true; _offErr = null; }
-        }
-      } catch(e) {}
-    }
-
-    combined._offStatus = 'EX:' + exactRaw.length + ' BR:' + broadRaw.length + ' OK:' + parsed.length + (fromCache ? ' (cached)' : '') + (_offErr ? ' ERR:' + _offErr : '');
+    combined._offStatus = 'GL:' + glRaw.length + ' NZ:' + nzRaw.length + '/' + nzFiltered.length + ' OK:' + parsed.length + (fromCache ? ' (cached)' : '') + (_offErr ? ' ERR:' + _offErr : '');
     return combined;
   });
 }
