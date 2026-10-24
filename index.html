@@ -2235,7 +2235,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     </div>
     <div id="recipe-ingredient-results" class="search-results" style="margin-bottom:12px;max-height:200px;overflow-y:auto"></div>
     <div id="recipe-ingredients-list" style="margin-bottom:8px"></div>
-    <div id="recipe-perserve-display" style="font-size:11px;color:var(--txt3);padding:4px 0 8px;display:none"></div>
+    <div id="recipe-perserve-display" style="background:var(--s2);border-radius:8px;padding:8px 10px;margin-bottom:8px;display:none"></div>
     <div class="input-group">
       <label class="input-label">Tags</label>
       <div style="display:flex;flex-wrap:wrap;gap:6px" id="recipe-tags-container">
@@ -5550,10 +5550,12 @@ function updateRecipePerServe() {
   if (!el) return;
   el.style.display = 'block';
   el.innerHTML =
-    '<div style="font-size:11px;color:var(--txt2);margin-bottom:2px">Total: ' +
+    '<div style="font-size:11px;font-weight:600;color:var(--txt1);margin-bottom:4px">Total</div>' +
+    '<div style="font-size:12px;color:var(--txt2);margin-bottom:6px">' +
       Math.round(tot.calories) + ' kcal · P:' + Math.round(tot.protein) + 'g · C:' +
       Math.round(tot.carbs) + 'g · F:' + Math.round(tot.fat) + 'g</div>' +
-    '<div style="font-size:11px;color:var(--txt2)">Per serve (÷' + serves + '): ' +
+    '<div style="font-size:11px;font-weight:600;color:var(--txt1);margin-bottom:4px">Per serve (÷' + serves + ')</div>' +
+    '<div style="font-size:12px;color:var(--txt2)">' +
       Math.round(tot.calories/serves) + ' kcal · P:' + Math.round(tot.protein/serves*10)/10 + 'g · C:' +
       Math.round(tot.carbs/serves*10)/10 + 'g · F:' + Math.round(tot.fat/serves*10)/10 + 'g</div>';
 }
