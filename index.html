@@ -4652,7 +4652,7 @@ function executeFoodSearch(query) {
         if (hasMore) _appendLoadMoreButton();
       } else {
         renderSearchResults([], []);
-        _setFoodSourceLine('No results · ' + (window._offLastDbg || 'no OFF debug') + (window._offFetchErr ? ' · ERR:' + window._offFetchErr : '') + (window._offRespKeys ? ' · ' + window._offRespKeys : ''));
+        _setFoodSourceLine('No results · ' + (window._offFetchErr ? 'ERR:' + window._offFetchErr : (window._offRespKeys || 'no resp keys')));
         _lastSearchState = null;
       }
     })
