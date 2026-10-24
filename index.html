@@ -4527,8 +4527,6 @@ var searchDebounceTimer = null;
 var activeSearchController = null;
 var _lastSearchState = null; // tracks current search for "load more"
 var _searchGen = 0; // incremented on each new search; guards stale promise callbacks
-var _offCache = new Map(); // query -> OFF results, cleared when query changes
-var _lastExecutedQuery = ''; // tracks last query to detect when OFF cache should be cleared
 
 function normaliseQuery(query) {
   var q = query.toLowerCase().trim();
@@ -4581,10 +4579,6 @@ function searchUSDA(query) {
 
 
 function executeFoodSearch(query) {
-  if (query !== _lastExecutedQuery) {
-    _offCache.clear();
-    _lastExecutedQuery = query;
-  }
   var parsed = parseFoodQuery(query);
   var foodQuery = parsed.food;
   var brandFilter = parsed.brand;
@@ -4608,40 +4602,12 @@ function executeFoodSearch(query) {
       : 'Searching...');
   }
 
-  var cacheKey = (foodQuery + '|' + (brandFilter||'')).toLowerCase();
-  var cachedOff = _offCache.get(cacheKey);
-  if (cachedOff && cachedOff.length > 0) {
-    var usedIds = new Set(instantResults.map(function(f){return f.id;}));
-    var newOff = _sortByCountryAndRelevance(
-      cachedOff.filter(function(f){return !usedIds.has(f.id);}),
-      foodQuery
-    );
-    var total = instantResults.length + newOff.length;
-    if (total > 0) {
-      renderSearchResults(instantResults, newOff);
-      var parts = [];
-      var ffCount = instantResults.filter(function(f){return f.source==='FOODfiles NZ';}).length;
-      var usdaCount = instantResults.filter(function(f){return f.source==='USDA';}).length;
-      var customCount = instantResults.filter(function(f){return f.source==='Custom';}).length;
-      if (ffCount) parts.push('NZ (' + ffCount + ')');
-      if (usdaCount) parts.push('USDA (' + usdaCount + ')');
-      if (customCount) parts.push('Custom (' + customCount + ')');
-      if (newOff.length) parts.push('OFF (' + newOff.length + ')');
-      _setFoodSourceLine(total + ' result' + (total === 1 ? '' : 's') + (parts.length ? ' \xb7 ' + parts.join(' \xb7 ') : '') + ' (cached)');
-    } else {
-      renderSearchResults([], []);
-      _setFoodSourceLine('No results. Try different terms or add a custom food.');
-    }
-    return;
-  }
-
   var offPromise = searchOpenFoodFacts(foodQuery, brandFilter || null, signal, 1);
 
   offPromise
     .then(function(offResults) {
       if (myGen !== _searchGen) return; // stale — a newer search has taken over
       activeSearchController = null;
-      if (offResults.length > 0) _offCache.set(cacheKey, offResults); // only cache non-empty results — [] is truthy and would mask retries
       var usedIds = new Set(instantResults.map(function(f){return f.id;}));
       var newOff = _sortByCountryAndRelevance(
         offResults.filter(function(f){return !usedIds.has(f.id);}),
