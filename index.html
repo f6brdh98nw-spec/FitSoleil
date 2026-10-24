@@ -4511,7 +4511,12 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
     var nzIds = new Set(nzProducts.map(function(p) { return p.id; }));
     var extra = globalProducts.filter(function(p) { return !nzIds.has(p.id); });
     var combined = nzProducts.concat(extra).slice(0, 25);
-    combined._offStatus = 'NZ:' + nzRaw.length + '/' + nzProducts.length + ' GL:' + glRaw.length + '/' + globalProducts.length + (_offErr ? ' ERR:' + _offErr : '');
+    var glNames = glRaw.slice(0, 5).map(function(p) {
+      var n = p.nutriments || {};
+      var kcal = parseFloat(n['energy-kcal_100g']) || parseFloat(n['energy_100g']||0)/4.184;
+      return (p.product_name||'?').slice(0,20) + '(' + Math.round(kcal) + ')';
+    }).join('|');
+    combined._offStatus = 'NZ:' + nzRaw.length + '/' + nzProducts.length + ' GL:' + glRaw.length + '/' + globalProducts.length + (_offErr ? ' ERR:' + _offErr : '') + ' RAW:' + glNames;
     return combined;
   });
 }
@@ -4643,7 +4648,7 @@ function executeFoodSearch(query) {
         if (newOff.length) parts.push('OFF (' + newOff.length + ')');
         var hasMore = offResults.length >= 25;
         var countStr = hasMore ? (total + '+') : (total + '');
-        var status = countStr + ' result' + (total === 1 ? '' : 's') + (parts.length ? ' · ' + parts.join(' · ') : '');
+        var status = countStr + ' result' + (total === 1 ? '' : 's') + (parts.length ? ' · ' + parts.join(' · ') : '') + ' · ' + (offResults._offStatus || '');
         _setFoodSourceLine(status);
         _lastSearchState = {
           foodQuery: foodQuery, brandFilter: brandFilter,
