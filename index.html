@@ -4415,15 +4415,13 @@ function _offKcal(n) {
 }
 
 function parseOpenFoodFacts(products, isNz) {
-  var _dbg = {total: (products||[]).length, noName:0, script:0, noNutri:0, noKcal:0};
   var filtered = (products || []).filter(function(p) {
-    if (!p.product_name || p.product_name.trim().length < 2) { _dbg.noName++; return false; }
-    if (_OFF_REJECT_SCRIPT.test(p.product_name)) { _dbg.script++; return false; }
-    if (!p.nutriments) { _dbg.noNutri++; return false; }
-    if (_offKcal(p.nutriments) <= 0) { _dbg.noKcal++; return false; }
+    if (!p.product_name || p.product_name.trim().length < 2) return false;
+    if (_OFF_REJECT_SCRIPT.test(p.product_name)) return false;
+    if (!p.nutriments) return false;
+    if (_offKcal(p.nutriments) <= 0) return false;
     return true;
   });
-  if (typeof window !== 'undefined') window._offLastDbg = (isNz?'NZ':'GL') + ':' + _dbg.total + ' raw/' + filtered.length + ' ok/noName=' + _dbg.noName + '/script=' + _dbg.script + '/noNutri=' + _dbg.noNutri + '/noKcal=' + _dbg.noKcal;
   return filtered.map(function(p) {
     var n = p.nutriments;
     var kcal = _offKcal(n);
@@ -4467,15 +4465,13 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
   var pg = page || 1;
   var normQuery = query.replace(/[–—‒\-]/g, ' ').replace(/[%#]/g, '').replace(/\s+/g, ' ').trim();
   // Minimal params — no fields filter, no sort_by, to confirm text search works
-  var baseParams = 'tagtype_0=product_name&tag_contains_0=contains&tag_0=' + encodeURIComponent(normQuery) + '&action=process&json=1&page_size=20&page=' + pg;
+  var baseParams = 'tagtype_0=product_name&tag_contains_0=contains&tag_0=' + encodeURIComponent(normQuery) + '&action=process&json=1&page_size=50&page=' + pg;
 
   function offFetch(url) {
-    window._offLastUrl = url.slice(0, 120);
     return fetch(url, {signal: signal})
       .then(function(r) { return r.json(); })
       .catch(function(e) {
         if (e && e.name === 'AbortError') throw e;
-        window._offFetchErr = (e && e.message) || String(e);
         return {products: []};
       });
   }
@@ -4483,7 +4479,7 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
   if (brandFilter) {
     var brandLower = brandFilter.toLowerCase();
     return Promise.all([
-      offFetch('https://world.openfoodfacts.org/cgi/search.pl?' + baseParams + '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand'),
+      offFetch('https://world.openfoodfacts.org/cgi/search.pl?' + baseParams + '&tagtype_1=countries&tag_contains_1=contains&tag_1=new-zealand'),
       offFetch('https://world.openfoodfacts.org/cgi/search.pl?' + baseParams)
     ]).then(function(results) {
       var all = parseOpenFoodFacts(results[0].products || [], true)
@@ -4497,11 +4493,10 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
     });
   }
 
-  var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + baseParams + '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
+  var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + baseParams + '&tagtype_1=countries&tag_contains_1=contains&tag_1=new-zealand';
   var globalUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + baseParams;
 
   return Promise.all([offFetch(nzUrl), offFetch(globalUrl)]).then(function(results) {
-    window._offRespKeys = 'url:' + (window._offLastUrl || '?') + ' NZ:' + (results[0].products||[]).length + ' GL:' + (results[1].products||[]).length;
     var nzProducts = parseOpenFoodFacts(results[0].products || [], true);
     var globalProducts = parseOpenFoodFacts(results[1].products || [], false);
     var nzIds = new Set(nzProducts.map(function(p) { return p.id; }));
@@ -4638,7 +4633,6 @@ function executeFoodSearch(query) {
         var hasMore = offResults.length >= 25;
         var countStr = hasMore ? (total + '+') : (total + '');
         var status = countStr + ' result' + (total === 1 ? '' : 's') + (parts.length ? ' · ' + parts.join(' · ') : '');
-        if (!newOff.length) status += ' · OFF:' + (window._offLastDbg || 'none') + (window._offFetchErr ? '/ERR:' + window._offFetchErr : '');
         _setFoodSourceLine(status);
         _lastSearchState = {
           foodQuery: foodQuery, brandFilter: brandFilter,
@@ -4647,7 +4641,7 @@ function executeFoodSearch(query) {
         if (hasMore) _appendLoadMoreButton();
       } else {
         renderSearchResults([], []);
-        _setFoodSourceLine('No results · ' + (window._offFetchErr ? 'ERR:' + window._offFetchErr : (window._offRespKeys || 'no resp keys')) + ' · URL:' + (window._offLastUrl || '?'));
+        _setFoodSourceLine('No results. Try different terms or add a custom food.');
         _lastSearchState = null;
       }
     })
