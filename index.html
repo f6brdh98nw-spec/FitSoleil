@@ -4415,13 +4415,16 @@ function _offKcal(n) {
 }
 
 function parseOpenFoodFacts(products, isNz) {
-  return (products || []).filter(function(p) {
-    if (!p.product_name || p.product_name.trim().length < 2) return false;
-    if (_OFF_REJECT_SCRIPT.test(p.product_name)) return false;
-    if (!p.nutriments) return false;
-    if (_offKcal(p.nutriments) <= 0) return false;
+  var _dbg = {total: (products||[]).length, noName:0, script:0, noNutri:0, noKcal:0};
+  var filtered = (products || []).filter(function(p) {
+    if (!p.product_name || p.product_name.trim().length < 2) { _dbg.noName++; return false; }
+    if (_OFF_REJECT_SCRIPT.test(p.product_name)) { _dbg.script++; return false; }
+    if (!p.nutriments) { _dbg.noNutri++; return false; }
+    if (_offKcal(p.nutriments) <= 0) { _dbg.noKcal++; return false; }
     return true;
-  }).map(function(p) {
+  });
+  if (typeof window !== 'undefined') window._offLastDbg = (isNz?'NZ':'GL') + ':' + _dbg.total + ' raw/' + filtered.length + ' ok/noName=' + _dbg.noName + '/script=' + _dbg.script + '/noNutri=' + _dbg.noNutri + '/noKcal=' + _dbg.noKcal;
+  return filtered.map(function(p) {
     var n = p.nutriments;
     var kcal = _offKcal(n);
     var name = p.product_name.trim();
@@ -4648,7 +4651,7 @@ function executeFoodSearch(query) {
         if (hasMore) _appendLoadMoreButton();
       } else {
         renderSearchResults([], []);
-        _setFoodSourceLine('No results. Try different terms or add a custom food.');
+        _setFoodSourceLine('No results · ' + (window._offLastDbg || 'no OFF debug'));
         _lastSearchState = null;
       }
     })
