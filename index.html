@@ -4538,7 +4538,6 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
       try { localStorage.setItem('off_v2_' + cacheKey, JSON.stringify({ts: Date.now(), products: combined})); } catch(e) {}
     }
 
-    combined._offStatus = 'GL:' + glRaw.length + ' NZ:' + nzRaw.length + '/' + nzFiltered.length + ' OK:' + parsed.length + (fromCache ? ' (cached)' : '') + (_offErr ? ' ERR:' + _offErr : '');
     return combined;
   });
 }
@@ -4670,7 +4669,7 @@ function executeFoodSearch(query) {
         if (newOff.length) parts.push('OFF (' + newOff.length + ')');
         var hasMore = offResults.length >= 25;
         var countStr = hasMore ? (total + '+') : (total + '');
-        var status = countStr + ' result' + (total === 1 ? '' : 's') + (parts.length ? ' · ' + parts.join(' · ') : '') + ' · ' + (offResults._offStatus || '');
+        var status = countStr + ' result' + (total === 1 ? '' : 's') + (parts.length ? ' · ' + parts.join(' · ') : '');
         _setFoodSourceLine(status);
         _lastSearchState = {
           foodQuery: foodQuery, brandFilter: brandFilter,
@@ -4679,7 +4678,7 @@ function executeFoodSearch(query) {
         if (hasMore) _appendLoadMoreButton();
       } else {
         renderSearchResults([], []);
-        _setFoodSourceLine('No results · ' + (offResults._offStatus || 'OFF:?'));
+        _setFoodSourceLine('No results');
         _lastSearchState = null;
       }
     })
