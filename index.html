@@ -118,6 +118,7 @@
   /* BUTTONS */
   button { display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; position: relative; }
   button * { pointer-events: none; }
+  .tag-pill * { pointer-events: none; }
   .modal button, .modal-overlay button, .bottom-sheet button,
   [class*="modal"] button, [class*="sheet"] button {
     cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -1206,7 +1207,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <button class="btn btn-primary" onclick="openModal('modal-add-exercise')">+ Add Exercise</button>
+          <button class="btn btn-accent-orange" onclick="openModal('modal-add-exercise')">+ Add Exercise</button>
           <button class="btn btn-secondary" onclick="openModal('modal-start-plan')">Use Plan</button>
         </div>
       </div>
@@ -4373,15 +4374,20 @@ function searchCustomFoods(query) {
 var _OFF_REJECT_SCRIPT = /[؀-ۿ一-鿿぀-ゟ゠-ヿ가-힯Ѐ-ӿ֐-׿]/;
 
 function _offKcal(n) {
-  var k = n['energy-kcal_100g'] || n['energy-kcal'];
-  if (k && k > 0) return k;
-  // Fallback: derive from kJ stored as energy_100g
-  var kj = n['energy_100g'];
-  if (kj && kj > 0) return Math.round(kj / 4.184);
-  // Fallback: calculate from macros
-  var p = n['proteins_100g'] || 0, c = n['carbohydrates_100g'] || 0, f = n['fat_100g'] || 0;
+  var k = parseFloat(n['energy-kcal_100g']);
+  if (k > 0) return Math.round(k);
+  k = parseFloat(n['energy-kcal']);
+  if (k > 0) return Math.round(k);
+  var kj = parseFloat(n['energy_100g']);
+  if (kj > 0) return Math.round(kj / 4.184);
+  kj = parseFloat(n['energy']);
+  if (kj > 0) return Math.round(kj / 4.184);
+  var p = parseFloat(n['proteins_100g']) || 0;
+  var c = parseFloat(n['carbohydrates_100g']) || 0;
+  var f = parseFloat(n['fat_100g']) || 0;
   var calc = p * 4 + c * 4 + f * 9;
-  return calc > 0 ? Math.round(calc) : 0;
+  if (calc > 0) return Math.round(calc);
+  return 0;
 }
 
 function parseOpenFoodFacts(products, isNz) {
@@ -4843,7 +4849,7 @@ function selectFood(encoded) {
   if (mealSel && fdMeal) fdMeal.value = mealSel.value;
   renderFoodDetailMacros();
   closeModal('modal-food');
-  openModal('modal-food-detail');
+  setTimeout(function() { openModal('modal-food-detail'); }, 50);
 }
 
 function applyServingOption(val) {
