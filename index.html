@@ -4637,6 +4637,7 @@ function executeFoodSearch(query) {
         var hasMore = offResults.length >= 25;
         var countStr = hasMore ? (total + '+') : (total + '');
         var status = countStr + ' result' + (total === 1 ? '' : 's') + (parts.length ? ' · ' + parts.join(' · ') : '');
+        if (!newOff.length) status += ' · OFF:' + (window._offLastDbg || 'none') + (window._offFetchErr ? '/ERR:' + window._offFetchErr : '');
         _setFoodSourceLine(status);
         _lastSearchState = {
           foodQuery: foodQuery, brandFilter: brandFilter,
