@@ -4467,7 +4467,7 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
   var pg = page || 1;
   var normQuery = query.replace(/[–—‒\-]/g, ' ').replace(/[%#]/g, '').replace(/\s+/g, ' ').trim();
   // Minimal params — no fields filter, no sort_by, to confirm text search works
-  var baseParams = 'search_terms=' + encodeURIComponent(normQuery) + '&search_simple=1&action=process&json=1&page_size=20&page=' + pg;
+  var baseParams = 'tagtype_0=product_name&tag_contains_0=contains&tag_0=' + encodeURIComponent(normQuery) + '&action=process&json=1&page_size=20&page=' + pg;
 
   function offFetch(url) {
     window._offLastUrl = url.slice(0, 120);
@@ -4647,7 +4647,7 @@ function executeFoodSearch(query) {
         if (hasMore) _appendLoadMoreButton();
       } else {
         renderSearchResults([], []);
-        _setFoodSourceLine('No results · ' + (window._offFetchErr ? 'ERR:' + window._offFetchErr : (window._offRespKeys || 'no resp keys')));
+        _setFoodSourceLine('No results · ' + (window._offFetchErr ? 'ERR:' + window._offFetchErr : (window._offRespKeys || 'no resp keys')) + ' · URL:' + (window._offLastUrl || '?'));
         _lastSearchState = null;
       }
     })
