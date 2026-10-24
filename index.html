@@ -4504,9 +4504,10 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
     searchTerms + '&' + baseParams;
 
   return Promise.all([
-    fetch(nzUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(e){if(e&&e.name==='AbortError')throw e;return {products:[]};}),
-    fetch(globalUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(e){if(e&&e.name==='AbortError')throw e;return {products:[]};})
+    fetch(nzUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(e){if(e&&e.name==='AbortError')throw e;window._offFetchErr='NZ:'+((e&&e.message)||String(e));return {products:[], _err:true};}),
+    fetch(globalUrl, {signal: signal}).then(function(r){return r.json();}).catch(function(e){if(e&&e.name==='AbortError')throw e;window._offFetchErr='GL:'+((e&&e.message)||String(e));return {products:[], _err:true};})
   ]).then(function(results) {
+    window._offRespKeys = 'NZ keys:'+Object.keys(results[0]).join(',')+' · GL keys:'+Object.keys(results[1]).join(',');
     var nzProducts = parseOpenFoodFacts(results[0].products || [], true);
     var globalProducts = parseOpenFoodFacts(results[1].products || [], false);
     var nzIds = new Set(nzProducts.map(function(p){return p.id;}));
@@ -4651,7 +4652,7 @@ function executeFoodSearch(query) {
         if (hasMore) _appendLoadMoreButton();
       } else {
         renderSearchResults([], []);
-        _setFoodSourceLine('No results · ' + (window._offLastDbg || 'no OFF debug'));
+        _setFoodSourceLine('No results · ' + (window._offLastDbg || 'no OFF debug') + (window._offFetchErr ? ' · ERR:' + window._offFetchErr : '') + (window._offRespKeys ? ' · ' + window._offRespKeys : ''));
         _lastSearchState = null;
       }
     })
