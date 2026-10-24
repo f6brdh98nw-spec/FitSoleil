@@ -4465,10 +4465,12 @@ function parseFoodQuery(query) {
 
 function searchOpenFoodFacts(query, brandFilter, signal, page) {
   var pg = page || 1;
-  var baseParams = 'page_size=50&fields=product_name,nutriments,brands,code,countries_tags&sort_by=unique_scans_n&page=' + pg;
+  var baseParams = 'search_simple=1&action=process&json=1&page_size=50' +
+    '&fields=' + encodeURIComponent('product_name,nutriments,brands,code,countries_tags') +
+    '&sort_by=unique_scans_n&page=' + pg;
 
   var normQuery = query.replace(/[–—‒\-]/g, ' ').replace(/[%#]/g, '').replace(/\s+/g, ' ').trim();
-  var searchTerms = 'q=' + encodeURIComponent(normQuery);
+  var searchTerms = 'search_terms=' + encodeURIComponent(normQuery);
 
   function offFetch(url) {
     return fetch(url, {signal: signal})
@@ -4482,8 +4484,8 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
 
   if (brandFilter) {
     var brandLower = brandFilter.toLowerCase();
-    var nzBrandUrl = 'https://world.openfoodfacts.org/api/v2/search?' + searchTerms + '&' + baseParams + '&countries_tags=en:new-zealand';
-    var globalBrandUrl = 'https://world.openfoodfacts.org/api/v2/search?' + searchTerms + '&' + baseParams;
+    var nzBrandUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + searchTerms + '&' + baseParams + '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
+    var globalBrandUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + searchTerms + '&' + baseParams;
     return Promise.all([offFetch(nzBrandUrl), offFetch(globalBrandUrl)]).then(function(results) {
       var all = parseOpenFoodFacts(results[0].products || [], true)
         .concat(parseOpenFoodFacts(results[1].products || [], false));
@@ -4496,8 +4498,8 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
     });
   }
 
-  var nzUrl = 'https://world.openfoodfacts.org/api/v2/search?' + searchTerms + '&' + baseParams + '&countries_tags=en:new-zealand';
-  var globalUrl = 'https://world.openfoodfacts.org/api/v2/search?' + searchTerms + '&' + baseParams;
+  var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + searchTerms + '&' + baseParams + '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
+  var globalUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + searchTerms + '&' + baseParams;
 
   return Promise.all([offFetch(nzUrl), offFetch(globalUrl)]).then(function(results) {
     window._offRespKeys = 'NZ keys:' + Object.keys(results[0]).join(',') + ' · GL keys:' + Object.keys(results[1]).join(',');
