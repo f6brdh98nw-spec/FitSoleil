@@ -4403,12 +4403,23 @@ function _offKcal(n) {
   return 0;
 }
 
+var _hasEnglishWord = /\b(the|in|with|and|of|for|or|on|at|by|from|to|a|an|is|are|be|no|not|free|low|high|light|fat|milk|cheese|butter|cream|oil|sugar|salt|water|natural|organic|fresh|whole|full|reduced|plain|original|classic|premium|extra|rich|dark|white|black|red|green|blue|yellow|brown|golden)\b/i;
+
 function parseOpenFoodFacts(products, isNz) {
   return (products || []).filter(function(p) {
     if (!p.product_name || p.product_name.trim().length < 2) return false;
     if (_OFF_REJECT_SCRIPT.test(p.product_name)) return false;
     if (!p.nutriments) return false;
     if (_offKcal(p.nutriments) <= 0) return false;
+    // Only filter non-English names when the product has no English-speaking country tag
+    var countryTags = (p.countries_tags || []).join(',').toLowerCase();
+    var hasEnglishCountry = countryTags.includes('new-zealand') ||
+                            countryTags.includes('australia') ||
+                            countryTags.includes('united-states') ||
+                            countryTags.includes('united-kingdom') ||
+                            countryTags.includes('canada') ||
+                            countryTags.length === 0;
+    if (!hasEnglishCountry && !_hasEnglishWord.test(p.product_name)) return false;
     return true;
   }).map(function(p) {
     var n = p.nutriments;
