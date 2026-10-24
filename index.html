@@ -4472,9 +4472,9 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
 
   // Accurate text-search URL using tag-based product_name filter
   var globalUrl = 'https://world.openfoodfacts.org/cgi/search.pl?tagtype_0=product_name&tag_contains_0=contains&tag_0=' + encodeURIComponent(normQuery) + '&' + commonParams;
-  // NZ-popular URL: top-scanned NZ products (search_terms ignored by OFF, filtered client-side)
-  // search_terms + search_simple=1 are required for OFF to return a valid CORS JSON response
-  var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(normQuery) + '&search_simple=1&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand&' + commonParams;
+  // NZ-popular URL: use the NZ subdomain (pre-filtered, smaller dataset, more reliable than country tag)
+  // search_terms is ignored by OFF server-side; client-side word filter handles relevance
+  var nzUrl = 'https://nz.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(normQuery) + '&search_simple=1&' + commonParams;
 
   var _offErr = null;
   function offFetch(url, attempt) {
