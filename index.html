@@ -4466,18 +4466,13 @@ function parseFoodQuery(query) {
 function searchOpenFoodFacts(query, brandFilter, signal, page) {
   var pg = page || 1;
   var normQuery = query.replace(/[–—‒\-]/g, ' ').replace(/[%#]/g, '').replace(/\s+/g, ' ').trim();
-  var fields = 'product_name,nutriments,brands,code,countries_tags';
-  var baseParams = 'q=' + encodeURIComponent(normQuery) +
-    '&fields=' + encodeURIComponent(fields) +
-    '&page_size=50&page=' + pg;
+  // Minimal params — no fields filter, no sort_by, to confirm text search works
+  var baseParams = 'search_terms=' + encodeURIComponent(normQuery) + '&search_simple=1&action=process&json=1&page_size=20&page=' + pg;
 
   function offFetch(url) {
+    window._offLastUrl = url.slice(0, 120);
     return fetch(url, {signal: signal})
       .then(function(r) { return r.json(); })
-      .then(function(d) {
-        // search.openfoodfacts.org returns {hits:[...]} or {products:[...]}
-        return {products: d.hits || d.products || []};
-      })
       .catch(function(e) {
         if (e && e.name === 'AbortError') throw e;
         window._offFetchErr = (e && e.message) || String(e);
@@ -4487,11 +4482,12 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
 
   if (brandFilter) {
     var brandLower = brandFilter.toLowerCase();
-    var nzBrandUrl = 'https://search.openfoodfacts.org/search?' + baseParams + '&countries_tags=en:new-zealand';
-    var globalBrandUrl = 'https://search.openfoodfacts.org/search?' + baseParams;
-    return Promise.all([offFetch(nzBrandUrl), offFetch(globalBrandUrl)]).then(function(results) {
-      var all = parseOpenFoodFacts(results[0].products, true)
-        .concat(parseOpenFoodFacts(results[1].products, false));
+    return Promise.all([
+      offFetch('https://world.openfoodfacts.org/cgi/search.pl?' + baseParams + '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand'),
+      offFetch('https://world.openfoodfacts.org/cgi/search.pl?' + baseParams)
+    ]).then(function(results) {
+      var all = parseOpenFoodFacts(results[0].products || [], true)
+        .concat(parseOpenFoodFacts(results[1].products || [], false));
       var seen = new Set();
       return all.filter(function(p) {
         if (seen.has(p.id)) return false;
@@ -4501,13 +4497,13 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
     });
   }
 
-  var nzUrl = 'https://search.openfoodfacts.org/search?' + baseParams + '&countries_tags=en:new-zealand';
-  var globalUrl = 'https://search.openfoodfacts.org/search?' + baseParams;
+  var nzUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + baseParams + '&tagtype_0=countries&tag_contains_0=contains&tag_0=new-zealand';
+  var globalUrl = 'https://world.openfoodfacts.org/cgi/search.pl?' + baseParams;
 
   return Promise.all([offFetch(nzUrl), offFetch(globalUrl)]).then(function(results) {
-    window._offRespKeys = 'NZ:' + results[0].products.length + ' GL:' + results[1].products.length;
-    var nzProducts = parseOpenFoodFacts(results[0].products, true);
-    var globalProducts = parseOpenFoodFacts(results[1].products, false);
+    window._offRespKeys = 'url:' + (window._offLastUrl || '?') + ' NZ:' + (results[0].products||[]).length + ' GL:' + (results[1].products||[]).length;
+    var nzProducts = parseOpenFoodFacts(results[0].products || [], true);
+    var globalProducts = parseOpenFoodFacts(results[1].products || [], false);
     var nzIds = new Set(nzProducts.map(function(p) { return p.id; }));
     var extra = globalProducts.filter(function(p) { return !nzIds.has(p.id); });
     return nzProducts.concat(extra).slice(0, 25);
