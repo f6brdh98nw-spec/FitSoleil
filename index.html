@@ -6131,7 +6131,11 @@ function wkRenderToday() {
   var _nowD = new Date();
   var _dNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   var _mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var html = '<div style="font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:12px">' + _dNames[_nowD.getDay()] + ' ' + _nowD.getDate() + ' ' + _mNames[_nowD.getMonth()] + '</div>';
+  var _dateLabel = _dNames[_nowD.getDay()] + ' ' + _nowD.getDate() + ' ' + _mNames[_nowD.getMonth()];
+  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+  html += '<button class="btn btn-sm btn-outline" onclick="changeWkTodayWeek(-1)">&#8249;</button>';
+  html += '<span style="font-size:13px;font-weight:600;color:var(--txt2)">' + _dateLabel + '</span>';
+  html += '<button class="btn btn-sm btn-outline" onclick="changeWkTodayWeek(1)">&#8250;</button></div>';
   if (_wkSession) {
     html += '<div class="card" style="border:1px solid rgba(240,124,58,0.4);background:rgba(240,124,58,0.05);margin-bottom:12px">';
     html += '<div class="row-between"><div>';
@@ -6178,6 +6182,7 @@ function wkBeginSession(sw) {
       return e;
     }) : []
   };
+  saveState();
   wkRenderToday();
 }
 function _wkLastKg(exName) {
