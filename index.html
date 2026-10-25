@@ -6253,7 +6253,7 @@ function wkBuildExerciseCard(ex,i) {
     html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end">';
     html += '<div><label class="input-label" style="font-size:11px">Distance</label><div style="display:flex;align-items:center;gap:4px"><input type="text" inputmode="decimal" value="'+(ex.distanceKm||'')+'" placeholder="3.2" style="background:#22222E" oninput="wkCardioDistInput('+i+',this.value)"/> <span style="font-size:12px;color:var(--txt2)">km</span></div></div>';
     html += '<div><label class="input-label" style="font-size:11px">Time (mm:ss)</label><input type="text" inputmode="decimal" value="'+(ex.timeSeconds?_wkSecToMMSS(ex.timeSeconds):'')+'" placeholder="19:45" style="background:#22222E" oninput="wkCardioTimeInput('+i+',this.value)"/></div>';
-    html += '<div><label class="input-label" style="font-size:11px">Pace</label><div style="font-size:14px;color:#F07C3A;padding:8px 0">'+(pace||'&#8212;')+'</div></div></div>';
+    html += '<div><label class="input-label" style="font-size:11px">Pace</label><div id="wk-pace-'+i+'" style="font-size:14px;color:#F07C3A;padding:8px 0">'+(pace||'&#8212;')+'</div></div></div>';
   } else if (ex.type==='cardio-duration') {
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
     html += '<div><label class="input-label" style="font-size:11px">Duration</label><div style="display:flex;align-items:center;gap:4px"><input type="text" inputmode="decimal" value="'+(ex.timeMinutes||'')+'" placeholder="60" style="background:#22222E" onchange="wkExVal('+i+',\'timeMinutes\',this.value)"/> <span style="font-size:12px;color:var(--txt2)">min</span></div></div>';
@@ -6283,16 +6283,26 @@ function wkSetVal(exIdx,setIdx,field,val){if(_wkSession)_wkSession.exercises[exI
 function wkExVal(exIdx,field,val){if(_wkSession)_wkSession.exercises[exIdx][field]=val;}
 function wkCardioDistInput(exIdx,val){
   if(!_wkSession)return;
-  var ex=_wkSession.exercises[exIdx]; ex.distanceKm=parseFloat(val)||0;
-  if(ex.distanceKm&&ex.timeSeconds) ex.paceSecPerKm=Math.round(ex.timeSeconds/ex.distanceKm);
-  wkRenderToday();
+  var ex=_wkSession.exercises[exIdx];
+  ex.distanceKm=parseFloat(val)||0;
+  if(ex.distanceKm&&ex.timeSeconds){
+    ex.paceSecPerKm=Math.round(ex.timeSeconds/ex.distanceKm);
+    var paceEl=document.getElementById('wk-pace-'+exIdx);
+    if(paceEl)paceEl.textContent=_wkSecToMMSS(ex.paceSecPerKm)+' /km';
+  }
+  saveState();
 }
 function wkCardioTimeInput(exIdx,val){
   if(!_wkSession)return;
   var ex=_wkSession.exercises[exIdx];
-  var parts=val.split(':'); ex.timeSeconds=parts.length===2?(parseInt(parts[0])||0)*60+(parseInt(parts[1])||0):parseInt(val)||0;
-  if(ex.distanceKm&&ex.timeSeconds) ex.paceSecPerKm=Math.round(ex.timeSeconds/ex.distanceKm);
-  wkRenderToday();
+  var parts=val.split(':');
+  ex.timeSeconds=parts.length===2?(parseInt(parts[0])||0)*60+(parseInt(parts[1])||0):parseInt(val)||0;
+  if(ex.distanceKm&&ex.timeSeconds){
+    ex.paceSecPerKm=Math.round(ex.timeSeconds/ex.distanceKm);
+    var paceEl=document.getElementById('wk-pace-'+exIdx);
+    if(paceEl)paceEl.textContent=_wkSecToMMSS(ex.paceSecPerKm)+' /km';
+  }
+  saveState();
 }
 function wkToggleBwMetric(exIdx,metric){if(_wkSession){_wkSession.exercises[exIdx].metric=metric;wkRenderToday();}}
 function wkRehabRounds(exIdx,r){if(_wkSession){_wkSession.exercises[exIdx].rounds=r;wkRenderToday();}}
