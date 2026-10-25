@@ -48,6 +48,9 @@ iframe{width:100%;height:100%;border:none;display:block}
 .log-line.ok{color:#4ADE80}
 .log-line.err{color:#F87171}
 .log-line.info{color:#9A98A0}
+.comment-input{width:100%;background:#1A1A22;border:0.5px solid #2C2C3A;border-radius:6px;color:#9A98A0;font-size:10px;padding:4px 6px;font-family:system-ui;margin-top:4px;resize:none}
+.comment-input:focus{outline:none;border-color:#5A5860}
+.comment-display{font-size:10px;color:#5A5860;margin-top:3px;font-style:italic;line-height:1.4}
 </style>
 </head>
 <body>
@@ -75,6 +78,8 @@ iframe{width:100%;height:100%;border:none;display:block}
       <button class="ctrl-btn primary" id="btn-run-all" onclick="runAll()">&#9654; Run all auto</button>
       <button class="ctrl-btn" id="btn-reset-app" onclick="resetApp()">Reset app</button>
       <button class="ctrl-btn" onclick="clearResults()">Clear results</button>
+      <button class="ctrl-btn" onclick="exportResults()" style="background:rgba(192,132,252,0.15);color:#C084FC;border-color:rgba(192,132,252,0.3)">&#128203; Copy report</button>
+      <button class="ctrl-btn" onclick="loadTestDataIntoApp()" style="background:rgba(240,124,58,0.1);color:#F07C3A;border-color:rgba(240,124,58,0.3)">&#128196; Load test data</button>
     </div>
 
     <div class="log-box" id="log-box"><span class="log-line info">Ready. Load app then run tests.</span></div>
@@ -267,6 +272,7 @@ var SECTIONS = [
 
 // ─── State ──────────────────────────────────────────────────────────────────
 var results = {};
+var comments = {};
 var running = false;
 var app = null;
 
@@ -296,6 +302,21 @@ function resetApp() {
   } catch(e){}
   frame.src = 'index.html';
   log('App reset', 'info');
+}
+
+function loadTestDataIntoApp() {
+  if (!app) { log('App not loaded yet', 'err'); return; }
+  try {
+    if (typeof app.loadTestData === 'function') {
+      app.loadTestData();
+      app.saveState();
+      log('Test data loaded via loadTestData()', 'ok');
+    } else {
+      log('loadTestData() not found in app', 'err');
+    }
+  } catch(e) {
+    log('Error loading test data: ' + e.message, 'err');
+  }
 }
 
 function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
@@ -349,7 +370,8 @@ function clearResults() {
   render();
 }
 
-function toggleManual(id) {
+function toggleManual(id, event) {
+  if (event && event.target && event.target.classList.contains('comment-input')) return;
   var cur = (results[id] || {}).status;
   if (cur === 'pass') setResult(id, 'fail');
   else if (cur === 'fail') delete results[id];
@@ -397,13 +419,20 @@ function render() {
                   t.type==='semi' ? '<span class="badge b-semi">SEMI</span>' :
                   '<span class="badge b-manual">MANUAL</span>';
       var onclick = t.type === 'manual' || t.type === 'semi'
-        ? 'onclick="toggleManual(\'' + t.id + '\')"'
+        ? 'onclick="toggleManual(\'' + t.id + '\', event)"'
         : '';
       var errHtml = r.msg ? '<div class="err-msg">' + r.msg + '</div>' : '';
+      var commentHtml = '';
+      if (t.type === 'manual' || t.type === 'semi') {
+        var existingComment = comments[t.id] || '';
+        commentHtml = '<textarea class="comment-input" rows="1" placeholder="Add note..." onclick="event.stopPropagation()" oninput="setComment(\'' + t.id + '\', this.value)">' + existingComment + '</textarea>';
+      } else if (comments[t.id]) {
+        commentHtml = '<div class="comment-display">&#128203; ' + comments[t.id] + '</div>';
+      }
       html += '<div class="test ' + status + '" ' + onclick + '>' +
         cb +
         '<span class="id">' + t.id + '</span>' +
-        '<div class="label">' + t.label + badge + errHtml + '</div>' +
+        '<div class="label">' + t.label + badge + errHtml + commentHtml + '</div>' +
         '</div>';
     });
     html += '</div>';
@@ -412,6 +441,49 @@ function render() {
 }
 
 render();
+
+function exportResults() {
+  var allTests = SECTIONS.flatMap(function(s){ return s.tests; });
+  var lines = ['FitSoleil Test Report — ' + new Date().toLocaleString(),''];
+  var pass=0, fail=0, pending=0;
+  SECTIONS.forEach(function(s) {
+    lines.push('## ' + s.title);
+    s.tests.forEach(function(t) {
+      var r = results[t.id] || {};
+      var status = r.status || 'pending';
+      var icon = status==='pass' ? '✓' : status==='fail' ? '✗' : '○';
+      var comment = comments[t.id] ? ' // ' + comments[t.id] : '';
+      lines.push('  ' + icon + ' ' + t.id + ' [' + t.type.toUpperCase() + '] ' + t.label + comment);
+      if (r.msg) lines.push('    ERROR: ' + r.msg);
+      if (status==='pass') pass++;
+      else if (status==='fail') fail++;
+      else pending++;
+    });
+    lines.push('');
+  });
+  lines.push('SUMMARY: ' + pass + ' pass, ' + fail + ' fail, ' + pending + ' pending');
+  var text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(function(){
+    log('Report copied to clipboard — paste into Claude', 'ok');
+  }).catch(function(){
+    // Fallback: show in log
+    log('Clipboard failed — copy from here:', 'err');
+    text.split('\n').forEach(function(l){ log(l, 'info'); });
+  });
+}
+
+function setComment(id, val) {
+  if (val.trim()) comments[id] = val.trim();
+  else delete comments[id];
+}
+
+function toggleManualOld(id) {
+  var cur = (results[id] || {}).status;
+  if (cur === 'pass') setResult(id, 'fail');
+  else if (cur === 'fail') delete results[id];
+  else setResult(id, 'pass');
+  render();
+}
 </script>
 </body>
 </html>

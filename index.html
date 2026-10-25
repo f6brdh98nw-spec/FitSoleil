@@ -2989,9 +2989,11 @@ function loadState() {
   if (!state.workoutSchedule) state.workoutSchedule = {};
   if (!Array.isArray(state.workoutTemplates)) state.workoutTemplates = [];
   if (!Array.isArray(state.savedWorkouts)) state.savedWorkouts = [];
+  if (state.activeSession === undefined) state.activeSession = null;
 }
 
 function saveState() {
+  state.activeSession = _wkSession;
   try { localStorage.setItem('fitsol_v2', JSON.stringify(state)); } catch(e) {}
 }
 
@@ -3008,7 +3010,6 @@ function initApp() {
   loadSettingsFields();
   renderMealPlanGrid();
   renderGoals();
-  renderWorkoutPlans();
   updateStreakDisplay();
   if (state.activeFast && !fastTimer) fastTimer = setInterval(() => { updateFastDisplay(); updateHomeFastTile(); }, 1000);
 }
@@ -6115,6 +6116,7 @@ function wkTickTimer() {
 }
 
 function wkRenderToday() {
+  if (!_wkSession && state.activeSession) _wkSession = state.activeSession;
   var dates = _wkWeekDates(_wkTodayWeekOff);
   var today = localDateStr(new Date());
   var weekISO = localDateStr(dates[0]);
@@ -6187,6 +6189,7 @@ function wkEndSession() {
     state.workoutLog = state.workoutLog||{};
     state.workoutLog[dateKey] = {name:_wkSession.name,startTime:_wkSession.startTime,endTime:Date.now(),exercises:JSON.parse(JSON.stringify(_wkSession.exercises))};
     _wkSession = null;
+    state.activeSession = null;
     saveState();
     wkRenderToday();
     showToast('Workout saved!');
@@ -6349,6 +6352,8 @@ function wkConfirmAddExercise() {
     closeModal('modal-wk-add-ex');wkRenderEditorExercises();
   }
 }
+
+var wkConfirmAddEx = wkConfirmAddExercise;
 
 function wkOpenUsePlan(){
   var list=document.getElementById('modal-wk-use-plan-list');if(!list)return;
