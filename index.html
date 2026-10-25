@@ -2706,72 +2706,162 @@ function loadTestData() {
     {start: daysAgo(9), end: daysAgo(4)},
   ];
 
-  // ── Workouts ─────────────────────────────────────────────────────────────
-  const workouts = [];
-  const exLib = [
-    {name:'Bench Press',sets:[{reps:8,weight:60,done:true},{reps:8,weight:62.5,done:true},{reps:8,weight:65,done:true}]},
-    {name:'Squat',sets:[{reps:8,weight:80,done:true},{reps:8,weight:82.5,done:true},{reps:8,weight:85,done:true}]},
-    {name:'Deadlift',sets:[{reps:5,weight:100,done:true},{reps:5,weight:100,done:true}]},
-    {name:'Overhead Press',sets:[{reps:10,weight:40,done:true},{reps:10,weight:40,done:true},{reps:10,weight:42.5,done:true}]},
-    {name:'Pull-up',sets:[{reps:8,weight:0,done:true},{reps:7,weight:0,done:true},{reps:6,weight:0,done:true}]},
-  ];
-  for (var week=5; week>=0; week--) {
-    [2,4,6].forEach(function(dayOfWeek) {
-      if (Math.random()>0.2) {
-        var baseDay = 41 - week*7;
-        var d = daysAgo(baseDay - dayOfWeek);
-        workouts.push({id:Date.now()-week*100000-dayOfWeek*1000, date:d,
-          name:dayOfWeek===2?'Push Day A':dayOfWeek===4?'Leg Day':'Pull Day',
-          exercises:[exLib[dayOfWeek%5],exLib[(dayOfWeek+1)%5]],
-          duration:45+Math.floor(Math.random()*20), started:new Date(d+'T08:00:00').getTime()});
-      }
-    });
-  }
-  workouts.push({id:Date.now()-1000, date:daysAgo(1), name:'Push Day A',
-    exercises:[exLib[0],exLib[3],exLib[4]], duration:52, started:new Date(daysAgo(1)+'T07:30:00').getTime()});
+  // ── Saved workouts (new model) ────────────────────────────────────────────
+  const swUpperA = 'sw-upper-a';
+  const swLowerA = 'sw-lower-a';
+  const swAbs    = 'sw-abs-thighs';
+  const swCardio = 'sw-cardio';
 
-  // Plans
-  const todayDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
-  const pushDays = ['Monday','Thursday'];
-  if (!pushDays.includes(todayDayName)) pushDays.push(todayDayName);
-  const cardioDays = ['Tuesday','Friday'];
-  if (!cardioDays.includes(todayDayName)) cardioDays.push(todayDayName);
-  const plans = [
+  const savedWorkouts = [
     {
-      id:101,
-      name:'Push Day A',
-      days: pushDays,
-      exercises:[
-        {name:'Bench Press',sets:3,reps:8},
-        {name:'Overhead Press',sets:3,reps:10},
-        {name:'Cable Fly',sets:3,reps:12},
-        {name:'Lateral Raise',sets:3,reps:15},
-        {name:'Tricep Pushdown',sets:3,reps:12},
+      id: swUpperA, name: 'Upper A',
+      exercises: [
+        {name:'Bench Press',     type:'lift',       target:'4 × 6–10'},
+        {name:'Barbell Row',     type:'lift',       target:'4 × 8–10'},
+        {name:'Overhead Press',  type:'lift',       target:'3 × 10'},
+        {name:'Lateral Raise',   type:'bodyweight', metric:'reps', target:'3 × 15'},
+        {name:'Tricep Pushdown', type:'lift',       target:'3 × 12'},
       ],
     },
     {
-      id:102,
-      name:'Leg Day',
-      days:['Wednesday','Saturday'],
-      exercises:[
-        {name:'Squat',sets:4,reps:8},
-        {name:'Leg Press',sets:3,reps:12},
-        {name:'Romanian Deadlift',sets:3,reps:10},
-        {name:'Leg Extension',sets:3,reps:15},
-        {name:'Calf Raise',sets:4,reps:20},
+      id: swLowerA, name: 'Lower A',
+      exercises: [
+        {name:'Squat',              type:'lift',       target:'4 × 6–8'},
+        {name:'Romanian Deadlift',  type:'lift',       target:'3 × 10'},
+        {name:'Leg Press',          type:'lift',       target:'3 × 12'},
+        {name:'Side Plank',         type:'timed-hold', target:'3 × 30s'},
+        {name:'Single Calf Raise L',type:'rehab'},
+        {name:'Single Calf Raise R',type:'rehab'},
       ],
     },
     {
-      id:103,
-      name:'Morning Cardio',
-      days: cardioDays,
-      exercises:[
-        {name:'Treadmill run',sets:1,reps:1},
-        {name:'Rowing machine',sets:1,reps:1},
-        {name:'Jump rope',sets:3,reps:1},
+      id: swAbs, name: 'Abs & Thighs',
+      exercises: [
+        {name:'Sit Ups',     type:'bodyweight', metric:'reps', target:'3 × AMRAP'},
+        {name:'Leg Raise',   type:'bodyweight', metric:'reps', target:'3 × 15'},
+        {name:'Crunches',    type:'bodyweight', metric:'reps', target:'3 × 20'},
+        {name:'Side Plank',  type:'timed-hold', target:'30s each side'},
+      ],
+    },
+    {
+      id: swCardio, name: 'Morning Cardio',
+      exercises: [
+        {name:'Morning Run',  type:'cardio-distance'},
+        {name:'Groove',       type:'cardio-duration'},
       ],
     },
   ];
+
+  // ── Workout schedule: current week + next week ────────────────────────────
+  // Monday of current week as ISO string
+  function mondayISO(offsetWeeks) {
+    var d = new Date(now);
+    d.setDate(now.getDate() - daysFromMon + offsetWeeks * 7);
+    return localStr(d);
+  }
+  const thisWeekISO = mondayISO(0);
+  const nextWeekISO = mondayISO(1);
+  const workoutSchedule = {};
+  workoutSchedule[thisWeekISO] = {0:swUpperA, 1:'rest', 2:swLowerA, 3:swAbs, 4:swUpperA, 5:swCardio, 6:'rest'};
+  workoutSchedule[nextWeekISO] = {0:swLowerA, 1:'rest', 2:swUpperA, 3:swAbs, 4:swLowerA, 5:swCardio, 6:'rest'};
+
+  // ── Workout templates ─────────────────────────────────────────────────────
+  const workoutTemplates = [
+    {
+      id: 'tmpl-q4', name: 'Q4 Programme', savedAt: daysAgo(7),
+      week: {0:swUpperA, 1:'rest', 2:swLowerA, 3:swAbs, 4:swUpperA, 5:swCardio, 6:'rest'},
+    },
+  ];
+
+  // ── Workout log: 6 weeks of history for exercise progress charts ──────────
+  const workoutLog = {};
+  // Helper: build a lift log entry with slight progression
+  function liftSession(date, workoutName, benchKg, sqKg, ohpKg) {
+    var d = date;
+    return {
+      name: workoutName,
+      startTime: new Date(d+'T07:30:00').getTime(),
+      endTime:   new Date(d+'T08:25:00').getTime(),
+      exercises: [
+        {name:'Bench Press', type:'lift', sets:[
+          {kg:benchKg,      reps:8, done:true},
+          {kg:benchKg,      reps:8, done:true},
+          {kg:benchKg+2.5,  reps:7, done:true},
+          {kg:benchKg+2.5,  reps:6, done:true},
+        ]},
+        {name:'Barbell Row', type:'lift', sets:[
+          {kg:benchKg-5,    reps:10,done:true},
+          {kg:benchKg-5,    reps:9, done:true},
+          {kg:benchKg-2.5,  reps:8, done:true},
+          {kg:benchKg-2.5,  reps:8, done:true},
+        ]},
+        {name:'Overhead Press', type:'lift', sets:[
+          {kg:ohpKg,    reps:10, done:true},
+          {kg:ohpKg,    reps:10, done:true},
+          {kg:ohpKg+2.5,reps:8,  done:true},
+        ]},
+        {name:'Lateral Raise', type:'bodyweight', metric:'reps', sets:[
+          {value:15, done:true},
+          {value:15, done:true},
+          {value:12, done:true},
+        ]},
+      ],
+    };
+  }
+  function lowerSession(date, sqKg) {
+    return {
+      name: 'Lower A',
+      startTime: new Date(date+'T07:30:00').getTime(),
+      endTime:   new Date(date+'T08:30:00').getTime(),
+      exercises: [
+        {name:'Squat', type:'lift', sets:[
+          {kg:sqKg,     reps:8, done:true},
+          {kg:sqKg,     reps:8, done:true},
+          {kg:sqKg+2.5, reps:7, done:true},
+          {kg:sqKg+2.5, reps:6, done:true},
+        ]},
+        {name:'Romanian Deadlift', type:'lift', sets:[
+          {kg:sqKg-10, reps:10, done:true},
+          {kg:sqKg-10, reps:10, done:true},
+          {kg:sqKg-7.5,reps:9,  done:true},
+        ]},
+        {name:'Side Plank', type:'timed-hold', sets:[
+          {seconds:30, done:true},
+          {seconds:30, done:true},
+          {seconds:25, done:true},
+        ]},
+        {name:'Single Calf Raise L', type:'rehab', rounds:3},
+        {name:'Single Calf Raise R', type:'rehab', rounds:3},
+      ],
+    };
+  }
+  // 6 weeks of Upper A + Lower A, Mon/Wed/Fri pattern
+  var benchStart = 52.5, sqStart = 67.5, ohpStart = 32.5;
+  for (var wk = 5; wk >= 0; wk--) {
+    var monOff = daysFromMon + wk * 7;
+    var monDate = daysAgo(monOff);
+    var wedDate = daysAgo(monOff - 2);
+    var friDate = daysAgo(monOff - 4);
+    var prog = (5 - wk);  // 0 at oldest week, 5 at most recent
+    var benchKg = benchStart + prog * 2.5;
+    var sqKg    = sqStart    + prog * 2.5;
+    var ohpKg   = ohpStart   + prog * 1.25;
+    if (monOff > 0)  workoutLog[monDate] = liftSession(monDate,  'Upper A', benchKg, sqKg, ohpKg);
+    if (monOff > -2) workoutLog[wedDate] = lowerSession(wedDate, sqKg);
+    if (monOff > -4) workoutLog[friDate] = liftSession(friDate,  'Upper A', benchKg + 1.25, sqKg, ohpKg);
+  }
+  // Yesterday: lower session
+  workoutLog[daysAgo(1)] = lowerSession(daysAgo(1), sqStart + 5 * 2.5 + 2.5);
+  // Cardio session 3 days ago
+  workoutLog[daysAgo(3)] = {
+    name: 'Morning Cardio',
+    startTime: new Date(daysAgo(3)+'T06:45:00').getTime(),
+    endTime:   new Date(daysAgo(3)+'T07:35:00').getTime(),
+    exercises: [
+      {name:'Morning Run', type:'cardio-distance', distanceKm:4.2, timeSeconds:1470, paceSecPerKm:350},
+      {name:'Groove',      type:'cardio-duration', timeSeconds:1800, notes:'7:00–7:30am'},
+    ],
+  };
 
   // Goals — 5 types matching new model
   const goals = [
@@ -2840,7 +2930,10 @@ function loadTestData() {
     weightLog,
     logs,
     customFoods,
-    workouts,
+    savedWorkouts,
+    workoutLog,
+    workoutSchedule,
+    workoutTemplates,
     fastLog,
     activeFast,
     fastingProtocol: '16:8',
@@ -2848,7 +2941,6 @@ function loadTestData() {
     cycleLog,
     recipes,
     mealPlan,
-    plans,
     goals,
     weeklyReviews,
     reviews: weeklyReviews,
