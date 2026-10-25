@@ -2990,6 +2990,8 @@ function loadState() {
   if (!Array.isArray(state.workoutTemplates)) state.workoutTemplates = [];
   if (!Array.isArray(state.savedWorkouts)) state.savedWorkouts = [];
   if (state.activeSession === undefined) state.activeSession = null;
+  if (!state.targets) state.targets = { calories:1800, protein:135, carbs:185, fat:60, fibre:25, water:2000 };
+  if (!state.profile) state.profile = {};
 }
 
 function saveState() {
@@ -4303,6 +4305,11 @@ function renderFastingForDate() {
   }
 }
 
+function startPlan(id) {
+  var sw = (state.savedWorkouts||[]).find(function(w){ return w.id===id; });
+  navigate('workout');
+  wkBeginSession(sw||null);
+}
 function startPlanInline(planId) {
   state.activeWorkout = { planId, startTime: new Date().toISOString(), date: state.activeDate };
   saveState();
@@ -6182,9 +6189,9 @@ function _wkLastKg(exName) {
   }
   return '';
 }
-function wkEndSession() {
+function wkEndSession(skipConfirm) {
   if (!_wkSession) return;
-  showConfirmSheet({title:'End session?',message:'This will save your workout to the log.',confirmText:'End',confirmClass:'btn-danger',onConfirm:function(){
+  function doEnd() {
     var dateKey = localDateStr(new Date());
     state.workoutLog = state.workoutLog||{};
     state.workoutLog[dateKey] = {name:_wkSession.name,startTime:_wkSession.startTime,endTime:Date.now(),exercises:JSON.parse(JSON.stringify(_wkSession.exercises))};
@@ -6193,7 +6200,9 @@ function wkEndSession() {
     saveState();
     wkRenderToday();
     showToast('Workout saved!');
-  }});
+  }
+  if (skipConfirm) { doEnd(); return; }
+  showConfirmSheet({title:'End session?',message:'This will save your workout to the log.',confirmText:'End',confirmClass:'btn-danger',onConfirm:doEnd});
 }
 
 function _wkTypePill(type) {
@@ -6206,22 +6215,24 @@ function wkRenderExerciseCards() {
   return (_wkSession.exercises||[]).map(function(ex,i){return wkBuildExerciseCard(ex,i);}).join('');
 }
 function wkBuildExerciseCard(ex,i) {
-  var html = '<div class="card" style="margin-bottom:8px">';
+  var html = '<div class="card" id="wk-card-'+i+'" style="margin-bottom:8px">';
   html += '<div class="row-between" style="margin-bottom:8px"><span style="font-weight:600">'+ex.name+'</span>';
   html += '<div style="display:flex;gap:6px;align-items:center">'+_wkTypePill(ex.type);
   if (ex.target) html += '<span style="font-size:11px;color:var(--txt2)">'+ex.target+'</span>';
   html += '</div></div>';
   if (ex.type==='lift') {
     html += '<div style="display:grid;grid-template-columns:28px 1fr 1fr 32px;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>kg</span><span>Reps</span><span></span></div>';
+    html += '<div id="wk-sets-'+i+'">';
     (ex.sets||[]).forEach(function(set,si) {
       var bg = set.done?'background:rgba(240,124,58,0.08);border-color:var(--orange)':'';
       var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
-      html += '<div style="display:grid;grid-template-columns:28px 1fr 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
+      html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
       html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
       html += '<input type="text" inputmode="decimal" value="'+(set.kg||'')+'" placeholder="kg" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'kg\',this.value)"/>';
       html += '<input type="text" inputmode="decimal" value="'+(set.reps||'')+'" placeholder="reps" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'reps\',this.value)"/>';
-      html += '<button class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
+      html += '<button id="wk-tick-'+i+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
     });
+    html += '</div>';
     html += '<button class="btn btn-sm btn-outline" style="margin-top:4px" onclick="wkAddSet('+i+')">+ Set</button>';
   } else if (ex.type==='bodyweight') {
     var metric = ex.metric||'reps';
@@ -6229,26 +6240,30 @@ function wkBuildExerciseCard(ex,i) {
     html += '<span class="exercise-tag'+(metric==='reps'?' selected':'')+'" onclick="wkToggleBwMetric('+i+',\'reps\')">Reps</span>';
     html += '<span class="exercise-tag'+(metric==='time'?' selected':'')+'" onclick="wkToggleBwMetric('+i+',\'time\')">Time</span></div>';
     html += '<div style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>'+(metric==='reps'?'Reps':'Time (sec)')+'</span><span></span></div>';
+    html += '<div id="wk-sets-'+i+'">';
     (ex.sets||[]).forEach(function(set,si) {
       var bg = set.done?'background:rgba(240,124,58,0.08);border-color:var(--orange)':'';
       var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
-      html += '<div style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
+      html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
       html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
       html += '<input type="text" inputmode="decimal" value="'+(set.value||'')+'" placeholder="'+(metric==='reps'?'reps':'sec')+'" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'value\',this.value)"/>';
-      html += '<button class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
+      html += '<button id="wk-tick-'+i+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
     });
+    html += '</div>';
     html += '<button class="btn btn-sm btn-outline" style="margin-top:4px" onclick="wkAddSet('+i+')">+ Set</button>';
   } else if (ex.type==='timed-hold') {
     html += '<div style="font-size:12px;color:var(--txt2);margin-bottom:6px">Duration per set (seconds)</div>';
     html += '<div style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>Seconds</span><span></span></div>';
+    html += '<div id="wk-sets-'+i+'">';
     (ex.sets||[]).forEach(function(set,si) {
       var bg = set.done?'background:rgba(240,124,58,0.08);border-color:var(--orange)':'';
       var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
-      html += '<div style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
+      html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
       html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
       html += '<input type="text" inputmode="decimal" value="'+(set.seconds||'')+'" placeholder="sec" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'seconds\',this.value)"/>';
-      html += '<button class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
+      html += '<button id="wk-tick-'+i+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
     });
+    html += '</div>';
     html += '<button class="btn btn-sm btn-outline" style="margin-top:4px" onclick="wkAddSet('+i+')">+ Set</button>';
   } else if (ex.type==='cardio-distance') {
     var pace = '';
@@ -6273,14 +6288,42 @@ function wkBuildExerciseCard(ex,i) {
   return html;
 }
 
-function wkTickSet(exIdx,setIdx) { if(!_wkSession)return; _wkSession.exercises[exIdx].sets[setIdx].done=!_wkSession.exercises[exIdx].sets[setIdx].done; wkRenderToday(); }
+function wkTickSet(exIdx,setIdx) {
+  if(!_wkSession)return;
+  var set=_wkSession.exercises[exIdx].sets[setIdx];
+  set.done=!set.done;
+  saveState();
+  var rowEl=document.getElementById('wk-set-row-'+exIdx+'-'+setIdx);
+  var tickEl=document.getElementById('wk-tick-'+exIdx+'-'+setIdx);
+  if(rowEl){rowEl.querySelectorAll('input').forEach(function(inp){inp.style.background=set.done?'rgba(240,124,58,0.08)':'#22222E';inp.style.borderColor=set.done?'var(--orange)':'';}); }
+  if(tickEl){if(set.done){tickEl.style.background='#F07C3A';tickEl.style.borderColor='#F07C3A';tickEl.style.color='#fff';}else{tickEl.style.background='none';tickEl.style.borderColor='var(--border)';tickEl.style.color='transparent';}}
+}
 function wkAddSet(exIdx) {
   if(!_wkSession)return;
   var ex=_wkSession.exercises[exIdx];
-  if(ex.type==='lift'){var p=ex.sets[ex.sets.length-1]||{};ex.sets.push({kg:p.kg||'',reps:'',done:false});}
-  else if(ex.type==='bodyweight'){ex.sets.push({value:'',done:false});}
-  else if(ex.type==='timed-hold'){var p2=ex.sets[ex.sets.length-1]||{};ex.sets.push({seconds:p2.seconds||30,done:false});}
-  wkRenderToday();
+  var si;
+  if(ex.type==='lift'){var p=ex.sets[ex.sets.length-1]||{};ex.sets.push({kg:p.kg||'',reps:'',done:false});si=ex.sets.length-1;}
+  else if(ex.type==='bodyweight'){ex.sets.push({value:'',done:false});si=ex.sets.length-1;}
+  else if(ex.type==='timed-hold'){var p2=ex.sets[ex.sets.length-1]||{};ex.sets.push({seconds:p2.seconds||30,done:false});si=ex.sets.length-1;}
+  else return;
+  saveState();
+  var setsEl=document.getElementById('wk-sets-'+exIdx);
+  if(!setsEl)return;
+  var set=ex.sets[si];
+  var cols=ex.type==='lift'?'28px 1fr 1fr 32px':'28px 1fr 32px';
+  var row='<div id="wk-set-row-'+exIdx+'-'+si+'" style="display:grid;grid-template-columns:'+cols+';gap:4px;align-items:center;margin-bottom:4px">';
+  row+='<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
+  if(ex.type==='lift'){
+    row+='<input type="text" inputmode="decimal" value="'+(set.kg||'')+'" placeholder="kg" style="background:#22222E" onchange="wkSetVal('+exIdx+','+si+',\'kg\',this.value)"/>';
+    row+='<input type="text" inputmode="decimal" value="" placeholder="reps" style="background:#22222E" onchange="wkSetVal('+exIdx+','+si+',\'reps\',this.value)"/>';
+  } else if(ex.type==='bodyweight'){
+    var metric=ex.metric||'reps';
+    row+='<input type="text" inputmode="decimal" value="" placeholder="'+(metric==='reps'?'reps':'sec')+'" style="background:#22222E" onchange="wkSetVal('+exIdx+','+si+',\'value\',this.value)"/>';
+  } else if(ex.type==='timed-hold'){
+    row+='<input type="text" inputmode="decimal" value="'+(set.seconds||'')+'" placeholder="sec" style="background:#22222E" onchange="wkSetVal('+exIdx+','+si+',\'seconds\',this.value)"/>';
+  }
+  row+='<button id="wk-tick-'+exIdx+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;background:none;border:2px solid var(--border);color:transparent;font-size:12px" onclick="wkTickSet('+exIdx+','+si+')">&#10003;</button></div>';
+  setsEl.insertAdjacentHTML('beforeend',row);
 }
 function wkSetVal(exIdx,setIdx,field,val){if(_wkSession)_wkSession.exercises[exIdx].sets[setIdx][field]=val;}
 function wkExVal(exIdx,field,val){if(_wkSession)_wkSession.exercises[exIdx][field]=val;}
@@ -6307,8 +6350,20 @@ function wkCardioTimeInput(exIdx,val){
   }
   saveState();
 }
-function wkToggleBwMetric(exIdx,metric){if(_wkSession){_wkSession.exercises[exIdx].metric=metric;wkRenderToday();}}
-function wkRehabRounds(exIdx,r){if(_wkSession){_wkSession.exercises[exIdx].rounds=r;wkRenderToday();}}
+function wkToggleBwMetric(exIdx,metric){
+  if(!_wkSession)return;
+  _wkSession.exercises[exIdx].metric=metric;
+  saveState();
+  var cardEl=document.getElementById('wk-card-'+exIdx);
+  if(cardEl){var tmp=document.createElement('div');tmp.innerHTML=wkBuildExerciseCard(_wkSession.exercises[exIdx],exIdx);cardEl.parentNode.replaceChild(tmp.firstChild,cardEl);}
+}
+function wkRehabRounds(exIdx,r){
+  if(!_wkSession)return;
+  _wkSession.exercises[exIdx].rounds=r;
+  saveState();
+  var cardEl=document.getElementById('wk-card-'+exIdx);
+  if(cardEl){var tmp=document.createElement('div');tmp.innerHTML=wkBuildExerciseCard(_wkSession.exercises[exIdx],exIdx);cardEl.parentNode.replaceChild(tmp.firstChild,cardEl);}
+}
 
 function wkOpenAddExercise(context) {
   _wkEditorContext=context;

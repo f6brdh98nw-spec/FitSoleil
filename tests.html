@@ -3,6 +3,7 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FitSoleil — Automated Test Runner</title>
+<script src="testdata.js" data-manual="true"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#0F0F13;color:#F0EEE8;font-size:13px;height:100vh;display:flex;flex-direction:column}
@@ -78,8 +79,8 @@ iframe{width:100%;height:100%;border:none;display:block}
       <button class="ctrl-btn primary" id="btn-run-all" onclick="runAll()">&#9654; Run all auto</button>
       <button class="ctrl-btn" id="btn-reset-app" onclick="resetApp()">Reset app</button>
       <button class="ctrl-btn" onclick="clearResults()">Clear results</button>
+      <button class="ctrl-btn" onclick="loadTestData()" style="background:rgba(96,165,250,0.15);color:#60A5FA;border-color:rgba(96,165,250,0.3)">&#128190; Load test data</button>
       <button class="ctrl-btn" onclick="exportResults()" style="background:rgba(192,132,252,0.15);color:#C084FC;border-color:rgba(192,132,252,0.3)">&#128203; Copy report</button>
-      <button class="ctrl-btn" onclick="loadTestDataIntoApp()" style="background:rgba(240,124,58,0.1);color:#F07C3A;border-color:rgba(240,124,58,0.3)">&#128196; Load test data</button>
     </div>
 
     <div class="log-box" id="log-box"><span class="log-line info">Ready. Load app then run tests.</span></div>
@@ -99,7 +100,7 @@ iframe{width:100%;height:100%;border:none;display:block}
 var SECTIONS = [
   { title: "Core infrastructure", tests: [
     { id:"C.01", type:"auto", label:"state object exists and has expected keys",
-      run: function(app){ var s=app.state; return s && 'logs' in s && 'savedWorkouts' in s; } },
+      run: function(app){ var s=app.state; return s && 'logs' in s && 'targets' in s && 'profile' in s; } },
     { id:"C.02", type:"auto", label:"saveState() writes to localStorage fitsol_v2",
       run: function(app){ app.saveState(); var d=app.localStorage.getItem('fitsol_v2'); return !!d && d.length > 10; } },
     { id:"C.03", type:"auto", label:"openModal / closeModal functions exist",
@@ -185,9 +186,8 @@ var SECTIONS = [
     },
     { id:"W.09", type:"auto", label:"Lift exercise card renders kg and reps columns",
       run: function(app){
-        // Check DOM for kg/reps column headers in exercise log
-        var log = app.document.getElementById('exercise-log-list') || app.document.getElementById('wk-exercise-log');
-        if (!log) return {pass:false, msg:'exercise log container not found'};
+        var log = app.document.getElementById('wk-today-content');
+        if (!log) return {pass:false, msg:'wk-today-content container not found'};
         var html = log.innerHTML.toLowerCase();
         return html.includes('kg') && html.includes('rep');
       }
@@ -236,6 +236,20 @@ var SECTIONS = [
         var fn = (app.wkCardioDistInput || '').toString();
         return fn && !fn.includes('wkRenderToday') && !fn.includes('renderExerciseLog');
       }
+    },
+    { id:"W.13b", type:"auto", label:"wkTickSet does NOT call wkRenderToday (causes input reset bug)",
+      run: function(app){
+        var fn = (app.wkTickSet || '').toString();
+        // wkTickSet calling wkRenderToday destroys input values mid-type
+        // Should instead do targeted DOM update only
+        return fn && !fn.includes('wkRenderToday');
+      }
+    },
+    { id:"W.13c", type:"auto", label:"wkAddSet does NOT call wkRenderToday",
+      run: function(app){
+        var fn = (app.wkAddSet || '').toString();
+        return fn && !fn.includes('wkRenderToday');
+      }
     }
   ]},
   { title: "Workout — session end & state", tests: [
@@ -243,19 +257,26 @@ var SECTIONS = [
       run: function(app){
         app.wkBeginSession({ id:'endtest', name:'End Test', exercises:[] });
         var dateKey = new Date().toISOString().slice(0,10);
-        if (typeof app.endWorkout==='function') app.endWorkout(true); // pass true to skip confirm
-        else if (typeof app.wkEndSession==='function') app.wkEndSession(true);
-        return app.state.workoutLog && app.state.workoutLog[dateKey];
+        // Try all known end-session function names
+        if (typeof app.wkEndSession==='function') app.wkEndSession(true);
+        else if (typeof app.endWorkout==='function') app.endWorkout(true);
+        else if (typeof app.wkConfirmEnd==='function') app.wkConfirmEnd();
+        var log = app.state.workoutLog || app.state.workouts;
+        if (!log) return {pass:false, msg:'no workoutLog or workouts in state'};
+        // workoutLog is keyed by date; workouts is an array
+        if (Array.isArray(log)) return log.length > 0;
+        return !!log[dateKey];
       }
     },
     { id:"W.15", type:"auto", label:"workoutSchedule saved in state after assigning a plan to a day",
       run: function(app){
+        // workoutSchedule is initialised at runtime — ensure it exists
         if (!app.state.workoutSchedule) app.state.workoutSchedule = {};
         var weekKey = '2026-10-19';
         app.state.workoutSchedule[weekKey] = app.state.workoutSchedule[weekKey] || {};
         app.state.workoutSchedule[weekKey][0] = 'test-plan-id';
         app.saveState();
-        var saved = JSON.parse(app.localStorage.getItem('fitsol_v2'));
+        var saved = JSON.parse(app.localStorage.getItem('fitsol_v2') || '{}');
         return saved.workoutSchedule && saved.workoutSchedule[weekKey] && saved.workoutSchedule[weekKey][0] === 'test-plan-id';
       }
     }
@@ -272,7 +293,6 @@ var SECTIONS = [
 
 // ─── State ──────────────────────────────────────────────────────────────────
 var results = {};
-var comments = {};
 var running = false;
 var app = null;
 
@@ -304,15 +324,14 @@ function resetApp() {
   log('App reset', 'info');
 }
 
-function loadTestDataIntoApp() {
+function loadTestData() {
   if (!app) { log('App not loaded yet', 'err'); return; }
   try {
-    if (typeof app.loadTestData === 'function') {
-      app.loadTestData();
-      app.saveState();
-      log('Test data loaded via loadTestData()', 'ok');
+    if (typeof window.seedTestData === 'function') {
+      window.seedTestData(app);
+      log('Test data loaded into app', 'ok');
     } else {
-      log('loadTestData() not found in app', 'err');
+      log('seedTestData not available — ensure testdata.js loaded', 'err');
     }
   } catch(e) {
     log('Error loading test data: ' + e.message, 'err');
@@ -472,17 +491,11 @@ function exportResults() {
   });
 }
 
+var comments = {};
+
 function setComment(id, val) {
   if (val.trim()) comments[id] = val.trim();
   else delete comments[id];
-}
-
-function toggleManualOld(id) {
-  var cur = (results[id] || {}).status;
-  if (cur === 'pass') setResult(id, 'fail');
-  else if (cur === 'fail') delete results[id];
-  else setResult(id, 'pass');
-  render();
 }
 </script>
 </body>
