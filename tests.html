@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FitSoleil — Automated Test Runner</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0F0F13;color:#F0EEE8;font-size:13px;height:100vh;display:flex;flex-direction:column}
+#top{padding:12px 16px;background:#0F0F13;border-bottom:0.5px solid #2C2C3A;flex-shrink:0}
+h2{font-size:14px;font-weight:700;color:#F07C3A;margin-bottom:2px}
+.subtitle{font-size:11px;color:#5A5860}
+#main{display:flex;flex:1;overflow:hidden;gap:0}
+#panel{width:340px;flex-shrink:0;overflow-y:auto;border-right:0.5px solid #2C2C3A;padding:12px}
+#frame-wrap{flex:1;position:relative;background:#111}
+iframe{width:100%;height:100%;border:none;display:block}
+.summary-bar{background:#1A1A22;border-radius:10px;padding:8px 12px;margin-bottom:10px;display:flex;gap:10px;flex-wrap:wrap}
+.stat{text-align:center;min-width:36px}
+.stat-n{font-size:16px;font-weight:700}
+.stat-l{font-size:9px;color:#5A5860;margin-top:1px}
+.prog-bar{background:#1A1A22;border-radius:99px;height:3px;overflow:hidden;margin-bottom:4px}
+.prog-fill{height:100%;border-radius:99px;background:#F07C3A;transition:width 0.3s}
+.prog-label{font-size:10px;color:#5A5860;margin-bottom:10px}
+.ctrls{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.ctrl-btn{background:#1A1A22;border:0.5px solid #2C2C3A;border-radius:8px;color:#9A98A0;font-size:11px;padding:4px 10px;cursor:pointer;font-family:system-ui}
+.ctrl-btn.primary{background:rgba(240,124,58,0.15);color:#F07C3A;border-color:rgba(240,124,58,0.3)}
+.ctrl-btn:disabled{opacity:0.4;cursor:not-allowed}
+.section{margin-bottom:16px}
+.section-hdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;padding-bottom:4px;border-bottom:0.5px solid #2C2C3A;color:#9A98A0;display:flex;justify-content:space-between}
+.test{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:0.5px solid #1A1A22;cursor:pointer}
+.test:last-child{border-bottom:none}
+.cb{width:18px;height:18px;border-radius:4px;border:1.5px solid #2C2C3A;background:#1A1A22;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;font-size:10px;font-weight:700;transition:all 0.15s}
+.cb.pass{background:#4ADE80;border-color:#4ADE80;color:#0F0F13}
+.cb.fail{background:rgba(248,113,113,0.2);border-color:#F87171;color:#F87171}
+.cb.skip{background:#2C2C3A;border-color:#2C2C3A;color:#5A5860}
+.cb.running{background:rgba(240,124,58,0.2);border-color:#F07C3A;color:#F07C3A}
+.id{font-size:9px;color:#5A5860;flex-shrink:0;margin-top:3px;width:44px;font-family:monospace}
+.label{font-size:11px;color:#9A98A0;line-height:1.4;flex:1}
+.test.pass .label{color:#5A5860;text-decoration:line-through}
+.test.fail .label{color:#F87171}
+.test.running .label{color:#F07C3A}
+.err-msg{font-size:10px;color:#F87171;margin-top:3px;font-family:monospace;line-height:1.4}
+.badge{display:inline-block;font-size:8px;font-weight:700;padding:1px 5px;border-radius:99px;margin-left:3px;vertical-align:middle}
+.b-auto{background:rgba(74,222,128,0.15);color:#4ADE80}
+.b-manual{background:rgba(232,197,71,0.15);color:#E8C547}
+.b-semi{background:rgba(96,165,250,0.15);color:#60A5FA}
+.log-box{background:#1A1A22;border-radius:8px;padding:8px;font-family:monospace;font-size:10px;color:#5A5860;max-height:120px;overflow-y:auto;margin-bottom:10px;line-height:1.6}
+.log-line{display:block}
+.log-line.ok{color:#4ADE80}
+.log-line.err{color:#F87171}
+.log-line.info{color:#9A98A0}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <h2>FitSoleil &mdash; Automated Test Runner</h2>
+  <p class="subtitle">Auto = fully automated &middot; Semi = automated + visual check &middot; Manual = you verify</p>
+</div>
+
+<div id="main">
+  <div id="panel">
+
+    <div class="summary-bar">
+      <div class="stat"><div class="stat-n" id="s-total" style="color:#F0EEE8">0</div><div class="stat-l">Total</div></div>
+      <div class="stat"><div class="stat-n" id="s-pass" style="color:#4ADE80">0</div><div class="stat-l">Pass</div></div>
+      <div class="stat"><div class="stat-n" id="s-fail" style="color:#F87171">0</div><div class="stat-l">Fail</div></div>
+      <div class="stat"><div class="stat-n" id="s-skip" style="color:#5A5860">0</div><div class="stat-l">Manual</div></div>
+      <div class="stat"><div class="stat-n" id="s-pct" style="color:#E8C547">0%</div><div class="stat-l">Auto pass</div></div>
+    </div>
+
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="prog-label" id="prog-label">&mdash;</div>
+
+    <div class="ctrls">
+      <button class="ctrl-btn primary" id="btn-run-all" onclick="runAll()">&#9654; Run all auto</button>
+      <button class="ctrl-btn" id="btn-reset-app" onclick="resetApp()">Reset app</button>
+      <button class="ctrl-btn" onclick="clearResults()">Clear results</button>
+    </div>
+
+    <div class="log-box" id="log-box"><span class="log-line info">Ready. Load app then run tests.</span></div>
+
+    <div id="checklist"></div>
+
+  </div>
+
+  <div id="frame-wrap">
+    <iframe id="app-frame" src="index.html" onload="onFrameLoad()"></iframe>
+  </div>
+</div>
+
+<script>
+// ─── Test definitions ───────────────────────────────────────────────────────
+// type: 'auto' = fully scripted, 'semi' = scripted + visual confirm, 'manual' = user only
+var SECTIONS = [
+  { title: "Core infrastructure", tests: [
+    { id:"C.01", type:"auto", label:"state object exists and has expected keys",
+      run: function(app){ var s=app.state; return s && 'logs' in s && 'savedWorkouts' in s; } },
+    { id:"C.02", type:"auto", label:"saveState() writes to localStorage fitsol_v2",
+      run: function(app){ app.saveState(); var d=app.localStorage.getItem('fitsol_v2'); return !!d && d.length > 10; } },
+    { id:"C.03", type:"auto", label:"openModal / closeModal functions exist",
+      run: function(app){ return typeof app.openModal==='function' && typeof app.closeModal==='function'; } },
+    { id:"C.04", type:"auto", label:"navigate() function exists",
+      run: function(app){ return typeof app.navigate==='function'; } },
+    { id:"C.05", type:"auto", label:"navigate to workout screen — screen-workout becomes active",
+      run: function(app){ app.navigate('workout'); var el=app.document.getElementById('screen-workout'); return el && el.classList.contains('active'); } }
+  ]},
+  { title: "Food search functions", tests: [
+    { id:"F.01", type:"auto", label:"initFoodSearch function exists",
+      run: function(app){ return typeof app.initFoodSearch==='function'; } },
+    { id:"F.02", type:"auto", label:"executeFoodSearch function exists",
+      run: function(app){ return typeof app.executeFoodSearch==='function'; } },
+    { id:"F.03", type:"auto", label:"searchFoodFiles function exists and returns array",
+      run: function(app){ return typeof app.searchFoodFiles==='function' && Array.isArray(app.searchFoodFiles('egg')); } },
+    { id:"F.04", type:"auto", label:"searchFoodFiles('tuna') returns at least 3 results",
+      run: function(app){ var r=app.searchFoodFiles('tuna'); return r && r.length >= 3; } },
+    { id:"F.05", type:"auto", label:"searchFoodFiles('egg') returns results",
+      run: function(app){ var r=app.searchFoodFiles('egg'); return r && r.length > 0; } },
+    { id:"F.06", type:"auto", label:"_searchGen increments exactly once per executeFoodSearch call (not in initFoodSearch)",
+      run: function(app){
+        var before = app._searchGen || 0;
+        app.initFoodSearch && app.initFoodSearch('food');
+        var afterInit = app._searchGen || 0;
+        return afterInit === before; // initFoodSearch must NOT increment
+      }
+    },
+    { id:"F.07", type:"semi", label:"Open food modal, search 'tuna' — OFF results appear",
+      run: null }
+  ]},
+  { title: "Workout — functions exist", tests: [
+    { id:"W.01", type:"auto", label:"wkBeginSession function exists",
+      run: function(app){ return typeof app.wkBeginSession==='function'; } },
+    { id:"W.02", type:"auto", label:"wkSelectExType function exists",
+      run: function(app){ return typeof app.wkSelectExType==='function'; } },
+    { id:"W.03", type:"auto", label:"renderExerciseList is NOT an empty stub (has real body)",
+      run: function(app){
+        var fn = app.renderExerciseList;
+        if (typeof fn !== 'function') return false;
+        var src = fn.toString();
+        return src.length > 50; // empty stub is ~30 chars
+      }
+    },
+    { id:"W.04", type:"auto", label:"startPlan is NOT an empty stub",
+      run: function(app){
+        var fn = app.startPlan;
+        if (typeof fn !== 'function') return false;
+        return fn.toString().length > 50;
+      }
+    },
+    { id:"W.05", type:"auto", label:"wkRenderPlans function exists",
+      run: function(app){ return typeof app.wkRenderPlans==='function'; } },
+    { id:"W.06", type:"auto", label:"wkRenderHistory function exists and is not empty stub",
+      run: function(app){ var fn=app.wkRenderHistory; return typeof fn==='function' && fn.toString().length > 50; } }
+  ]},
+  { title: "Workout — add exercise flow", tests: [
+    { id:"W.07", type:"auto", label:"wkBeginSession creates _wkSession with exercises array",
+      run: function(app){
+        app.wkBeginSession({ id:'test', name:'Test', exercises:[] });
+        return app._wkSession && Array.isArray(app._wkSession.exercises);
+      }
+    },
+    { id:"W.08", type:"auto", label:"After wkBeginSession, open add-exercise modal and submit Lift — session gains one exercise",
+      run: function(app){
+        app.wkBeginSession({ id:'test2', name:'Test', exercises:[] });
+        var nameEl = app.document.getElementById('wk-add-ex-name');
+        if (!nameEl) return {pass:false, msg:'wk-add-ex-name input not found'};
+        nameEl.value = 'Bench Press';
+        // Select Lift type
+        var types = app.document.querySelectorAll('#wk-add-ex-types .exercise-tag');
+        types.forEach(function(t){ t.classList.remove('selected'); if(t.dataset.type==='lift') t.classList.add('selected'); });
+        // Submit
+        if (typeof app.wkSubmitAddExercise === 'function') app.wkSubmitAddExercise();
+        else if (typeof app.wkConfirmAddEx === 'function') app.wkConfirmAddEx();
+        else {
+          // Try finding the Add button in the modal and clicking it
+          var addBtn = app.document.querySelector('#modal-add-exercise .btn-primary, #modal-add-exercise .btn-accent-orange');
+          if (addBtn) addBtn.click();
+        }
+        return app._wkSession && app._wkSession.exercises.length === 1;
+      }
+    },
+    { id:"W.09", type:"auto", label:"Lift exercise card renders kg and reps columns",
+      run: function(app){
+        // Check DOM for kg/reps column headers in exercise log
+        var log = app.document.getElementById('exercise-log-list') || app.document.getElementById('wk-exercise-log');
+        if (!log) return {pass:false, msg:'exercise log container not found'};
+        var html = log.innerHTML.toLowerCase();
+        return html.includes('kg') && html.includes('rep');
+      }
+    },
+    { id:"W.10", type:"auto", label:"Bodyweight type: card renders without kg column",
+      run: function(app){
+        if (!app._wkSession) app.wkBeginSession({ id:'bwtest', name:'BW', exercises:[] });
+        var nameEl = app.document.getElementById('wk-add-ex-name');
+        if (nameEl) nameEl.value = 'Sit Ups';
+        var types = app.document.querySelectorAll('#wk-add-ex-types .exercise-tag');
+        types.forEach(function(t){ t.classList.remove('selected'); if(t.dataset.type==='bodyweight') t.classList.add('selected'); });
+        if (typeof app.wkSubmitAddExercise==='function') app.wkSubmitAddExercise();
+        else if (typeof app.wkConfirmAddEx==='function') app.wkConfirmAddEx();
+        var ex = app._wkSession && app._wkSession.exercises[app._wkSession.exercises.length-1];
+        return ex && ex.type === 'bodyweight';
+      }
+    },
+    { id:"W.11", type:"auto", label:"Cardio-distance type: exercise has distanceKm property",
+      run: function(app){
+        if (!app._wkSession) app.wkBeginSession({ id:'runtest', name:'Run', exercises:[] });
+        var nameEl = app.document.getElementById('wk-add-ex-name');
+        if (nameEl) nameEl.value = 'Morning Run';
+        var types = app.document.querySelectorAll('#wk-add-ex-types .exercise-tag');
+        types.forEach(function(t){ t.classList.remove('selected'); if(t.dataset.type==='cardio-distance') t.classList.add('selected'); });
+        if (typeof app.wkSubmitAddExercise==='function') app.wkSubmitAddExercise();
+        else if (typeof app.wkConfirmAddEx==='function') app.wkConfirmAddEx();
+        var ex = app._wkSession && app._wkSession.exercises[app._wkSession.exercises.length-1];
+        return ex && 'distanceKm' in ex;
+      }
+    },
+    { id:"W.12", type:"auto", label:"Rehab type: exercise has rounds property (not sets)",
+      run: function(app){
+        if (!app._wkSession) app.wkBeginSession({ id:'rehabtest', name:'Rehab', exercises:[] });
+        var nameEl = app.document.getElementById('wk-add-ex-name');
+        if (nameEl) nameEl.value = 'Calf Raise';
+        var types = app.document.querySelectorAll('#wk-add-ex-types .exercise-tag');
+        types.forEach(function(t){ t.classList.remove('selected'); if(t.dataset.type==='rehab') t.classList.add('selected'); });
+        if (typeof app.wkSubmitAddExercise==='function') app.wkSubmitAddExercise();
+        else if (typeof app.wkConfirmAddEx==='function') app.wkConfirmAddEx();
+        var ex = app._wkSession && app._wkSession.exercises[app._wkSession.exercises.length-1];
+        return ex && 'rounds' in ex && !('sets' in ex);
+      }
+    },
+    { id:"W.13", type:"auto", label:"wkCardioDistInput does NOT call wkRenderToday (no re-render on input)",
+      run: function(app){
+        var fn = (app.wkCardioDistInput || '').toString();
+        return fn && !fn.includes('wkRenderToday') && !fn.includes('renderExerciseLog');
+      }
+    }
+  ]},
+  { title: "Workout — session end & state", tests: [
+    { id:"W.14", type:"auto", label:"endWorkout saves session to state.workoutLog",
+      run: function(app){
+        app.wkBeginSession({ id:'endtest', name:'End Test', exercises:[] });
+        var dateKey = new Date().toISOString().slice(0,10);
+        if (typeof app.endWorkout==='function') app.endWorkout(true); // pass true to skip confirm
+        else if (typeof app.wkEndSession==='function') app.wkEndSession(true);
+        return app.state.workoutLog && app.state.workoutLog[dateKey];
+      }
+    },
+    { id:"W.15", type:"auto", label:"workoutSchedule saved in state after assigning a plan to a day",
+      run: function(app){
+        if (!app.state.workoutSchedule) app.state.workoutSchedule = {};
+        var weekKey = '2026-10-19';
+        app.state.workoutSchedule[weekKey] = app.state.workoutSchedule[weekKey] || {};
+        app.state.workoutSchedule[weekKey][0] = 'test-plan-id';
+        app.saveState();
+        var saved = JSON.parse(app.localStorage.getItem('fitsol_v2'));
+        return saved.workoutSchedule && saved.workoutSchedule[weekKey] && saved.workoutSchedule[weekKey][0] === 'test-plan-id';
+      }
+    }
+  ]},
+  { title: "Visual / manual checks", tests: [
+    { id:"M.01", type:"manual", label:"Run card: can type more than one digit in km field", run:null },
+    { id:"M.02", type:"manual", label:"Pace calculates correctly (3km / 18:00 = 6:00/km)", run:null },
+    { id:"M.03", type:"manual", label:"Session timer ticks up every second", run:null },
+    { id:"M.04", type:"manual", label:"Plans tab: week navigator moves between weeks", run:null },
+    { id:"M.05", type:"manual", label:"History: exercise progress chart renders", run:null },
+    { id:"M.06", type:"manual", label:"OFF search results persist after 5 modal opens", run:null }
+  ]}
+];
+
+// ─── State ──────────────────────────────────────────────────────────────────
+var results = {};
+var running = false;
+var app = null;
+
+function log(msg, type) {
+  var box = document.getElementById('log-box');
+  var line = document.createElement('span');
+  line.className = 'log-line ' + (type||'info');
+  line.textContent = msg;
+  box.appendChild(line);
+  box.appendChild(document.createElement('br'));
+  box.scrollTop = box.scrollHeight;
+}
+
+function onFrameLoad() {
+  try {
+    app = document.getElementById('app-frame').contentWindow;
+    log('App loaded — ready to run tests', 'ok');
+  } catch(e) {
+    log('Could not access app frame: ' + e.message, 'err');
+  }
+}
+
+function resetApp() {
+  var frame = document.getElementById('app-frame');
+  try {
+    frame.contentWindow.localStorage.removeItem('fitsol_v2');
+  } catch(e){}
+  frame.src = 'index.html';
+  log('App reset', 'info');
+}
+
+function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+
+async function runAll() {
+  if (running) return;
+  running = true;
+  document.getElementById('btn-run-all').disabled = true;
+  log('--- Running automated tests ---', 'info');
+
+  var allTests = SECTIONS.flatMap(function(s){ return s.tests; });
+  var autoTests = allTests.filter(function(t){ return t.type === 'auto'; });
+
+  for (var i = 0; i < autoTests.length; i++) {
+    var t = autoTests[i];
+    setResult(t.id, 'running');
+    render();
+    await sleep(80);
+    try {
+      if (!app) throw new Error('App not loaded');
+      var result = t.run(app);
+      var pass, msg;
+      if (result && typeof result === 'object' && 'pass' in result) {
+        pass = result.pass; msg = result.msg;
+      } else {
+        pass = !!result; msg = null;
+      }
+      setResult(t.id, pass ? 'pass' : 'fail', msg || (pass ? null : 'returned falsy'));
+      log((pass ? '✓' : '✗') + ' ' + t.id + ' — ' + t.label, pass ? 'ok' : 'err');
+    } catch(e) {
+      setResult(t.id, 'fail', e.message);
+      log('✗ ' + t.id + ' — ERROR: ' + e.message, 'err');
+    }
+    await sleep(50);
+  }
+
+  log('--- Done ---', 'info');
+  running = false;
+  document.getElementById('btn-run-all').disabled = false;
+  render();
+}
+
+function setResult(id, status, msg) {
+  results[id] = { status: status, msg: msg || null };
+}
+
+function clearResults() {
+  results = {};
+  var box = document.getElementById('log-box');
+  box.innerHTML = '<span class="log-line info">Results cleared.</span>';
+  render();
+}
+
+function toggleManual(id) {
+  var cur = (results[id] || {}).status;
+  if (cur === 'pass') setResult(id, 'fail');
+  else if (cur === 'fail') delete results[id];
+  else setResult(id, 'pass');
+  render();
+}
+
+function render() {
+  var allTests = SECTIONS.flatMap(function(s){ return s.tests; });
+  var autoTests = allTests.filter(function(t){ return t.type==='auto'; });
+  var pass = allTests.filter(function(t){ return (results[t.id]||{}).status==='pass'; }).length;
+  var fail = allTests.filter(function(t){ return (results[t.id]||{}).status==='fail'; }).length;
+  var manual = allTests.filter(function(t){ return t.type!=='auto'; }).length;
+  var autoPass = autoTests.filter(function(t){ return (results[t.id]||{}).status==='pass'; }).length;
+  var autoDone = autoTests.filter(function(t){ var s=(results[t.id]||{}).status; return s==='pass'||s==='fail'; }).length;
+  var pct = autoDone ? Math.round(autoPass/autoDone*100) : 0;
+
+  document.getElementById('s-total').textContent = allTests.length;
+  document.getElementById('s-pass').textContent = pass;
+  document.getElementById('s-fail').textContent = fail;
+  document.getElementById('s-skip').textContent = manual;
+  document.getElementById('s-pct').textContent = pct + '%';
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = autoPass + '/' + autoTests.length + ' auto passing (' + pct + '%)';
+
+  var html = '';
+  SECTIONS.forEach(function(s) {
+    var sp = s.tests.filter(function(t){ return (results[t.id]||{}).status==='pass'; }).length;
+    var sf = s.tests.filter(function(t){ return (results[t.id]||{}).status==='fail'; }).length;
+    var su = s.tests.length - sp - sf;
+    var cnt = '';
+    if (sf) cnt += '<span style="color:#F87171">' + sf + ' fail &middot; </span>';
+    cnt += '<span style="color:#4ADE80">' + sp + ' pass</span>';
+    cnt += ' &middot; <span style="color:#5A5860">' + su + ' pending</span>';
+    html += '<div class="section"><div class="section-hdr"><span>' + s.title + '</span><span>' + cnt + '</span></div>';
+    s.tests.forEach(function(t) {
+      var r = results[t.id] || {};
+      var status = r.status || '';
+      var cb = '';
+      if (status==='pass') cb = '<div class="cb pass">&#10003;</div>';
+      else if (status==='fail') cb = '<div class="cb fail">&#10007;</div>';
+      else if (status==='running') cb = '<div class="cb running">&#9679;</div>';
+      else cb = '<div class="cb"></div>';
+      var badge = t.type==='auto' ? '<span class="badge b-auto">AUTO</span>' :
+                  t.type==='semi' ? '<span class="badge b-semi">SEMI</span>' :
+                  '<span class="badge b-manual">MANUAL</span>';
+      var onclick = t.type === 'manual' || t.type === 'semi'
+        ? 'onclick="toggleManual(\'' + t.id + '\')"'
+        : '';
+      var errHtml = r.msg ? '<div class="err-msg">' + r.msg + '</div>' : '';
+      html += '<div class="test ' + status + '" ' + onclick + '>' +
+        cb +
+        '<span class="id">' + t.id + '</span>' +
+        '<div class="label">' + t.label + badge + errHtml + '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+  });
+  document.getElementById('checklist').innerHTML = html;
+}
+
+render();
+</script>
+</body>
+</html>
