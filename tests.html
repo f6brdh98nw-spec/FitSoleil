@@ -76,7 +76,7 @@ iframe{width:100%;height:100%;border:none;display:block}
     <div class="prog-label" id="prog-label">&mdash;</div>
 
     <div class="ctrls">
-      <button class="ctrl-btn primary" id="btn-run-all" onclick="runAll()">&#9654; Run all auto</button>
+      <button class="ctrl-btn primary" id="btn-run-all" onclick="runAllSafe()">&#9654; Run all auto</button>
       <button class="ctrl-btn" id="btn-reset-app" onclick="resetApp()">Reset app</button>
       <button class="ctrl-btn" onclick="clearResults()">Clear results</button>
       <button class="ctrl-btn" onclick="loadTestData()" style="background:rgba(96,165,250,0.15);color:#60A5FA;border-color:rgba(96,165,250,0.3)">&#128190; Load test data</button>
@@ -293,6 +293,7 @@ var SECTIONS = [
 
 // ─── State ──────────────────────────────────────────────────────────────────
 var results = {};
+var comments = {};
 var running = false;
 var app = null;
 
@@ -313,6 +314,14 @@ function onFrameLoad() {
   } catch(e) {
     log('Could not access app frame: ' + e.message, 'err');
   }
+}
+
+function runAllSafe() {
+  runAll().catch(function(e) {
+    log('FATAL: ' + e.message, 'err');
+    running = false;
+    document.getElementById('btn-run-all').disabled = false;
+  });
 }
 
 function resetApp() {
@@ -352,10 +361,10 @@ async function runAll() {
   for (var i = 0; i < autoTests.length; i++) {
     var t = autoTests[i];
     setResult(t.id, 'running');
-    render();
+    try { render(); } catch(re) { log('render error: ' + re.message, 'err'); }
     await sleep(80);
     try {
-      if (!app) throw new Error('App not loaded');
+      if (!app) throw new Error('App not loaded — wait for iframe then retry');
       var result = t.run(app);
       var pass, msg;
       if (result && typeof result === 'object' && 'pass' in result) {
@@ -490,8 +499,6 @@ function exportResults() {
     text.split('\n').forEach(function(l){ log(l, 'info'); });
   });
 }
-
-var comments = {};
 
 function setComment(id, val) {
   if (val.trim()) comments[id] = val.trim();
