@@ -325,7 +325,7 @@ var sectionFilter='all';
 function log(msg,type){var b=document.getElementById('log-box');var l=document.createElement('span');l.className='log-line '+(type||'info');l.textContent=msg;b.appendChild(l);b.appendChild(document.createElement('br'));b.scrollTop=b.scrollHeight;}
 function onFrameLoad(){try{app=document.getElementById('app-frame').contentWindow;log('App loaded','ok');}catch(e){log('Frame error: '+e.message,'err');}}
 function resetApp(){try{document.getElementById('app-frame').contentWindow.localStorage.removeItem('fitsol_v2');}catch(e){}document.getElementById('app-frame').src='index.html';log('App reset','info');}
-function loadTestData(){if(!app){log('App not loaded','err');return;}try{if(typeof window.seedTestData==='function'){window.seedTestData(app);app.location.reload();log('Test data loaded — reloading app','ok');}else{log('seedTestData not found — is testdata.js loaded?','err');}}catch(e){log('Error: '+e.message,'err');}}
+function loadTestData(){if(!app){log('App not loaded yet','err');return;}try{if(typeof app.loadTestData==='function'){app.loadTestData();app.location.reload();log('Test data loaded — reloading app','ok');}else if(typeof app.loadTestDataAndReload==='function'){app.loadTestDataAndReload();log('Test data loaded','ok');}else{log('loadTestData not found in app','err');}}catch(e){log('Error: '+e.message,'err');}}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
 function setResult(id,status,msg){results[id]={status:status,msg:msg||null};}
 function clearResults(){results={};var b=document.getElementById('log-box');b.innerHTML='<span class="log-line info">Cleared.</span>';render();}

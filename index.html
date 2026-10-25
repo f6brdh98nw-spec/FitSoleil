@@ -2283,7 +2283,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <span class="exercise-tag" onclick="wkSelectBwMetric(this)" data-metric="time">Time</span>
       </div>
     </div>
-    <button type="button" class="btn btn-accent-orange" onclick="wkConfirmAddExercise()">Add</button>
+    <button type="button" class="btn btn-accent-orange" onclick="wkSubmitAddExercise()">Add</button>
     <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-add-ex')">Cancel</button>
   </div>
 </div>
@@ -3779,15 +3779,17 @@ function switchTab(el, targetId) {
   let parent = el.closest('.screen') || el.closest('.modal');
   if (!parent) parent = document.body;
   const allTabs = parent.querySelectorAll('[id^="' + targetId.split('-')[0] + '-"]');
-  // Hide tabs that are siblings
+  // Hide sibling tab panels only (not descendants)
   const firstId = targetId.split('-')[0];
-  parent.querySelectorAll('div[id]').forEach(d => {
-    if (d.id && d.id !== targetId) {
-      const parts = d.id.split('-');
-      if (parts[0] === firstId) d.classList.add('hidden');
-    }
-  });
   const target = document.getElementById(targetId);
+  if (target && target.parentElement) {
+    target.parentElement.querySelectorAll(':scope > div[id]').forEach(d => {
+      if (d.id !== targetId) {
+        const parts = d.id.split('-');
+        if (parts[0] === firstId) d.classList.add('hidden');
+      }
+    });
+  }
   if (target) target.classList.remove('hidden');
   if (targetId === 'ph-compare') renderPhotoGallery();
   if (targetId === 'nt-meals') renderRecipesList();
@@ -6415,7 +6417,11 @@ function wkConfirmAddExercise() {
   }
 }
 
-var wkConfirmAddEx = wkConfirmAddExercise;
+function wkSubmitAddExercise() {
+  console.log('[wk] wkSubmitAddExercise called, _wkEditorContext:', _wkEditorContext);
+  wkConfirmAddExercise();
+}
+var wkConfirmAddEx = wkSubmitAddExercise;
 
 function wkOpenUsePlan(){
   var list=document.getElementById('modal-wk-use-plan-list');if(!list)return;
@@ -6433,6 +6439,7 @@ function wkLoadPlan(id){
 }
 
 function wkRenderPlans(){
+  console.log('[wk] wkRenderPlans called, savedWorkouts:', (state.savedWorkouts||[]).length, 'schedule keys:', Object.keys(state.workoutSchedule||{}).length);
   var dates=_wkWeekDates(_wkPlanWeekOff);
   var weekISO=localDateStr(dates[0]);
   var schedule=(state.workoutSchedule||{})[weekISO]||{};
