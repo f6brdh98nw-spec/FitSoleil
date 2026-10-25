@@ -531,8 +531,8 @@
   .stepper input { border-radius: 0; border-left: none; border-right: none; text-align: center; width: 60px; flex: none; }
 
   /* Exercise search */
-  .exercise-tag { display: inline-flex; padding: 4px 10px; background: var(--s3); border-radius: 99px; font-size: 11px; margin: 2px; cursor: pointer; }
-  .exercise-tag.selected { background: rgba(232,197,71,0.2); color: var(--acc); border: 1px solid var(--acc); }
+  .exercise-tag { display: inline-flex; padding: 4px 10px; background: var(--s2); border-radius: 99px; font-size: 11px; margin: 2px; cursor: pointer; color: var(--txt2); border: 0.5px solid var(--s3); }
+  .exercise-tag.selected { background: rgba(240,124,58,0.15); color: #F07C3A; border: 0.5px solid rgba(240,124,58,0.4); }
 
   /* Quick action tiles */
   .quick-tile {
@@ -2328,6 +2328,20 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
   </div>
 </div>
 
+<!-- SAVE WORKOUT TEMPLATE MODAL -->
+<div class="modal-overlay" id="modal-wk-save-tpl">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Save as template</div>
+    <div class="input-group" style="margin-bottom:12px">
+      <label class="input-label">Template name</label>
+      <input type="text" id="wk-save-tpl-name" placeholder="e.g. Push/Pull/Legs" style="background:#22222E"/>
+    </div>
+    <button type="button" class="btn btn-accent-orange" onclick="wkConfirmSaveTemplate()">Save</button>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-save-tpl')">Cancel</button>
+  </div>
+</div>
+
 <!-- ADD GOAL MODAL -->
 <div class="modal-overlay" id="modal-add-goal">
   <div class="modal">
@@ -2992,6 +3006,37 @@ function loadState() {
   if (state.activeSession === undefined) state.activeSession = null;
   if (!state.targets) state.targets = { calories:1800, protein:135, carbs:185, fat:60, fibre:25, water:2000 };
   if (!state.profile) state.profile = {};
+  migrateOldWorkoutData();
+}
+
+function migrateOldWorkoutData() {
+  var changed = false;
+  if (Array.isArray(state.plans) && state.plans.length > 0) {
+    if (!Array.isArray(state.savedWorkouts)) state.savedWorkouts = [];
+    state.plans.forEach(function(p) {
+      if (!state.savedWorkouts.find(function(w){ return w.id === p.id; })) {
+        state.savedWorkouts.push({
+          id: p.id || Date.now(),
+          name: p.name,
+          exercises: (p.exercises||[]).map(function(e) {
+            return { name: e.name, type: e.type||'lift', target: (e.sets||3)+'x'+(e.reps||10) };
+          })
+        });
+      }
+    });
+    state.plans = [];
+    changed = true;
+  }
+  if (Array.isArray(state.workouts) && state.workouts.length > 0) {
+    if (!state.workoutLog) state.workoutLog = {};
+    state.workouts.forEach(function(w) {
+      var dk = w.date || new Date(w.startTime||Date.now()).toISOString().slice(0,10);
+      if (!state.workoutLog[dk]) state.workoutLog[dk] = w;
+    });
+    state.workouts = [];
+    changed = true;
+  }
+  if (changed) saveState();
 }
 
 function saveState() {
@@ -3920,79 +3965,51 @@ function renderDashboard() {
   setEl('plan-water-ml', waterMl);
   setEl('plan-water-target', waterTgt);
   setWidth('plan-water-bar', Math.min(100, (waterMl/waterTgt)*100));
-  // Workout row — show today's active plan if exists
-  // ── Workout rows (multi-plan support) ──
+  // ── Workout tile (new system) ──
   const workoutRowsEl = document.getElementById('plan-workout-rows');
+  const playBtnEl = document.getElementById('plan-workout-play');
   if (workoutRowsEl) {
-    const _dow = new Date(state.activeDate+'T12:00:00').getDay();
-    const selectedDayFull  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][_dow];
-    const selectedDayShort = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][_dow];
-    const todayPlans = (state.plans||[]).filter(p => {
-      if (p.days && (p.days.includes(selectedDayFull) || p.days.includes(selectedDayShort))) return true;
-      // Plans with no days scheduled show on the day they were created
-      if (!p.days || p.days.length === 0) return localDateStr(new Date(p.id)) === state.activeDate;
-      return false;
-    });
-    const completedSessions = (state.workouts||[]).filter(w => w.date === state.activeDate);
-    const activeWO = state.activeWorkout && state.activeWorkout.date === state.activeDate ? state.activeWorkout : null;
-
-    const completedPlanIds = completedSessions.map(s => s.planId).filter(Boolean);
-    const todayPlanIds = new Set(todayPlans.map(p => p.id));
-    const rows = [];
-
-    // One row per scheduled plan — colour reflects state
-    todayPlans.forEach(plan => {
-      const isCompleted = completedPlanIds.includes(plan.id);
-      const isActive = activeWO && activeWO.planId === plan.id;
-      if (isCompleted) {
-        rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${plan.name} <span style="color:#4ADE80;font-size:11px">✓</span></div>`);
-      } else if (isActive) {
-        rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${plan.name} <span style="color:#F07C3A;font-size:11px">● In progress</span></div>`);
-      } else {
-        rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">${plan.name}</div>`);
+    var _weekISO0 = _wkWeekISO(0);
+    var _sched0 = (state.workoutSchedule||{})[_weekISO0]||{};
+    var _dayIdx0 = (new Date().getDay()+6)%7;
+    var _todaySwId = _sched0[_dayIdx0];
+    var _completedToday = (state.workoutLog||{})[state.activeDate];
+    if (state.activeSession) {
+      var _sesName = state.activeSession.name || 'Quick session';
+      workoutRowsEl.innerHTML = '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">' + _sesName + ' <span style="color:#F07C3A;font-size:11px">● In progress</span></div>';
+      if (playBtnEl) {
+        playBtnEl.style.display = 'inline-flex';
+        playBtnEl.innerHTML = '<i class="ti ti-arrow-right"></i>';
+        playBtnEl.onclick = function(){ navigate('workout'); };
       }
-    });
-
-    // Active workout not in scheduled plans (ad-hoc or unscheduled plan)
-    if (activeWO && !todayPlanIds.has(activeWO.planId)) {
-      const plan = activeWO.planId ? (state.plans||[]).find(p => p.id === activeWO.planId) : null;
-      const name = state.lastActiveWorkout?.name || (plan ? plan.name : 'Workout');
-      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${name} <span style="color:#F07C3A;font-size:11px">● In progress</span></div>`);
-    }
-
-    // Completed sessions not in scheduled plans (ad-hoc or unscheduled plan)
-    completedSessions.forEach(session => {
-      if (session.planId && todayPlanIds.has(session.planId)) return; // already shown above
-      rows.push(`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">${session.name || 'Workout'} <span style="color:#4ADE80;font-size:11px">✓</span></div>`);
-    });
-
-    const hasUnstarted = todayPlans.some(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
-    const allDone = rows.length > 0 && !activeWO && todayPlans.length > 0 && todayPlans.every(p => completedPlanIds.includes(p.id));
-    const playBtnEl = document.getElementById('plan-workout-play');
-    if (playBtnEl) {
-      if (hasUnstarted) {
+    } else if (_completedToday) {
+      var _exCount = (_completedToday.exercises||[]).length;
+      workoutRowsEl.innerHTML = '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">' + (_completedToday.name||'Workout') + ' <span style="color:#4ADE80;font-size:11px">✓</span></div>';
+      if (playBtnEl) {
         playBtnEl.style.display = 'inline-flex';
-        playBtnEl.style.setProperty('--acc', '#F07C3A');
-        playBtnEl.innerHTML = '<i class="ti ti-player-play"></i>';
-        const unstartedPlans = todayPlans.filter(p => !completedPlanIds.includes(p.id) && !(activeWO && activeWO.planId === p.id));
-        playBtnEl.onclick = () => {
-          if (unstartedPlans.length > 1) showWorkoutPicker(unstartedPlans);
-          else if (unstartedPlans.length === 1) startPlanInline(unstartedPlans[0].id);
-          else navigate('workout');
-        };
-      } else if (allDone) {
-        playBtnEl.style.display = 'inline-flex';
-        playBtnEl.style.setProperty('--acc', '#4ADE80');
         playBtnEl.innerHTML = '<i class="ti ti-check"></i>';
-        playBtnEl.onclick = () => navigate('workout');
-      } else {
-        playBtnEl.style.display = 'none';
+        playBtnEl.onclick = function(){ navigate('workout'); };
       }
+    } else if (_todaySwId && _todaySwId !== 'rest') {
+      var _todaySw = (state.savedWorkouts||[]).find(function(w){return w.id===_todaySwId;});
+      if (_todaySw) {
+        workoutRowsEl.innerHTML = '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">' + _todaySw.name + '</div>';
+        if (playBtnEl) {
+          playBtnEl.style.display = 'inline-flex';
+          playBtnEl.innerHTML = '<i class="ti ti-player-play"></i>';
+          playBtnEl.onclick = function(){ navigate('workout'); };
+        }
+      } else {
+        workoutRowsEl.innerHTML = '<div style="color:#5A5860">No workout planned</div>';
+        if (playBtnEl) playBtnEl.style.display = 'none';
+      }
+    } else if (_todaySwId === 'rest') {
+      workoutRowsEl.innerHTML = '<div style="color:#5A5860">Rest day</div>';
+      if (playBtnEl) playBtnEl.style.display = 'none';
+    } else {
+      workoutRowsEl.innerHTML = '<div style="color:#5A5860">No workout planned</div>';
+      if (playBtnEl) playBtnEl.style.display = 'none';
     }
-
-    workoutRowsEl.innerHTML = rows.length
-      ? rows.join('')
-      : `<div style="color:#5A5860">Rest day — tap to schedule</div>`;
   }
   // Meals row — logged > planned priority, max 3 rows
   const mealTypesRow = ['Breakfast','Lunch','Dinner','Snack'];
@@ -4061,17 +4078,21 @@ function renderDashboard() {
 }
 
 function getTodayPlanName() {
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const today = days[new Date().getDay()];
-  const plan = (state.plans||[]).find(p => p.days && p.days.includes(today));
-  return plan ? plan.name : null;
+  var weekISO = _wkWeekISO(0);
+  var schedule = (state.workoutSchedule||{})[weekISO]||{};
+  var dayIdx = (new Date().getDay()+6)%7;
+  var swId = schedule[dayIdx];
+  if (!swId) return null;
+  if (swId === 'rest') return 'Rest day';
+  var sw = (state.savedWorkouts||[]).find(function(w){return w.id===swId;});
+  return sw ? sw.name : null;
 }
 
 function getTodayPlanId() {
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const today = days[new Date().getDay()];
-  const plan = (state.plans||[]).find(p => p.days && p.days.includes(today));
-  return plan ? plan.id : null;
+  var weekISO = _wkWeekISO(0);
+  var schedule = (state.workoutSchedule||{})[weekISO]||{};
+  var dayIdx = (new Date().getDay()+6)%7;
+  return schedule[dayIdx]||null;
 }
 
 function getDayLog(date) {
@@ -6147,7 +6168,17 @@ function wkRenderToday() {
   } else {
     var schedule = (state.workoutSchedule||{})[weekISO]||{};
     var todayAssignment = todayIdx >= 0 ? schedule[todayIdx] : null;
-    if (todayAssignment && todayAssignment !== 'rest') {
+    var completedEntry = _wkTodayWeekOff === 0 ? (state.workoutLog||{})[today] : null;
+    if (completedEntry) {
+      var _durSec = completedEntry.endTime ? Math.round((completedEntry.endTime - completedEntry.startTime)/1000) : 0;
+      var _durStr = Math.floor(_durSec/60) + ' min';
+      var _exCount = (completedEntry.exercises||[]).length;
+      html += '<div class="card" style="margin-bottom:12px;border:1px solid rgba(74,222,128,0.3);background:rgba(74,222,128,0.05)">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between">';
+      html += '<div><div style="font-size:11px;color:#4ADE80;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">Completed ✓</div>';
+      html += '<div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + (completedEntry.name||'Workout') + '</div>';
+      html += '<div style="font-size:12px;color:var(--txt2)">' + _exCount + ' exercises · ' + _durStr + '</div></div></div></div>';
+    } else if (todayAssignment && todayAssignment !== 'rest') {
       var sw = (state.savedWorkouts||[]).find(function(w) { return w.id === todayAssignment; });
       if (sw) {
         html += '<div class="card" style="margin-bottom:12px"><div class="row-between"><div>';
@@ -6206,6 +6237,7 @@ function wkEndSession(skipConfirm) {
     state.activeSession = null;
     saveState();
     wkRenderToday();
+    renderDashboard();
     showToast('Workout saved!');
   }
   if (skipConfirm) { doEnd(); return; }
@@ -6484,11 +6516,14 @@ function wkRenderDaySchedule(dates,schedule,today){
     var planName=asgn==='rest'?'Rest':(sw?sw.name:'&#8212; Tap to assign');
     var preview=sw?sw.exercises.slice(0,3).map(function(e){return e.name;}).join(' · ')+(sw.exercises.length>3?'…':''):'';
     html+='<div class="card" style="cursor:pointer;margin-bottom:8px" onclick="wkOpenDayPicker('+i+')">';
-    html+='<div class="row-between"><div>';
-    html+='<div style="font-size:12px;color:var(--txt2)">'+names[i]+(isToday?' <span class="pill" style="background:#F07C3A;color:#fff;font-size:10px">Today</span>':'')+'</div>';
+    html+='<div class="row-between"><div style="flex:1;min-width:0">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">';
+    html+='<div style="font-size:12px;color:var(--txt2)">'+names[i]+'</div>';
+    html+=(isToday?'<span class="pill" style="background:#F07C3A;color:#fff;font-size:10px">Today</span>':'');
+    html+='</div>';
     html+='<div style="font-weight:600">'+planName+'</div>';
     if(preview)html+='<div style="font-size:11px;color:var(--txt3);margin-top:2px">'+preview+'</div>';
-    html+='</div><span style="color:var(--txt3)">&#8250;</span></div></div>';
+    html+='</div><span style="color:var(--txt3);margin-left:8px">&#8250;</span></div></div>';
   });
   return html;
 }
@@ -6509,6 +6544,7 @@ function wkPickDayRest(){_wkAssignDay(_wkDayPickerIdx,'rest');}
 function wkPickDayClear(){_wkAssignDay(_wkDayPickerIdx,null);}
 function _wkAssignDay(dayIdx,value){
   var weekISO=_wkWeekISO(_wkPlanWeekOff);
+  console.log('[wk] _wkAssignDay weekISO:', weekISO, 'dayIdx:', dayIdx, 'value:', value);
   if(!state.workoutSchedule)state.workoutSchedule={};
   if(!state.workoutSchedule[weekISO])state.workoutSchedule[weekISO]={};
   if(value===null)delete state.workoutSchedule[weekISO][dayIdx];else state.workoutSchedule[weekISO][dayIdx]=value;
@@ -6519,10 +6555,18 @@ function wkSaveTemplate(){
   var weekISO=_wkWeekISO(_wkPlanWeekOff);
   var schedule=(state.workoutSchedule||{})[weekISO]||{};
   if(!Object.keys(schedule).length){showToast('No workouts scheduled this week');return;}
-  var name=prompt('Template name:');if(!name||!name.trim())return;
+  var el=document.getElementById('modal-wk-save-tpl');
+  if(el){var inp=el.querySelector('input');if(inp)inp.value='';el.classList.add('open');}
+}
+function wkConfirmSaveTemplate(){
+  var weekISO=_wkWeekISO(_wkPlanWeekOff);
+  var schedule=(state.workoutSchedule||{})[weekISO]||{};
+  var inp=document.querySelector('#modal-wk-save-tpl input');
+  var name=inp?inp.value.trim():'';
+  if(!name){showToast('Enter a template name');return;}
   if(!Array.isArray(state.workoutTemplates))state.workoutTemplates=[];
-  state.workoutTemplates.push({id:'tpl-'+Date.now(),name:name.trim(),savedAt:localDateStr(new Date()),week:JSON.parse(JSON.stringify(schedule))});
-  saveState();showToast('Template saved ✓');
+  state.workoutTemplates.push({id:'tpl-'+Date.now(),name:name,savedAt:localDateStr(new Date()),week:JSON.parse(JSON.stringify(schedule))});
+  saveState();closeModal('modal-wk-save-tpl');showToast('Template saved ✓');
 }
 function wkShowTemplates(){
   var templates=state.workoutTemplates||[];
@@ -6570,7 +6614,7 @@ function wkEditSavedWorkout(id){
 }
 function wkDeleteSavedWorkout(id){
   showConfirmSheet({title:'Delete workout?',confirmText:'Delete',confirmClass:'btn-danger',onConfirm:function(){
-    state.savedWorkouts=(state.savedWorkouts||[]).filter(function(w){return w.id!==id;});saveState();wkRenderPlans();
+    state.savedWorkouts=(state.savedWorkouts||[]).filter(function(w){return w.id!==id;});saveState();wkRenderPlans();showToast('Workout deleted');
   }});
 }
 function wkRenderEditorExercises(){
@@ -6902,8 +6946,10 @@ function renderMealPlanGrid() {
   const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   el.innerHTML = dates.map((d, i) => {
     const ds = localDateStr(d);
+    const isToday = ds === localDateStr(new Date());
+    const todayPill = isToday ? '<span style="background:#4ADE80;color:#0F0F13;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px">Today</span>' : '';
     return `<div class="meal-day-card">
-      <div class="meal-day-header">${dayNames[i]} ${d.getDate()}</div>
+      <div class="meal-day-header" style="display:flex;justify-content:space-between;align-items:center"><span>${dayNames[i]} ${d.getDate()}</span>${todayPill}</div>
       ${planMeals.map(meal => {
         const assigned = (state.mealPlan[ds]||{})[meal];
         return `<div class="meal-slot" onclick="openMealPlanSlot('${ds}','${meal}')">
