@@ -2283,7 +2283,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <span class="exercise-tag" onclick="wkSelectBwMetric(this)" data-metric="time">Time</span>
       </div>
     </div>
-    <button class="btn btn-accent-orange" onclick="wkConfirmAddExercise()">Add</button>
+    <button type="button" class="btn btn-accent-orange" onclick="wkConfirmAddExercise()">Add</button>
     <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-add-ex')">Cancel</button>
   </div>
 </div>
@@ -6128,10 +6128,10 @@ function wkRenderToday() {
   var today = localDateStr(new Date());
   var weekISO = localDateStr(dates[0]);
   var todayIdx = dates.findIndex(function(d) { return localDateStr(d) === today; });
-  var html = '<div class="row-between" style="margin-bottom:12px">';
-  html += '<button class="btn btn-sm btn-outline" onclick="changeWkTodayWeek(-1)">&#8249;</button>';
-  html += '<span style="font-size:13px;color:var(--txt2)">' + _wkWeekLabel(dates) + '</span>';
-  html += '<button class="btn btn-sm btn-outline" onclick="changeWkTodayWeek(1)">&#8250;</button></div>';
+  var _nowD = new Date();
+  var _dNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var _mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var html = '<div style="font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:12px">' + _dNames[_nowD.getDay()] + ' ' + _nowD.getDate() + ' ' + _mNames[_nowD.getMonth()] + '</div>';
   if (_wkSession) {
     html += '<div class="card" style="border:1px solid rgba(240,124,58,0.4);background:rgba(240,124,58,0.05);margin-bottom:12px">';
     html += '<div class="row-between"><div>';
@@ -6400,6 +6400,8 @@ function wkConfirmAddExercise() {
     else if(type==='cardio-duration'){ex.timeMinutes='';ex.notes='';}
     else if(type==='rehab'){ex.rounds=0;}
     _wkSession.exercises.push(ex);
+    state.activeSession = _wkSession;
+    saveState();
     closeModal('modal-wk-add-ex');wkRenderToday();
   } else {
     if(type==='bodyweight')ex.metric=metric;

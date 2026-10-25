@@ -8,7 +8,8 @@
   function daysFromNow(n) { var d=new Date(); d.setDate(d.getDate()+n); return localStr(d); }
   function monthsFromNow(n) { var d=new Date(); d.setMonth(d.getMonth()+n); return localStr(d); }
 
-  function seedTestData() {
+  function seedTestData(appWindow) {
+    var targetWindow = appWindow || window;
     var todayStr = localStr(new Date());
     var now = new Date();
     var dow = now.getDay();
@@ -406,7 +407,8 @@
     };
 
     try {
-      localStorage.setItem('fitsol_v2', JSON.stringify(state));
+      targetWindow.localStorage.setItem('fitsol_v2', JSON.stringify(state));
+      if (appWindow && appWindow.location) appWindow.location.reload();
       return true;
     } catch(e) {
       console.error('seedTestData: failed to write localStorage', e);
