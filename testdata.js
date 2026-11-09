@@ -296,12 +296,22 @@
       var benchKg = benchStart + prog * 2.5;
       var sqKg    = sqStart    + prog * 2.5;
       var ohpKg   = ohpStart   + prog * 1.25;
-      if (monOff > 0)  workoutLog[monDate] = liftSession(monDate,  'Upper A', benchKg, sqKg, ohpKg);
-      if (monOff > -2) workoutLog[wedDate] = lowerSession(wedDate, sqKg);
-      if (monOff > -4) workoutLog[friDate] = liftSession(friDate,  'Upper A', benchKg + 1.25, sqKg, ohpKg);
+      if (monOff > 0)  workoutLog[monDate] = [liftSession(monDate,  'Upper A', benchKg, sqKg, ohpKg)];
+      if (monOff > -2) workoutLog[wedDate] = [lowerSession(wedDate, sqKg)];
+      if (monOff > -4) workoutLog[friDate] = [liftSession(friDate,  'Upper A', benchKg + 1.25, sqKg, ohpKg)];
     }
-    workoutLog[daysAgo(1)] = lowerSession(daysAgo(1), sqStart + 5 * 2.5 + 2.5);
-    workoutLog[daysAgo(3)] = {
+    workoutLog[daysAgo(1)] = [
+      lowerSession(daysAgo(1), sqStart + 5 * 2.5 + 2.5),
+      {
+        name: 'Evening Run',
+        startTime: new Date(daysAgo(1)+'T17:30:00').getTime(),
+        endTime:   new Date(daysAgo(1)+'T18:05:00').getTime(),
+        exercises: [
+          {name:'Running', type:'cardio-distance', distanceKm:5.2, timeSeconds:1680, paceSecPerKm:323},
+        ],
+      }
+    ];
+    workoutLog[daysAgo(3)] = [{
       name: 'Morning Cardio',
       startTime: new Date(daysAgo(3)+'T06:45:00').getTime(),
       endTime:   new Date(daysAgo(3)+'T07:35:00').getTime(),
@@ -309,7 +319,7 @@
         {name:'Morning Run', type:'cardio-distance', distanceKm:4.2, timeSeconds:1470, paceSecPerKm:350},
         {name:'Groove',      type:'cardio-duration', timeSeconds:1800, notes:'7:00–7:30am'},
       ],
-    };
+    }];
 
     // ── Goals ────────────────────────────────────────────────────────────────
     var goals = [

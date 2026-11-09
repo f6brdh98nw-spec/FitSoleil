@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FitSoleil — Test Runner</title>
 <style>
@@ -88,6 +89,7 @@ iframe{width:100%;height:100%;border:none;display:block}
       <button class="sf-btn" onclick="setSection('P',this)">Progress</button>
       <button class="sf-btn" onclick="setSection('H',this)">Home</button>
       <button class="sf-btn" onclick="setSection('S',this)">Settings</button>
+      <button class="sf-btn" onclick="setSection('R',this)">Recent</button>
       <button class="sf-btn" onclick="setSection('fail',this)">Fails</button>
     </div>
     <div id="checklist"></div>
@@ -294,6 +296,81 @@ var SECTIONS = [
     {id:"P.10",type:"manual",label:"Add goal with milestone — appears in goals list",run:null},
     {id:"P.11",type:"manual",label:"Tick a milestone — marks as done",run:null},
     {id:"P.12",type:"manual",label:"Trend period toggle (1W / 1M / 3M) — chart updates",run:null},
+  ]},
+  { id:'R', title:"Recent features (v7)", color:"#60A5FA", tests:[
+    {id:"R.01",type:"auto",label:"migrateOldWorkoutData converts object entries to arrays",
+      run:function(a){
+        var origLog=a.state.workoutLog;
+        a.state.workoutLog={'2026-01-01':{name:'OldSession',exercises:[]}};
+        if(typeof a.migrateOldWorkoutData==='function')a.migrateOldWorkoutData();
+        var ok=Array.isArray(a.state.workoutLog['2026-01-01']);
+        a.state.workoutLog=origLog;
+        return ok;
+      }},
+    {id:"R.02",type:"auto",label:"wkEndSession pushes session into array in workoutLog",
+      run:function(a){
+        a.wkBeginSession({id:'arr-test',name:'ArrayTest',exercises:[]});
+        var dk=a.localDateStr?a.localDateStr(new Date()):new Date().toISOString().slice(0,10);
+        delete a.state.workoutLog[dk];
+        if(typeof a.wkEndSession==='function')a.wkEndSession(true);
+        var entry=a.state.workoutLog[dk];
+        return Array.isArray(entry)&&entry.length>=1;
+      }},
+    {id:"R.03",type:"auto",label:"workoutLog after testdata has 2 sessions on daysAgo(1)",
+      run:function(a){
+        var log=a.state.workoutLog||{};
+        var d=new Date();d.setDate(d.getDate()-1);
+        var dk=a.localDateStr?a.localDateStr(d):d.toISOString().slice(0,10);
+        var e=log[dk];
+        return Array.isArray(e)&&e.length>=2;
+      }},
+    {id:"R.04",type:"auto",label:"changeWkTodayDay function exists",
+      run:function(a){return typeof a.changeWkTodayDay==='function';}},
+    {id:"R.05",type:"auto",label:"_wkDayOff variable exists (day-based nav, not week-based)",
+      run:function(a){return typeof a._wkDayOff!=='undefined';}},
+    {id:"R.06",type:"auto",label:"wkExSearch function exists",
+      run:function(a){return typeof a.wkExSearch==='function';}},
+    {id:"R.07",type:"auto",label:"wkExSearchPick function exists",
+      run:function(a){return typeof a.wkExSearchPick==='function';}},
+    {id:"R.08",type:"auto",label:"wkEditTemplate function exists",
+      run:function(a){return typeof a.wkEditTemplate==='function';}},
+    {id:"R.09",type:"auto",label:"wkSaveEditTemplate function exists",
+      run:function(a){return typeof a.wkSaveEditTemplate==='function';}},
+    {id:"R.10",type:"auto",label:"modal-wk-edit-tpl element exists in DOM",
+      run:function(a){return!!a.document.getElementById('modal-wk-edit-tpl');}},
+    {id:"R.11",type:"auto",label:"meal-plan-day-pills element exists in DOM",
+      run:function(a){return!!a.document.getElementById('meal-plan-day-pills');}},
+    {id:"R.12",type:"auto",label:"_wkWeekLabel returns range format with en-dash",
+      run:function(a){
+        if(typeof a._wkWeekLabel!=='function')return{pass:false,msg:'_wkWeekLabel not found'};
+        var mon=new Date(2026,9,26);
+        var dates=[];for(var i=0;i<7;i++){var d=new Date(mon);d.setDate(mon.getDate()+i);dates.push(d);}
+        var lbl=a._wkWeekLabel(dates);
+        return typeof lbl==='string'&&lbl.includes('–')&&lbl.includes('Week of');
+      }},
+    {id:"R.13",type:"auto",label:"wkRenderDaySchedule returns meal-day-card rows",
+      run:function(a){
+        if(typeof a.wkRenderDaySchedule!=='function')return{pass:false,msg:'wkRenderDaySchedule not found'};
+        var mon=new Date(2026,9,26);
+        var dates=[];for(var i=0;i<7;i++){var d=new Date(mon);d.setDate(mon.getDate()+i);dates.push(d);}
+        var html=a.wkRenderDaySchedule(dates,{},'2026-10-26');
+        return typeof html==='string'&&html.includes('meal-day-card');
+      }},
+    {id:"R.14",type:"auto",label:"wkBuildExerciseCard numeric input stripping present",
+      run:function(a){
+        if(typeof a.wkBuildExerciseCard!=='function')return{pass:false,msg:'wkBuildExerciseCard not found'};
+        var src=a.wkBuildExerciseCard.toString();
+        return src.includes('[^0-9.]');
+      }},
+    {id:"R.15",type:"auto",label:"wk-ex-search input cleared when add-exercise modal opens",
+      run:function(a){
+        if(!a._wkSession)a.wkBeginSession({id:'search-test',name:'SearchTest',exercises:[]});
+        var searchEl=a.document.getElementById('wk-ex-search');
+        if(!searchEl)return{pass:false,msg:'wk-ex-search not found'};
+        searchEl.value='bench';
+        a.wkOpenAddExercise('today');
+        return searchEl.value==='';
+      }},
   ]},
   { id:'S', title:"Settings & onboarding", color:"#F87171", tests:[
     {id:"S.01",type:"auto",label:"saveSettings function exists",run:function(a){return typeof a.saveSettings==='function';}},

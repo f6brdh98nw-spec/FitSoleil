@@ -1165,6 +1165,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
           <button class="btn btn-secondary btn-sm" style="flex:1;font-size:11px" onclick="showSaveTemplatePrompt()">Save template</button>
           <button class="btn btn-secondary btn-sm" style="flex:1;font-size:11px" onclick="showTemplatesSheet()">Load template</button>
         </div>
+        <div id="meal-plan-day-pills" style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;-webkit-overflow-scrolling:touch"></div>
         <div style="text-align:right;margin-bottom:6px">
           <button id="plan-snack-toggle" class="btn btn-sm btn-outline" onclick="togglePlanSnacks()" style="font-size:11px;padding:4px 10px">Show snacks</button>
         </div>
@@ -2254,37 +2255,46 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
 
 <!-- ADD EXERCISE MODAL (workout) -->
 <div class="modal-overlay" id="modal-wk-add-ex">
-  <div class="modal">
+  <div class="modal" style="display:flex;flex-direction:column;max-height:80vh;padding-bottom:0">
     <div class="modal-handle"></div>
     <div class="modal-title">Add Exercise</div>
-    <div class="input-group" style="margin-bottom:8px">
-      <label class="input-label">Exercise name</label>
-      <input type="text" id="wk-add-ex-name" placeholder="e.g. Bench Press" style="background:#22222E"/>
-    </div>
-    <div class="input-group" style="margin-bottom:8px">
-      <label class="input-label">Type</label>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px" id="wk-add-ex-types">
-        <span class="exercise-tag selected" onclick="wkSelectExType(this)" data-type="lift">Lift</span>
-        <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="bodyweight">Bodyweight</span>
-        <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="timed-hold">Timed hold</span>
-        <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="cardio-distance">Run</span>
-        <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="cardio-duration">Cardio</span>
-        <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="rehab">Rehab</span>
+    <div style="overflow-y:auto;flex:1;padding-bottom:4px">
+      <div class="input-group" style="margin-bottom:8px">
+        <label class="input-label">Search</label>
+        <input type="text" id="wk-ex-search" placeholder="e.g. bench, squat…" style="background:#22222E" oninput="wkExSearch(this.value)" autocomplete="off"/>
+        <div id="wk-ex-search-results" style="display:none;border:1px solid var(--border);border-radius:8px;margin-top:4px;background:#22222E;max-height:120px;overflow-y:auto"></div>
+      </div>
+      <div class="input-group" style="margin-bottom:8px">
+        <label class="input-label">Exercise name</label>
+        <input type="text" id="wk-add-ex-name" placeholder="e.g. Bench Press" style="background:#22222E"/>
+      </div>
+      <div class="input-group" style="margin-bottom:8px">
+        <label class="input-label">Type</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px" id="wk-add-ex-types">
+          <span class="exercise-tag selected" onclick="wkSelectExType(this)" data-type="lift">Lift</span>
+          <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="bodyweight">Bodyweight</span>
+          <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="timed-hold">Timed hold</span>
+          <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="cardio-distance">Run</span>
+          <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="cardio-duration">Cardio</span>
+          <span class="exercise-tag" onclick="wkSelectExType(this)" data-type="rehab">Rehab</span>
+        </div>
+      </div>
+      <div class="input-group" id="wk-add-ex-target-row" style="margin-bottom:8px">
+        <label class="input-label">Target (optional)</label>
+        <input type="text" id="wk-add-ex-target" placeholder="e.g. 4 × 6–10" style="background:#22222E"/>
+      </div>
+      <div class="input-group" id="wk-add-ex-metric-row" style="display:none;margin-bottom:8px">
+        <label class="input-label">Metric</label>
+        <div style="display:flex;gap:6px;margin-top:6px" id="wk-add-ex-metrics">
+          <span class="exercise-tag selected" onclick="wkSelectBwMetric(this)" data-metric="reps">Reps</span>
+          <span class="exercise-tag" onclick="wkSelectBwMetric(this)" data-metric="time">Time</span>
+        </div>
       </div>
     </div>
-    <div class="input-group" id="wk-add-ex-target-row" style="margin-bottom:8px">
-      <label class="input-label">Target (optional)</label>
-      <input type="text" id="wk-add-ex-target" placeholder="e.g. 4 × 6–10" style="background:#22222E"/>
+    <div style="padding:12px 0 16px;border-top:1px solid var(--border);flex-shrink:0">
+      <button type="button" class="btn btn-accent-orange" onclick="wkSubmitAddExercise()">Add</button>
+      <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-add-ex')">Cancel</button>
     </div>
-    <div class="input-group" id="wk-add-ex-metric-row" style="display:none;margin-bottom:8px">
-      <label class="input-label">Metric</label>
-      <div style="display:flex;gap:6px;margin-top:6px" id="wk-add-ex-metrics">
-        <span class="exercise-tag selected" onclick="wkSelectBwMetric(this)" data-metric="reps">Reps</span>
-        <span class="exercise-tag" onclick="wkSelectBwMetric(this)" data-metric="time">Time</span>
-      </div>
-    </div>
-    <button type="button" class="btn btn-accent-orange" onclick="wkSubmitAddExercise()">Add</button>
-    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-add-ex')">Cancel</button>
   </div>
 </div>
 
@@ -2339,6 +2349,21 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
     </div>
     <button type="button" class="btn btn-accent-orange" onclick="wkConfirmSaveTemplate()">Save</button>
     <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-save-tpl')">Cancel</button>
+  </div>
+</div>
+
+<!-- EDIT WORKOUT TEMPLATE MODAL -->
+<div class="modal-overlay" id="modal-wk-edit-tpl">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Edit Template</div>
+    <div class="input-group" style="margin-bottom:12px">
+      <label class="input-label">Template name</label>
+      <input type="text" id="wk-edit-tpl-name" style="background:#22222E"/>
+    </div>
+    <button type="button" class="btn btn-accent-orange" onclick="wkSaveEditTemplate()">Save</button>
+    <button type="button" class="btn btn-outline" style="margin-top:8px;color:#F87171;border-color:#F87171" onclick="wkDeleteEditTemplate()">Delete template</button>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-edit-tpl')">Cancel</button>
   </div>
 </div>
 
@@ -2860,14 +2885,24 @@ function loadTestData() {
     var benchKg = benchStart + prog * 2.5;
     var sqKg    = sqStart    + prog * 2.5;
     var ohpKg   = ohpStart   + prog * 1.25;
-    if (monOff > 0)  workoutLog[monDate] = liftSession(monDate,  'Upper A', benchKg, sqKg, ohpKg);
-    if (monOff > -2) workoutLog[wedDate] = lowerSession(wedDate, sqKg);
-    if (monOff > -4) workoutLog[friDate] = liftSession(friDate,  'Upper A', benchKg + 1.25, sqKg, ohpKg);
+    if (monOff > 0)  workoutLog[monDate] = [liftSession(monDate,  'Upper A', benchKg, sqKg, ohpKg)];
+    if (monOff > -2) workoutLog[wedDate] = [lowerSession(wedDate, sqKg)];
+    if (monOff > -4) workoutLog[friDate] = [liftSession(friDate,  'Upper A', benchKg + 1.25, sqKg, ohpKg)];
   }
-  // Yesterday: lower session
-  workoutLog[daysAgo(1)] = lowerSession(daysAgo(1), sqStart + 5 * 2.5 + 2.5);
+  // Yesterday: 2 sessions — lower + evening run
+  workoutLog[daysAgo(1)] = [
+    lowerSession(daysAgo(1), sqStart + 5 * 2.5 + 2.5),
+    {
+      name: 'Evening Run',
+      startTime: new Date(daysAgo(1)+'T17:30:00').getTime(),
+      endTime:   new Date(daysAgo(1)+'T18:05:00').getTime(),
+      exercises: [
+        {name:'Running', type:'cardio-distance', distanceKm:5.2, timeSeconds:1680, paceSecPerKm:323},
+      ],
+    }
+  ];
   // Cardio session 3 days ago
-  workoutLog[daysAgo(3)] = {
+  workoutLog[daysAgo(3)] = [{
     name: 'Morning Cardio',
     startTime: new Date(daysAgo(3)+'T06:45:00').getTime(),
     endTime:   new Date(daysAgo(3)+'T07:35:00').getTime(),
@@ -2875,7 +2910,7 @@ function loadTestData() {
       {name:'Morning Run', type:'cardio-distance', distanceKm:4.2, timeSeconds:1470, paceSecPerKm:350},
       {name:'Groove',      type:'cardio-duration', timeSeconds:1800, notes:'7:00–7:30am'},
     ],
-  };
+  }];
 
   // Goals — 5 types matching new model
   const goals = [
@@ -3035,6 +3070,13 @@ function migrateOldWorkoutData() {
     });
     state.workouts = [];
     changed = true;
+  }
+  // Convert existing non-array workoutLog entries to arrays
+  var _log = state.workoutLog || {};
+  var _logKeys = Object.keys(_log);
+  for (var _li = 0; _li < _logKeys.length; _li++) {
+    var _lk = _logKeys[_li];
+    if (_log[_lk] && !Array.isArray(_log[_lk])) { _log[_lk] = [_log[_lk]]; changed = true; }
   }
   if (changed) saveState();
 }
@@ -3973,7 +4015,8 @@ function renderDashboard() {
     var _sched0 = (state.workoutSchedule||{})[_weekISO0]||{};
     var _dayIdx0 = (new Date().getDay()+6)%7;
     var _todaySwId = _sched0[_dayIdx0];
-    var _completedToday = (state.workoutLog||{})[state.activeDate];
+    var _completedTodayArr = (state.workoutLog||{})[state.activeDate];
+    var _completedToday = Array.isArray(_completedTodayArr) ? (_completedTodayArr.length ? _completedTodayArr[0] : null) : _completedTodayArr;
     if (state.activeSession) {
       var _sesName = state.activeSession.name || 'Quick session';
       workoutRowsEl.innerHTML = '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">' + _sesName + ' <span style="color:#F07C3A;font-size:11px">● In progress</span></div>';
@@ -3983,8 +4026,9 @@ function renderDashboard() {
         playBtnEl.onclick = function(){ navigate('workout'); };
       }
     } else if (_completedToday) {
+      var _cCount = Array.isArray(_completedTodayArr) ? _completedTodayArr.length : 1;
       var _exCount = (_completedToday.exercises||[]).length;
-      workoutRowsEl.innerHTML = '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">' + (_completedToday.name||'Workout') + ' <span style="color:#4ADE80;font-size:11px">✓</span></div>';
+      workoutRowsEl.innerHTML = '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">' + (_completedToday.name||'Workout') + (_cCount > 1 ? ' +' + (_cCount-1) : '') + ' <span style="color:#4ADE80;font-size:11px">✓</span></div>';
       if (playBtnEl) {
         playBtnEl.style.display = 'inline-flex';
         playBtnEl.innerHTML = '<i class="ti ti-check"></i>';
@@ -6112,7 +6156,7 @@ function removeExerciseFromLog(idx) {
 // WORKOUT — full implementation
 // ============================================================
 var _wkSession = null;
-var _wkTodayWeekOff = 0;
+var _wkDayOff = 0;
 var _wkPlanWeekOff = 0;
 var _wkhSessionWeekOff = 0;
 var _wkEditorId = null;
@@ -6132,8 +6176,10 @@ function _wkWeekDates(offset) {
 }
 function _wkWeekISO(offset) { return localDateStr(_wkWeekDates(offset)[0]); }
 function _wkWeekLabel(dates) {
-  var d = dates[0];
-  return 'Week of ' + d.getDate() + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getFullYear();
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var mon = dates[0], sun = dates[6];
+  if (mon.getMonth() === sun.getMonth()) return 'Week of ' + mon.getDate() + ' – ' + sun.getDate() + ' ' + months[sun.getMonth()];
+  return 'Week of ' + mon.getDate() + ' ' + months[mon.getMonth()] + ' – ' + sun.getDate() + ' ' + months[sun.getMonth()];
 }
 
 function wkTickTimer() {
@@ -6147,57 +6193,68 @@ function wkTickTimer() {
 
 function wkRenderToday() {
   if (!_wkSession && state.activeSession) _wkSession = state.activeSession;
-  var dates = _wkWeekDates(_wkTodayWeekOff);
   var today = localDateStr(new Date());
-  var weekISO = localDateStr(dates[0]);
-  var todayIdx = dates.findIndex(function(d) { return localDateStr(d) === today; });
-  var _nowD = new Date();
+  var viewDate = new Date(); viewDate.setDate(viewDate.getDate() + _wkDayOff);
+  var viewDateStr = localDateStr(viewDate);
+  var isToday = _wkDayOff === 0;
+  var viewDayIdx = (viewDate.getDay() + 6) % 7;
+  var viewMonday = new Date(viewDate); viewMonday.setDate(viewDate.getDate() - viewDayIdx);
+  var viewWeekISO = localDateStr(viewMonday);
   var _dNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   var _mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var _dateLabel = _dNames[_nowD.getDay()] + ' ' + _nowD.getDate() + ' ' + _mNames[_nowD.getMonth()];
+  var _dateLabel = (isToday ? 'Today · ' : '') + _dNames[viewDate.getDay()] + ' ' + viewDate.getDate() + ' ' + _mNames[viewDate.getMonth()];
   var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
-  html += '<button class="btn btn-sm btn-outline" onclick="changeWkTodayWeek(-1)">&#8249;</button>';
+  html += '<button class="btn btn-sm btn-outline" onclick="changeWkTodayDay(-1)">&#8249;</button>';
   html += '<span style="font-size:13px;font-weight:600;color:var(--txt2)">' + _dateLabel + '</span>';
-  html += '<button class="btn btn-sm btn-outline" onclick="changeWkTodayWeek(1)">&#8250;</button></div>';
-  if (_wkSession) {
+  html += '<button class="btn btn-sm btn-outline" onclick="changeWkTodayDay(1)"' + (_wkDayOff >= 0 ? ' disabled style="opacity:0.3"' : '') + '>&#8250;</button></div>';
+  if (isToday && _wkSession) {
     html += '<div class="card" style="border:1px solid rgba(240,124,58,0.4);background:rgba(240,124,58,0.05);margin-bottom:12px">';
     html += '<div class="row-between"><div>';
     html += '<div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + (_wkSession.name||'Quick session') + '</div>';
     html += '<div style="font-size:12px;color:var(--txt2)" id="wk-timer-display">00:00</div>';
     html += '</div><button class="btn btn-sm btn-danger" onclick="wkEndSession()">End</button></div></div>';
   } else {
-    var schedule = (state.workoutSchedule||{})[weekISO]||{};
-    var todayAssignment = todayIdx >= 0 ? schedule[todayIdx] : null;
-    var completedEntry = _wkTodayWeekOff === 0 ? (state.workoutLog||{})[today] : null;
-    if (completedEntry) {
-      var _durSec = completedEntry.endTime ? Math.round((completedEntry.endTime - completedEntry.startTime)/1000) : 0;
-      var _durStr = Math.floor(_durSec/60) + ' min';
-      var _exCount = (completedEntry.exercises||[]).length;
-      html += '<div class="card" style="margin-bottom:12px;border:1px solid rgba(74,222,128,0.3);background:rgba(74,222,128,0.05)">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between">';
-      html += '<div><div style="font-size:11px;color:#4ADE80;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">Completed ✓</div>';
-      html += '<div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + (completedEntry.name||'Workout') + '</div>';
-      html += '<div style="font-size:12px;color:var(--txt2)">' + _exCount + ' exercises · ' + _durStr + '</div></div></div></div>';
-    } else if (todayAssignment && todayAssignment !== 'rest') {
-      var sw = (state.savedWorkouts||[]).find(function(w) { return w.id === todayAssignment; });
+    var viewSchedule = (state.workoutSchedule||{})[viewWeekISO]||{};
+    var viewAssignment = viewSchedule[viewDayIdx];
+    var le = (state.workoutLog||{})[viewDateStr];
+    var completedSessions = Array.isArray(le) ? le : (le ? [le] : []);
+    if (completedSessions.length) {
+      completedSessions.forEach(function(completedEntry) {
+        var _durSec = completedEntry.endTime ? Math.round((completedEntry.endTime - completedEntry.startTime)/1000) : 0;
+        var _durStr = Math.floor(_durSec/60) + ' min';
+        var _exCount = (completedEntry.exercises||[]).length;
+        html += '<div class="card" style="margin-bottom:12px;border:1px solid rgba(74,222,128,0.3);background:rgba(74,222,128,0.05)">';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between">';
+        html += '<div><div style="font-size:11px;color:#4ADE80;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">Completed ✓</div>';
+        html += '<div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + (completedEntry.name||'Workout') + '</div>';
+        html += '<div style="font-size:12px;color:var(--txt2)">' + _exCount + ' exercises · ' + _durStr + '</div></div></div></div>';
+      });
+    } else if (viewAssignment && viewAssignment !== 'rest') {
+      var sw = (state.savedWorkouts||[]).find(function(w) { return w.id === viewAssignment; });
       if (sw) {
         html += '<div class="card" style="margin-bottom:12px"><div class="row-between"><div>';
-        html += '<div style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em">Scheduled today</div>';
+        html += '<div style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em">Scheduled' + (isToday ? ' today' : '') + '</div>';
         html += '<div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + sw.name + '</div>';
         html += '<div style="font-size:12px;color:var(--txt2)">' + sw.exercises.length + ' exercises</div>';
-        html += '</div><button class="btn btn-sm btn-accent-orange" onclick="wkStartScheduled(\'' + sw.id + '\')">Start</button></div></div>';
+        html += '</div>' + (isToday ? '<button class="btn btn-sm btn-accent-orange" onclick="wkStartScheduled(\'' + sw.id + '\')">Start</button>' : '') + '</div></div>';
       }
-    } else if (todayAssignment === 'rest') {
+    } else if (viewAssignment === 'rest') {
       html += '<div class="card" style="margin-bottom:12px;text-align:center;color:var(--txt2);font-size:13px">Rest day scheduled</div>';
-    } else if (_wkTodayWeekOff === 0) {
+    } else if (isToday) {
       html += '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:12px 0 4px">No workout scheduled — start a quick session or load a plan</div>';
+    } else {
+      html += '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:12px 0 4px">No workout logged</div>';
     }
   }
-  if (_wkSession && (_wkSession.exercises||[]).length) html += wkRenderExerciseCards();
+  if (isToday && _wkSession && (_wkSession.exercises||[]).length) html += wkRenderExerciseCards();
   document.getElementById('wk-today-content').innerHTML = html;
   wkTickTimer();
 }
-function changeWkTodayWeek(delta) { _wkTodayWeekOff += delta; wkRenderToday(); }
+function changeWkTodayDay(delta) {
+  if (delta > 0 && _wkDayOff >= 0) return;
+  _wkDayOff += delta;
+  wkRenderToday();
+}
 function wkStartScheduled(swId) { var sw=(state.savedWorkouts||[]).find(function(w){return w.id===swId;}); if(sw) wkBeginSession(sw); }
 function wkBeginSession(sw) {
   _wkSession = {
@@ -6222,8 +6279,11 @@ function _wkLastKg(exName) {
   var log = state.workoutLog||{};
   var dates = Object.keys(log).sort().reverse();
   for (var i=0;i<dates.length;i++) {
-    var ex = (log[dates[i]].exercises||[]).find(function(e){return e.name===exName&&e.type==='lift';});
-    if (ex&&ex.sets) { var done=ex.sets.filter(function(s){return s.done;}); if(done.length) return done[done.length-1].kg||''; }
+    var dayEntries = Array.isArray(log[dates[i]]) ? log[dates[i]] : (log[dates[i]] ? [log[dates[i]]] : []);
+    for (var j=0;j<dayEntries.length;j++) {
+      var ex = (dayEntries[j].exercises||[]).find(function(e){return e.name===exName&&e.type==='lift';});
+      if (ex&&ex.sets) { var done=ex.sets.filter(function(s){return s.done;}); if(done.length) return done[done.length-1].kg||''; }
+    }
   }
   return '';
 }
@@ -6232,7 +6292,9 @@ function wkEndSession(skipConfirm) {
   function doEnd() {
     var dateKey = localDateStr(new Date());
     state.workoutLog = state.workoutLog||{};
-    state.workoutLog[dateKey] = {name:_wkSession.name,startTime:_wkSession.startTime,endTime:Date.now(),exercises:JSON.parse(JSON.stringify(_wkSession.exercises))};
+    var _session = {name:_wkSession.name,startTime:_wkSession.startTime,endTime:Date.now(),exercises:JSON.parse(JSON.stringify(_wkSession.exercises))};
+    if (!Array.isArray(state.workoutLog[dateKey])) state.workoutLog[dateKey] = [];
+    state.workoutLog[dateKey].push(_session);
     _wkSession = null;
     state.activeSession = null;
     saveState();
@@ -6267,8 +6329,8 @@ function wkBuildExerciseCard(ex,i) {
       var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
       html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
       html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
-      html += '<input type="text" inputmode="decimal" value="'+(set.kg||'')+'" placeholder="kg" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'kg\',this.value)"/>';
-      html += '<input type="text" inputmode="decimal" value="'+(set.reps||'')+'" placeholder="reps" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'reps\',this.value)"/>';
+      html += '<input type="text" inputmode="decimal" value="'+(set.kg||'')+'" placeholder="kg" style="background:#22222E;'+bg+'" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+i+','+si+',\'kg\',this.value)"/>';
+      html += '<input type="text" inputmode="decimal" value="'+(set.reps||'')+'" placeholder="reps" style="background:#22222E;'+bg+'" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+i+','+si+',\'reps\',this.value)"/>';
       html += '<button id="wk-tick-'+i+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
     });
     html += '</div>';
@@ -6285,7 +6347,7 @@ function wkBuildExerciseCard(ex,i) {
       var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
       html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
       html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
-      html += '<input type="text" inputmode="decimal" value="'+(set.value||'')+'" placeholder="'+(metric==='reps'?'reps':'sec')+'" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'value\',this.value)"/>';
+      html += '<input type="text" inputmode="decimal" value="'+(set.value||'')+'" placeholder="'+(metric==='reps'?'reps':'sec')+'" style="background:#22222E;'+bg+'" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+i+','+si+',\'value\',this.value)"/>';
       html += '<button id="wk-tick-'+i+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
     });
     html += '</div>';
@@ -6299,7 +6361,7 @@ function wkBuildExerciseCard(ex,i) {
       var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
       html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
       html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
-      html += '<input type="text" inputmode="decimal" value="'+(set.seconds||'')+'" placeholder="sec" style="background:#22222E;'+bg+'" onchange="wkSetVal('+i+','+si+',\'seconds\',this.value)"/>';
+      html += '<input type="text" inputmode="decimal" value="'+(set.seconds||'')+'" placeholder="sec" style="background:#22222E;'+bg+'" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+i+','+si+',\'seconds\',this.value)"/>';
       html += '<button id="wk-tick-'+i+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
     });
     html += '</div>';
@@ -6353,13 +6415,13 @@ function wkAddSet(exIdx) {
   var row='<div id="wk-set-row-'+exIdx+'-'+si+'" style="display:grid;grid-template-columns:'+cols+';gap:4px;align-items:center;margin-bottom:4px">';
   row+='<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
   if(ex.type==='lift'){
-    row+='<input type="text" inputmode="decimal" value="'+(set.kg||'')+'" placeholder="kg" style="background:#22222E" onchange="wkSetVal('+exIdx+','+si+',\'kg\',this.value)"/>';
-    row+='<input type="text" inputmode="decimal" value="" placeholder="reps" style="background:#22222E" onchange="wkSetVal('+exIdx+','+si+',\'reps\',this.value)"/>';
+    row+='<input type="text" inputmode="decimal" value="'+(set.kg||'')+'" placeholder="kg" style="background:#22222E" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+exIdx+','+si+',\'kg\',this.value)"/>';
+    row+='<input type="text" inputmode="decimal" value="" placeholder="reps" style="background:#22222E" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+exIdx+','+si+',\'reps\',this.value)"/>';
   } else if(ex.type==='bodyweight'){
     var metric=ex.metric||'reps';
-    row+='<input type="text" inputmode="decimal" value="" placeholder="'+(metric==='reps'?'reps':'sec')+'" style="background:#22222E" onchange="wkSetVal('+exIdx+','+si+',\'value\',this.value)"/>';
+    row+='<input type="text" inputmode="decimal" value="" placeholder="'+(metric==='reps'?'reps':'sec')+'" style="background:#22222E" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+exIdx+','+si+',\'value\',this.value)"/>';
   } else if(ex.type==='timed-hold'){
-    row+='<input type="text" inputmode="decimal" value="'+(set.seconds||'')+'" placeholder="sec" style="background:#22222E" onchange="wkSetVal('+exIdx+','+si+',\'seconds\',this.value)"/>';
+    row+='<input type="text" inputmode="decimal" value="'+(set.seconds||'')+'" placeholder="sec" style="background:#22222E" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+exIdx+','+si+',\'seconds\',this.value)"/>';
   }
   row+='<button id="wk-tick-'+exIdx+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;background:none;border:2px solid var(--border);color:transparent;font-size:12px" onclick="wkTickSet('+exIdx+','+si+')">&#10003;</button></div>';
   setsEl.insertAdjacentHTML('beforeend',row);
@@ -6408,6 +6470,8 @@ function wkOpenAddExercise(context) {
   _wkEditorContext=context;
   var nameEl=document.getElementById('wk-add-ex-name');if(nameEl)nameEl.value='';
   var targetEl=document.getElementById('wk-add-ex-target');if(targetEl)targetEl.value='';
+  var searchEl=document.getElementById('wk-ex-search');if(searchEl)searchEl.value='';
+  var resEl=document.getElementById('wk-ex-search-results');if(resEl){resEl.style.display='none';resEl.innerHTML='';}
   document.querySelectorAll('#wk-add-ex-types .exercise-tag').forEach(function(t){t.classList.toggle('selected',t.dataset.type==='lift');});
   var mr=document.getElementById('wk-add-ex-metric-row');if(mr)mr.style.display='none';
   var tr=document.getElementById('wk-add-ex-target-row');if(tr)tr.style.display='';
@@ -6419,6 +6483,23 @@ function wkSelectExType(btn) {
   var type=btn.dataset.type;
   var mr=document.getElementById('wk-add-ex-metric-row');if(mr)mr.style.display=(type==='bodyweight')?'':'none';
   var tr=document.getElementById('wk-add-ex-target-row');if(tr)tr.style.display=(type==='cardio-distance'||type==='cardio-duration')?'none':'';
+  var targetEl=document.getElementById('wk-add-ex-target');
+  if(targetEl){var ph={'lift':'e.g. 4 × 6–10','bodyweight':'e.g. 3 × 15','timed-hold':'e.g. 3 × 30s','rehab':'e.g. 2 × 10'};targetEl.placeholder=ph[type]||'e.g. 4 × 6–10';}
+}
+function wkExSearch(q) {
+  var res=document.getElementById('wk-ex-search-results');if(!res)return;
+  q=(q||'').trim().toLowerCase();
+  if(!q){res.style.display='none';res.innerHTML='';return;}
+  var allEx=[];Object.values(EXERCISES).forEach(function(arr){allEx=allEx.concat(arr);});
+  var matches=allEx.filter(function(n){return n.toLowerCase().indexOf(q)>=0;}).slice(0,8);
+  if(!matches.length){res.style.display='none';return;}
+  res.innerHTML=matches.map(function(n){return '<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px" onclick="wkExSearchPick(\''+n.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')" >'+n+'</div>';}).join('');
+  res.style.display='block';
+}
+function wkExSearchPick(name) {
+  var nameEl=document.getElementById('wk-add-ex-name');if(nameEl)nameEl.value=name;
+  var searchEl=document.getElementById('wk-ex-search');if(searchEl)searchEl.value='';
+  var resEl=document.getElementById('wk-ex-search-results');if(resEl){resEl.style.display='none';resEl.innerHTML='';}
 }
 function wkSelectBwMetric(btn){btn.closest('#wk-add-ex-metrics').querySelectorAll('.exercise-tag').forEach(function(t){t.classList.remove('selected');});btn.classList.add('selected');}
 function wkConfirmAddExercise() {
@@ -6507,23 +6588,22 @@ function wkRenderMiniGrid(dates,schedule){
   return html+'</div>';
 }
 function wkRenderDaySchedule(dates,schedule,today){
-  var names=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  var names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var fullNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   var html='';
   dates.forEach(function(d,i){
     var asgn=schedule[i];
     var sw=asgn&&asgn!=='rest'?(state.savedWorkouts||[]).find(function(w){return w.id===asgn;}):null;
     var isToday=localDateStr(d)===today;
-    var planName=asgn==='rest'?'Rest':(sw?sw.name:'&#8212; Tap to assign');
-    var preview=sw?sw.exercises.slice(0,3).map(function(e){return e.name;}).join(' · ')+(sw.exercises.length>3?'…':''):'';
-    html+='<div class="card" style="cursor:pointer;margin-bottom:8px" onclick="wkOpenDayPicker('+i+')">';
-    html+='<div class="row-between"><div style="flex:1;min-width:0">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">';
-    html+='<div style="font-size:12px;color:var(--txt2)">'+names[i]+'</div>';
-    html+=(isToday?'<span class="pill" style="background:#F07C3A;color:#fff;font-size:10px">Today</span>':'');
+    var planName=asgn==='rest'?'Rest day':(sw?sw.name:'+ Assign');
+    var planColor=sw?'var(--txt)':asgn==='rest'?'var(--txt2)':'var(--txt3)';
+    var todayPill=isToday?'<span style="background:#F07C3A;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px">Today</span>':'';
+    html+='<div class="meal-day-card" style="cursor:pointer;margin-bottom:6px" onclick="wkOpenDayPicker('+i+')">';
+    html+='<div class="meal-day-header" style="display:flex;justify-content:space-between;align-items:center">';
+    html+='<span>'+fullNames[i]+' '+d.getDate()+'</span>'+todayPill+'</div>';
+    html+='<div class="meal-slot"><span class="meal-slot-name" style="color:var(--txt3)">Workout</span>';
+    html+='<span class="meal-slot-food" style="color:'+planColor+'">'+planName+'</span></div>';
     html+='</div>';
-    html+='<div style="font-weight:600">'+planName+'</div>';
-    if(preview)html+='<div style="font-size:11px;color:var(--txt3);margin-top:2px">'+preview+'</div>';
-    html+='</div><span style="color:var(--txt3);margin-left:8px">&#8250;</span></div></div>';
   });
   return html;
 }
@@ -6575,7 +6655,7 @@ function wkShowTemplates(){
   if(existing)existing.remove();
   var html=templates.map(function(t){
     var days=Object.keys(t.week).filter(function(k){return t.week[k]&&t.week[k]!=='rest';}).length;
-    return '<div class="card" style="cursor:pointer;margin-bottom:8px" onclick="wkLoadTemplate(\''+t.id+'\')"><div style="font-weight:600">'+t.name+'</div><div style="font-size:12px;color:var(--txt2)">'+t.savedAt+' · '+days+' training days</div></div>';
+    return '<div class="card" style="margin-bottom:8px"><div class="row-between"><div style="cursor:pointer;flex:1;min-width:0" onclick="wkLoadTemplate(\''+t.id+'\')"><div style="font-weight:600">'+t.name+'</div><div style="font-size:12px;color:var(--txt2)">'+t.savedAt+' · '+days+' training days</div></div><button class="btn btn-sm btn-outline" style="margin-left:8px;flex-shrink:0" onclick="closeModal(\'modal-wk-template-list\');setTimeout(function(){wkEditTemplate(\''+t.id+'\');},100)">Edit</button></div></div>';
   }).join('');
   var el=document.createElement('div');el.className='modal-overlay';el.id='modal-wk-template-list';
   el.innerHTML='<div class="modal"><div class="modal-handle"></div><div class="modal-title">Load template</div>'+html+'<button class="btn btn-outline" style="margin-top:8px" onclick="closeModal(\'modal-wk-template-list\')">Cancel</button></div>';
@@ -6590,6 +6670,30 @@ function wkLoadTemplate(id){
   if(Object.keys(existing).length){showConfirmSheet({title:'Load template?',message:'This will replace the current week\'s schedule.',confirmText:'Load',onConfirm:doLoad});}else doLoad();
 }
 function wkDeleteTemplate(id){state.workoutTemplates=(state.workoutTemplates||[]).filter(function(t){return t.id!==id;});saveState();}
+
+var _wkEditTplId = null;
+function wkEditTemplate(id) {
+  _wkEditTplId = id;
+  var tpl = (state.workoutTemplates||[]).find(function(t){return t.id===id;});
+  if (!tpl) return;
+  var nameEl = document.getElementById('wk-edit-tpl-name');
+  if (nameEl) nameEl.value = tpl.name;
+  openModal('modal-wk-edit-tpl');
+}
+function wkSaveEditTemplate() {
+  var nameEl = document.getElementById('wk-edit-tpl-name');
+  var name = nameEl ? nameEl.value.trim() : '';
+  if (!name) { showToast('Enter a name'); return; }
+  var idx = (state.workoutTemplates||[]).findIndex(function(t){return t.id===_wkEditTplId;});
+  if (idx > -1) state.workoutTemplates[idx].name = name;
+  saveState(); closeModal('modal-wk-edit-tpl'); showToast('Template updated ✓');
+}
+function wkDeleteEditTemplate() {
+  showConfirmSheet({title:'Delete template?',confirmText:'Delete',confirmClass:'btn-danger',onConfirm:function(){
+    state.workoutTemplates=(state.workoutTemplates||[]).filter(function(t){return t.id!==_wkEditTplId;});
+    saveState(); closeModal('modal-wk-edit-tpl'); showToast('Template deleted');
+  }});
+}
 
 function wkRenderSavedWorkouts(){
   var workouts=state.savedWorkouts||[];
@@ -6644,7 +6748,7 @@ function wkRenderHistory(){
   var progressContent=document.getElementById('wkh-progress-content');if(!progressContent)return;
   var log=state.workoutLog||{};
   var names={};
-  Object.values(log).forEach(function(entry){(entry.exercises||[]).forEach(function(ex){names[ex.name]=ex.type;});});
+  Object.values(log).forEach(function(dayEntries){var entries=Array.isArray(dayEntries)?dayEntries:[dayEntries];entries.forEach(function(entry){(entry.exercises||[]).forEach(function(ex){names[ex.name]=ex.type;});});});
   var nameList=Object.keys(names);
   if(!_wkhSelectedEx&&nameList.length)_wkhSelectedEx=nameList[0];
   var html='<div class="input-group" style="margin-bottom:8px"><label class="input-label">Exercise</label>';
@@ -6671,21 +6775,23 @@ function renderWkhProgressChart(){
   var log=state.workoutLog||{};
   var vals=[];
   Object.keys(log).sort().forEach(function(date){
-    var entry=log[date];
-    var ex=(entry.exercises||[]).find(function(e){return e.name===_wkhSelectedEx;});
-    if(!ex)return;
-    var v=null;
-    if(ex.type==='lift'&&ex.sets){
-      var done=ex.sets.filter(function(s){return s.done;});if(!done.length)return;
-      if(_wkhMetric==='max-kg')v=Math.max.apply(null,done.map(function(s){return parseFloat(s.kg)||0;}));
-      else if(_wkhMetric==='volume')v=done.reduce(function(a,s){return a+(parseFloat(s.kg)||0)*(parseFloat(s.reps)||0);},0);
-      else v=done.reduce(function(a,s){return a+(parseFloat(s.reps)||0);},0);
-    }else if(ex.type==='bodyweight'&&ex.sets){var done2=ex.sets.filter(function(s){return s.done;});if(!done2.length)return;v=done2.reduce(function(a,s){return a+(parseFloat(s.value)||0);},0);}
-    else if(ex.type==='cardio-distance'){v=parseFloat(ex.distanceKm)||0;}
-    else if(ex.type==='cardio-duration'){v=parseFloat(ex.timeMinutes)||0;}
-    else if(ex.type==='rehab'){v=ex.rounds||0;}
-    else if(ex.type==='timed-hold'&&ex.sets){var done3=ex.sets.filter(function(s){return s.done;});if(!done3.length)return;v=done3.reduce(function(a,s){return a+(parseFloat(s.seconds)||0);},0);}
-    if(v!==null)vals.push({x:date,v:v});
+    var dayEntries=Array.isArray(log[date])?log[date]:(log[date]?[log[date]]:[]);
+    dayEntries.forEach(function(entry){
+      var ex=(entry.exercises||[]).find(function(e){return e.name===_wkhSelectedEx;});
+      if(!ex)return;
+      var v=null;
+      if(ex.type==='lift'&&ex.sets){
+        var done=ex.sets.filter(function(s){return s.done;});if(!done.length)return;
+        if(_wkhMetric==='max-kg')v=Math.max.apply(null,done.map(function(s){return parseFloat(s.kg)||0;}));
+        else if(_wkhMetric==='volume')v=done.reduce(function(a,s){return a+(parseFloat(s.kg)||0)*(parseFloat(s.reps)||0);},0);
+        else v=done.reduce(function(a,s){return a+(parseFloat(s.reps)||0);},0);
+      }else if(ex.type==='bodyweight'&&ex.sets){var done2=ex.sets.filter(function(s){return s.done;});if(!done2.length)return;v=done2.reduce(function(a,s){return a+(parseFloat(s.value)||0);},0);}
+      else if(ex.type==='cardio-distance'){v=parseFloat(ex.distanceKm)||0;}
+      else if(ex.type==='cardio-duration'){v=parseFloat(ex.timeMinutes)||0;}
+      else if(ex.type==='rehab'){v=ex.rounds||0;}
+      else if(ex.type==='timed-hold'&&ex.sets){var done3=ex.sets.filter(function(s){return s.done;});if(!done3.length)return;v=done3.reduce(function(a,s){return a+(parseFloat(s.seconds)||0);},0);}
+      if(v!==null)vals.push({x:date,v:v});
+    });
   });
   if(!vals.length){
     container.innerHTML='<div style="text-align:center;color:var(--txt3);padding:24px">No data yet for '+(_wkhSelectedEx||'this exercise')+'</div>';
@@ -6712,23 +6818,25 @@ function renderWkhSessionCards(){
   var rendered=false;
   dates.forEach(function(d,i){
     var dateStr=localDateStr(d);
-    var entry=log[dateStr];
+    var dayEntries=Array.isArray(log[dateStr])?log[dateStr]:(log[dateStr]?[log[dateStr]]:[]);
     var asgn=schedule[i];
-    if(entry){
-      rendered=true;
-      var dur=entry.endTime?Math.round((entry.endTime-entry.startTime)/60000):null;
-      html+='<div class="card" style="margin-bottom:8px"><div style="font-size:12px;color:var(--txt2);margin-bottom:2px">'+dayNames[i]+' · '+dateStr+'</div><div class="row-between"><div style="font-weight:600">'+entry.name+'</div>'+(dur?'<span style="font-size:12px;color:var(--txt2)">'+dur+'min</span>':'')+'</div><div style="margin-top:6px;font-size:12px;color:var(--txt2)">';
-      (entry.exercises||[]).forEach(function(ex){
-        var sum='';
-        if(ex.type==='lift'&&ex.sets)sum=ex.sets.filter(function(s){return s.done;}).length+' sets';
-        else if(ex.type==='bodyweight'&&ex.sets)sum=ex.sets.filter(function(s){return s.done;}).length+' sets';
-        else if(ex.type==='cardio-distance')sum=(ex.distanceKm||0)+' km';
-        else if(ex.type==='cardio-duration')sum=(ex.timeMinutes||0)+' min';
-        else if(ex.type==='rehab')sum=(ex.rounds||0)+' rounds';
-        else if(ex.type==='timed-hold'&&ex.sets)sum=ex.sets.filter(function(s){return s.done;}).length+' sets';
-        html+='<div>'+ex.name+(sum?' · '+sum:'')+'</div>';
+    if(dayEntries.length){
+      dayEntries.forEach(function(entry){
+        rendered=true;
+        var dur=entry.endTime?Math.round((entry.endTime-entry.startTime)/60000):null;
+        html+='<div class="card" style="margin-bottom:8px"><div style="font-size:12px;color:var(--txt2);margin-bottom:2px">'+dayNames[i]+' · '+dateStr+'</div><div class="row-between"><div style="font-weight:600">'+entry.name+'</div>'+(dur?'<span style="font-size:12px;color:var(--txt2)">'+dur+'min</span>':'')+'</div><div style="margin-top:6px;font-size:12px;color:var(--txt2)">';
+        (entry.exercises||[]).forEach(function(ex){
+          var sum='';
+          if(ex.type==='lift'&&ex.sets)sum=ex.sets.filter(function(s){return s.done;}).length+' sets';
+          else if(ex.type==='bodyweight'&&ex.sets)sum=ex.sets.filter(function(s){return s.done;}).length+' sets';
+          else if(ex.type==='cardio-distance')sum=(ex.distanceKm||0)+' km';
+          else if(ex.type==='cardio-duration')sum=(ex.timeMinutes||0)+' min';
+          else if(ex.type==='rehab')sum=(ex.rounds||0)+' rounds';
+          else if(ex.type==='timed-hold'&&ex.sets)sum=ex.sets.filter(function(s){return s.done;}).length+' sets';
+          html+='<div>'+ex.name+(sum?' · '+sum:'')+'</div>';
+        });
+        html+='</div></div>';
       });
-      html+='</div></div>';
     }else if(asgn==='rest'){html+='<div style="padding:8px 0;color:var(--txt3);font-size:13px">'+dayNames[i]+' — Rest</div>';}
   });
   if(!rendered)html+='<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No sessions logged this week</div>';
@@ -6929,8 +7037,22 @@ function renderMealPlanGrid() {
   const labelEl = document.getElementById('meal-plan-week-label');
   if (labelEl) {
     const mon = dates[0], sun = dates[6];
-    const fmt = d => d.toLocaleDateString('en-NZ',{day:'numeric',month:'short'});
-    labelEl.textContent = `Week of ${fmt(mon)} – ${fmt(sun)}`;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    if (mon.getMonth() === sun.getMonth()) labelEl.textContent = 'Week of ' + mon.getDate() + ' – ' + sun.getDate() + ' ' + months[sun.getMonth()];
+    else labelEl.textContent = 'Week of ' + mon.getDate() + ' ' + months[mon.getMonth()] + ' – ' + sun.getDate() + ' ' + months[sun.getMonth()];
+  }
+  // 7-day pill strip
+  const pillStripEl = document.getElementById('meal-plan-day-pills');
+  if (pillStripEl) {
+    const todayDs = localDateStr(new Date());
+    const dnames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    pillStripEl.innerHTML = dates.map(function(d, i) {
+      var ds = localDateStr(d);
+      var isToday = ds === todayDs;
+      var bg = isToday ? '#4ADE80' : 'var(--s2)';
+      var clr = isToday ? '#0F0F13' : 'var(--txt2)';
+      return '<span style="background:' + bg + ';color:' + clr + ';font-size:11px;font-weight:' + (isToday?'700':'500') + ';padding:4px 10px;border-radius:99px;white-space:nowrap">' + dnames[i] + ' ' + d.getDate() + '</span>';
+    }).join('');
   }
   // Add swipe if not set up
   if (!el._swipeSetup) {
