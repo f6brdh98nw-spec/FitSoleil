@@ -301,13 +301,21 @@
       if (monOff > -4) workoutLog[friDate] = [liftSession(friDate,  'Upper A', benchKg + 1.25, sqKg, ohpKg)];
     }
     workoutLog[daysAgo(1)] = [
-      lowerSession(daysAgo(1), sqStart + 5 * 2.5 + 2.5),
       {
-        name: 'Evening Run',
-        startTime: new Date(daysAgo(1)+'T17:30:00').getTime(),
-        endTime:   new Date(daysAgo(1)+'T18:05:00').getTime(),
+        name: 'Morning Upper Body',
+        startTime: new Date(daysAgo(1)+'T07:00:00').getTime(),
+        endTime:   new Date(daysAgo(1)+'T07:50:00').getTime(),
         exercises: [
-          {name:'Running', type:'cardio-distance', distanceKm:5.2, timeSeconds:1680, paceSecPerKm:323},
+          {name:'Bench Press', type:'lift', sets:[{kg:'60',reps:'8',done:true},{kg:'60',reps:'8',done:true},{kg:'60',reps:'7',done:true}]},
+          {name:'Overhead Press', type:'lift', sets:[{kg:'40',reps:'8',done:true},{kg:'40',reps:'8',done:true}]},
+        ],
+      },
+      {
+        name: 'Evening Cardio',
+        startTime: new Date(daysAgo(1)+'T18:00:00').getTime(),
+        endTime:   new Date(daysAgo(1)+'T18:50:00').getTime(),
+        exercises: [
+          {name:'Running', type:'cardio-distance', distanceKm:8.0, timeSeconds:2800, paceSecPerKm:350},
         ],
       }
     ];

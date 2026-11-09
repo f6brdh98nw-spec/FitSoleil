@@ -90,6 +90,7 @@ iframe{width:100%;height:100%;border:none;display:block}
       <button class="sf-btn" onclick="setSection('H',this)">Home</button>
       <button class="sf-btn" onclick="setSection('S',this)">Settings</button>
       <button class="sf-btn" onclick="setSection('R',this)">Recent</button>
+      <button class="sf-btn" onclick="setSection('G',this)">Global</button>
       <button class="sf-btn" onclick="setSection('fail',this)">Fails</button>
     </div>
     <div id="checklist"></div>
@@ -390,6 +391,63 @@ var SECTIONS = [
     {id:"S.06",type:"semi",label:"Settings screen shows correct current macro targets",run:null},
     {id:"S.07",type:"manual",label:"Change macro mode (Auto/Custom) — targets update and save",run:null},
     {id:"S.08",type:"manual",label:"Change name/weight in settings — reflects on Home screen",run:null},
+  ]},
+  {id:"G",title:"Global / Regression",color:"#4ADE80",tests:[
+    {id:"G.01",type:"auto",label:"Every .btn element is a real <button> or <a>",
+      run:function(a){
+        var bad=[].filter.call(a.document.querySelectorAll('.btn,[class*="btn-"]'),function(el){
+          return el.tagName!=='BUTTON'&&el.tagName!=='A';
+        });
+        if(bad.length)return{pass:false,msg:bad.map(function(el){return el.tagName+'.'+el.className;}).join(', ')};
+        return true;
+      }},
+    {id:"G.02",type:"auto",label:"Children of every button ignore pointer events",
+      run:function(a){
+        var bad=[].filter.call(a.document.querySelectorAll('button *'),function(el){
+          var s=a.getComputedStyle(el);return s.pointerEvents!=='none';
+        });
+        return bad.length===0||{pass:false,msg:bad.length+' elements with pointer-events!=none'};
+      }},
+    {id:"G.03",type:"auto",label:"Both plan pages contain .plan-weeknav, .plan-daystrip, .plan-toolbar, .meal-day-card",
+      run:function(a){
+        a.wkRenderPlans&&a.wkRenderPlans();
+        a.renderMealPlanGrid&&a.renderMealPlanGrid();
+        var wp=a.document.getElementById('wk-plans-content');
+        var mp=a.document.getElementById('meal-plan-container');
+        var selectors=['.plan-weeknav','.plan-daystrip','.plan-toolbar','.meal-day-card'];
+        var missing=[];
+        selectors.forEach(function(s){
+          if(!wp||!wp.querySelector(s))missing.push('wk:'+s);
+          if(!mp||!mp.querySelector(s))missing.push('mp:'+s);
+        });
+        return missing.length?{pass:false,msg:missing.join(', ')}:true;
+      }},
+    {id:"G.04",type:"auto",label:"Typed kg/reps are logged even when the set circle is NOT ticked",
+      run:function(a){
+        a.wkBeginSession({id:'g4',name:'G4',exercises:[]});
+        a.document.getElementById('wk-add-ex-name').value='Squat';
+        a.document.querySelectorAll('#wk-add-ex-types .exercise-tag').forEach(function(t){t.classList.remove('selected');if(t.dataset.type==='lift')t.classList.add('selected');});
+        (typeof a.wkSubmitAddExercise==='function'?a.wkSubmitAddExercise:a.wkConfirmAddEx)();
+        var ex=a._wkSession&&a._wkSession.exercises[0];
+        if(!ex||!ex.sets)return{pass:false,msg:'no sets'};
+        ex.sets[0].kg='80';ex.sets[0].reps='5';
+        a.wkEndSession(true);
+        var dk=a.localDateStr(new Date());
+        var entries=a.state.workoutLog[dk];
+        var last=Array.isArray(entries)?entries[entries.length-1]:entries;
+        var ex2=(last&&last.exercises||[]).find(function(e){return e.name==='Squat';});
+        return ex2&&ex2.sets&&(parseFloat(ex2.sets[0].kg)>0);
+      }},
+    {id:"G.05",type:"auto",label:"History lists sessions newest first by completion time",
+      run:function(a){
+        if(typeof a.wkSortSessions!=='function')return{pass:false,msg:'wkSortSessions not found'};
+        var d=new Date();d.setDate(d.getDate()-1);
+        var dk=a.localDateStr?a.localDateStr(d):d.toISOString().slice(0,10);
+        var entries=a.state.workoutLog&&a.state.workoutLog[dk];
+        if(!Array.isArray(entries)||entries.length<2)return{pass:false,msg:'need 2+ sessions on daysAgo(1)'};
+        var sorted=a.wkSortSessions(entries);
+        return sorted[0].endTime>=sorted[1].endTime;
+      }},
   ]},
 ];
 
