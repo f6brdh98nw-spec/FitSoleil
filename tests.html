@@ -448,6 +448,51 @@ var SECTIONS = [
         var sorted=a.wkSortSessions(entries);
         return sorted[0].endTime>=sorted[1].endTime;
       }},
+    {id:"G.06",type:"auto",label:"Nutrition day strip uses square .plan-day-tile elements (not pill spans)",
+      run:function(a){
+        a.renderMealPlanGrid&&a.renderMealPlanGrid();
+        var mp=a.document.getElementById('meal-plan-container');
+        if(!mp)return{pass:false,msg:'meal-plan-container not found'};
+        var tiles=mp.querySelectorAll('.plan-daystrip .plan-day-tile');
+        if(tiles.length!==7)return{pass:false,msg:'expected 7 .plan-day-tile, found '+tiles.length};
+        var pills=mp.querySelectorAll('.plan-daystrip span[style*="border-radius:99px"]');
+        return pills.length===0||{pass:false,msg:'old pill spans still present: '+pills.length};
+      }},
+    {id:"G.07",type:"auto",label:"Nutrition toolbar has Copy/Save/Load buttons, no Shopping list",
+      run:function(a){
+        a.renderMealPlanGrid&&a.renderMealPlanGrid();
+        var mp=a.document.getElementById('meal-plan-container');
+        if(!mp)return{pass:false,msg:'meal-plan-container not found'};
+        var btns=[].map.call(mp.querySelectorAll('.plan-toolbar button'),function(b){return b.textContent.trim();});
+        var hasCopy=btns.some(function(t){return t.toLowerCase().includes('copy last week');});
+        var hasSave=btns.some(function(t){return t.toLowerCase().includes('save template');});
+        var hasLoad=btns.some(function(t){return t.toLowerCase().includes('load template');});
+        var hasShopping=btns.some(function(t){return t.toLowerCase().includes('shopping');});
+        if(!hasCopy)return{pass:false,msg:'missing Copy last week'};
+        if(!hasSave)return{pass:false,msg:'missing Save template'};
+        if(!hasLoad)return{pass:false,msg:'missing Load template'};
+        if(hasShopping)return{pass:false,msg:'Shopping list button should not be in toolbar'};
+        return true;
+      }},
+    {id:"G.08",type:"auto",label:"Workout day card rows: workout name is bold (not .meal-slot-name grey)",
+      run:function(a){
+        a.wkRenderPlans&&a.wkRenderPlans();
+        var wp=a.document.getElementById('wk-plans-content');
+        if(!wp)return{pass:false,msg:'wk-plans-content not found'};
+        var greyNames=wp.querySelectorAll('.meal-day-card .meal-slot .meal-slot-name');
+        var boldNames=wp.querySelectorAll('.meal-day-card .meal-slot span[style*="font-weight:600"]');
+        return greyNames.length===0||{pass:false,msg:greyNames.length+' elements still using .meal-slot-name (grey)'};
+      }},
+    {id:"G.09",type:"auto",label:"History session label shows dd-mm-yyyy time, not NNmin duration",
+      run:function(a){
+        a.renderWkhSessionCards&&a.renderWkhSessionCards();
+        var sc=a.document.getElementById('wkh-sessions-content');
+        if(!sc)return{pass:false,msg:'wkh-sessions-content not found'};
+        var text=sc.textContent||'';
+        var hasMin=/\b\d+min\b/.test(text);
+        if(hasMin)return{pass:false,msg:'Found NNmin pattern in session cards'};
+        return true;
+      }},
   ]},
 ];
 

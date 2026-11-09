@@ -5765,14 +5765,26 @@ function updateRecipePerServe() {
   if (!ings.length) { if (el) el.style.display = 'none'; return; }
   var tot = calcTotals(ings.map(i => i.macros));
   if (!el) return;
-  el.style.cssText = 'background:var(--s2);border-radius:8px;padding:8px 12px;margin-bottom:8px;';
+  el.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;';
+  function macroChips(p,c,f){
+    return '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">'+
+      '<span style="background:rgba(239,68,68,0.15);color:#EF4444;font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px">P '+Math.round(p*10)/10+'g</span>'+
+      '<span style="background:rgba(234,179,8,0.15);color:#CA8A04;font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px">C '+Math.round(c*10)/10+'g</span>'+
+      '<span style="background:rgba(249,115,22,0.15);color:#F97316;font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px">F '+Math.round(f*10)/10+'g</span>'+
+    '</div>';
+  }
+  var perP=tot.protein/serves,perC=tot.carbs/serves,perF=tot.fat/serves;
   el.innerHTML =
-    '<div style="font-size:11px;color:var(--txt2);margin-bottom:3px">Total: ' +
-      Math.round(tot.calories) + ' kcal · P:' + Math.round(tot.protein*10)/10 + 'g · C:' +
-      Math.round(tot.carbs*10)/10 + 'g · F:' + Math.round(tot.fat*10)/10 + 'g</div>' +
-    '<div style="font-size:11px;color:var(--txt2)">Per serve (÷' + serves + '): ' +
-      Math.round(tot.calories/serves) + ' kcal · P:' + Math.round(tot.protein/serves*10)/10 + 'g · C:' +
-      Math.round(tot.carbs/serves*10)/10 + 'g · F:' + Math.round(tot.fat/serves*10)/10 + 'g</div>';
+    '<div style="background:var(--s2);border-radius:8px;padding:10px 12px">'+
+      '<div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">Per serve</div>'+
+      '<div style="font-size:22px;font-weight:700;color:var(--txt)">'+Math.round(tot.calories/serves)+'<span style="font-size:11px;font-weight:400;color:var(--txt2)"> kcal</span></div>'+
+      macroChips(perP,perC,perF)+
+    '</div>'+
+    '<div style="background:var(--s2);border-radius:8px;padding:10px 12px">'+
+      '<div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">Total</div>'+
+      '<div style="font-size:22px;font-weight:700;color:var(--txt)">'+Math.round(tot.calories)+'<span style="font-size:11px;font-weight:400;color:var(--txt2)"> kcal</span></div>'+
+      macroChips(tot.protein,tot.carbs,tot.fat)+
+    '</div>';
 }
 
 function updateRecipeIngredientGrams(idx, val) {
@@ -6242,13 +6254,12 @@ function wkRenderToday() {
     var completedSessions = Array.isArray(le) ? le : (le ? [le] : []);
     if (completedSessions.length) {
       wkSortSessions(completedSessions).forEach(function(completedEntry) {
-        var _durSec = completedEntry.endTime ? Math.round((completedEntry.endTime - completedEntry.startTime)/1000) : 0;
-        var _durStr = Math.floor(_durSec/60) + ' min';
         var _exCount = (completedEntry.exercises||[]).length;
+        var _cEndLabel=completedEntry.endTime?function(){var dk=localDateStr(new Date(completedEntry.endTime));var p=dk.split('-');var d=p[2]+'-'+p[1]+'-'+p[0];return d+' \xb7 '+format12hr(new Date(completedEntry.endTime)).toLowerCase();}():'';
         html += '<div class="card" style="margin-bottom:12px;border:1px solid rgba(74,222,128,0.3);background:rgba(74,222,128,0.05)">';
         html += '<div style="font-size:11px;color:#4ADE80;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">Completed ✓</div>';
         html += '<div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px;margin-bottom:4px">' + (completedEntry.name||'Workout') + '</div>';
-        html += '<div style="font-size:12px;color:var(--txt2);margin-bottom:6px">' + _exCount + ' exercises \xb7 ' + _durStr + '</div>';
+        html += '<div style="font-size:12px;color:var(--txt2);margin-bottom:6px">' + _exCount + ' exercises'+(_cEndLabel?' \xb7 '+_cEndLabel:'')+'</div>';
         (completedEntry.exercises||[]).forEach(function(ex){
           var setSum='';
           if(ex.type==='lift'&&ex.sets){var ds=ex.sets.filter(function(s){return s.done||(parseFloat(s.kg)>0||parseFloat(s.reps)>0);});if(ds.length)setSum=ds.length+'\xd7'+ds.map(function(s){return (s.kg||0)+'kg';}).join('/');}
@@ -6607,10 +6618,26 @@ function wkRenderPlans(){
 }
 function changeWkPlanWeek(delta){_wkPlanWeekOff+=delta;wkRenderPlans();}
 
+function renderPlanDayStrip(tiles,accent){
+  var html='<div class="plan-daystrip">';
+  tiles.forEach(function(t){
+    var bdr=t.isToday?'border:2px solid '+accent:(t.hasAsgn?'border:1px solid rgba('+hexToRgb(accent)+',0.4)':'border:1px solid var(--border)');
+    var bg=t.hasAsgn?'background:rgba('+hexToRgb(accent)+',0.08)':'';
+    html+='<div class="plan-day-tile" style="'+bdr+';'+bg+'">';
+    html+='<div style="font-size:10px;color:var(--txt3)">'+t.label+'</div>';
+    html+='<div style="font-size:11px;font-weight:600;color:'+(t.hasAsgn?accent:'var(--txt2)')+'">'+t.abbr+'</div></div>';
+  });
+  return html+'</div>';
+}
+function hexToRgb(hex){
+  var r=0,g=0,b=0;
+  if(hex.length===7){r=parseInt(hex.slice(1,3),16);g=parseInt(hex.slice(3,5),16);b=parseInt(hex.slice(5,7),16);}
+  return r+','+g+','+b;
+}
+
 function wkRenderMiniGrid(dates,schedule){
   var labels=['M','T','W','T','F','S','S'],today=localDateStr(new Date());
-  var html='<div class="plan-daystrip">';
-  dates.forEach(function(d,i){
+  var tiles=dates.map(function(d,i){
     var asgn=schedule[i];
     var asgnArr=Array.isArray(asgn)?asgn:(asgn?[asgn]:[]);
     var isRest=asgnArr.length===1&&asgnArr[0]==='rest';
@@ -6619,14 +6646,10 @@ function wkRenderMiniGrid(dates,schedule){
     var isToday=localDateStr(d)===today;
     var hasAsgn=asgnArr.length>0;
     var abbr=isRest?'&#8211;':(sws.length?sws[0].name.replace(/\s+/g,'').substring(0,3):'');
-    if(sws.length>1)abbr+='<sup style="font-size:7px">+'+( sws.length-1)+'</sup>';
-    var bdr=isToday?'border:2px solid #F07C3A':(hasAsgn?'border:1px solid rgba(240,124,58,0.4)':'border:1px solid var(--border)');
-    var bg=hasAsgn?'background:rgba(240,124,58,0.08)':'';
-    html+='<div class="plan-day-tile" style="'+bdr+';'+bg+'">';
-    html+='<div style="font-size:10px;color:var(--txt3)">'+labels[i]+'</div>';
-    html+='<div style="font-size:11px;font-weight:600;color:'+(hasAsgn?'#F07C3A':'var(--txt2)')+'">'+abbr+'</div></div>';
+    if(sws.length>1)abbr+='<sup style="font-size:7px">+'+(sws.length-1)+'</sup>';
+    return{label:labels[i],abbr:abbr,isToday:isToday,hasAsgn:hasAsgn};
   });
-  return html+'</div>';
+  return renderPlanDayStrip(tiles,'#F07C3A');
 }
 function wkRenderDaySchedule(dates,schedule,today){
   var fullNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -6646,7 +6669,7 @@ function wkRenderDaySchedule(dates,schedule,today){
     } else {
       workoutIds.forEach(function(id){
         var sw=(state.savedWorkouts||[]).find(function(w){return w.id===id;});
-        html+='<div class="meal-slot"><span class="meal-slot-name">'+( sw?sw.name:id)+'</span><button type="button" class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px;width:auto" onclick="wkRemoveFromDay('+i+',\''+id+'\')">&#215;</button></div>';
+        html+='<div class="meal-slot"><span style="font-weight:600;color:var(--txt)">'+( sw?sw.name:id)+'</span><button type="button" class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px;width:auto" onclick="wkRemoveFromDay('+i+',\''+id+'\')">&#215;</button></div>';
       });
       html+='<div class="meal-slot" style="cursor:pointer" onclick="wkOpenDayPicker('+i+')"><span class="meal-slot-food" style="color:var(--txt3)">+ Add workout</span></div>';
     }
@@ -6894,8 +6917,8 @@ function renderWkhSessionCards(){
     if(dayEntries.length){
       wkSortSessions(dayEntries).forEach(function(entry){
         rendered=true;
-        var dur=entry.endTime?Math.round((entry.endTime-entry.startTime)/60000):null;
-        html+='<div class="card" style="margin-bottom:8px"><div style="font-size:12px;color:var(--txt2);margin-bottom:2px">'+dayNames[i]+' \xb7 '+dateStr+'</div><div class="row-between"><div style="font-weight:600">'+entry.name+'</div>'+(dur?'<span style="font-size:12px;color:var(--txt2)">'+dur+'min</span>':'')+'</div><div style="margin-top:6px;font-size:12px;color:var(--txt2)">';
+        var _hEndLabel=entry.endTime?function(){var p=dateStr.split('-');var d=p[2]+'-'+p[1]+'-'+p[0];return d+' \xb7 '+format12hr(new Date(entry.endTime)).toLowerCase();}():'';
+        html+='<div class="card" style="margin-bottom:8px"><div style="font-size:12px;color:var(--txt2);margin-bottom:2px">'+dayNames[i]+' \xb7 '+dateStr+'</div><div class="row-between"><div style="font-weight:600">'+entry.name+'</div>'+(_hEndLabel?'<span style="font-size:12px;color:var(--txt2)">'+_hEndLabel+'</span>':'')+'</div><div style="margin-top:6px;font-size:12px;color:var(--txt2)">';
         (entry.exercises||[]).forEach(function(ex){
           var sum='';
           if(ex.type==='lift'&&ex.sets)sum=ex.sets.filter(function(s){return s.done||(parseFloat(s.kg)>0||parseFloat(s.reps)>0);}).length+' sets';
@@ -7123,18 +7146,20 @@ function renderMealPlanGrid() {
   html += '<span class="plan-weeknav-label">'+weekLabel+'</span>';
   html += '<button type="button" class="btn btn-sm btn-outline" onclick="changeMealPlanWeek(1)">&#8250;</button></div>';
   html += '<div class="plan-toolbar"><div class="ptb-row">';
-  html += '<button type="button" id="plan-snack-toggle" class="btn btn-secondary btn-sm" style="flex:1" onclick="togglePlanSnacks()">'+(state.planShowSnacks?'Hide snacks':'Show snacks')+'</button>';
-  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="generateShoppingList();switchTab(document.querySelector(\'#nt-shopping\')?.previousElementSibling||document.body,\'nt-shopping\')">Shopping list</button>';
+  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="copyLastMealPlanWeek()">Copy last week</button>';
+  html += '</div><div class="ptb-row">';
+  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="showSaveTemplatePrompt()">Save template</button>';
+  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="showTemplatesSheet()">Load template</button>';
   html += '</div></div>';
-  html += '<div id="meal-plan-day-pills" class="plan-daystrip" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px">';
-  dates.forEach(function(d,i){
-    var ds = localDateStr(d);
-    var isToday = ds===todayDs;
-    var bg = isToday ? '#4ADE80' : 'var(--s2)';
-    var clr = isToday ? '#0F0F13' : 'var(--txt2)';
-    html += '<span style="background:'+bg+';color:'+clr+';font-size:11px;font-weight:'+(isToday?'700':'500')+';padding:4px 10px;border-radius:99px;white-space:nowrap">'+dnames[i]+' '+d.getDate()+'</span>';
+  var ntTiles=dates.map(function(d,i){
+    var ds=localDateStr(d);
+    var isToday=ds===todayDs;
+    var dayMeals=(state.mealPlan[ds]||{});
+    var filled=planMeals.filter(function(m){return dayMeals[m];}).length;
+    var abbr=filled?filled+'/'+planMeals.length:'–';
+    return{label:dnames[i],abbr:abbr,isToday:isToday,hasAsgn:filled>0};
   });
-  html += '</div>';
+  html+=renderPlanDayStrip(ntTiles,'#4ADE80');
   dates.forEach(function(d,i){
     var ds = localDateStr(d);
     var isToday = ds===todayDs;
@@ -8155,6 +8180,7 @@ function setMealPlanSlot(date, meal, recipeId) {
     if (r) state.mealPlan[date][meal] = r.name;
   }
   saveState();
+  renderMealPlanGrid();
   renderStep6();
 }
 
