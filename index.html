@@ -130,7 +130,7 @@
   .plan-day-tile{border-radius:8px;padding:6px 2px;text-align:center}
   .plan-day-tile .dots{display:flex;gap:3px;justify-content:center;align-items:center;min-height:14px;flex-wrap:wrap;margin-top:3px}
   .plan-day-tile .dot{border-radius:50%;background:var(--border)}
-  .slot-name{font-size:12px;color:var(--txt2)}
+  .slot-name{font-size:13px;font-weight:500}
   .plan-toolbar{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
   .plan-toolbar .ptb-row{display:flex;gap:8px}
   .modal button, .modal-overlay button, .bottom-sheet button,
@@ -1200,7 +1200,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       <!-- TODAY tab -->
       <div id="wk-log">
         <div id="wk-today-content"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div id="wk-today-action-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
           <button class="btn btn-accent-orange" onclick="wkOpenAddExercise('today')">+ Add Exercise</button>
           <button class="btn btn-secondary" onclick="wkOpenUsePlan()">Use Plan</button>
         </div>
@@ -4034,46 +4034,61 @@ function renderDashboard() {
     var _todaySwIds = _sched0[_dayIdx0];
     var _todaySwArr = Array.isArray(_todaySwIds) ? _todaySwIds : (_todaySwIds ? [_todaySwIds] : []);
     var _todayIsRest = _todaySwArr.length === 1 && _todaySwArr[0] === 'rest';
+    var _todayWorkoutIds = _todaySwArr.filter(function(id){return id!=='rest';});
     var _completedTodayArr = (state.workoutLog||{})[state.activeDate];
     var _completedTodaySorted = Array.isArray(_completedTodayArr) ? (typeof wkSortSessions==='function'?wkSortSessions(_completedTodayArr):_completedTodayArr) : (_completedTodayArr?[_completedTodayArr]:[]);
-    var _completedToday = _completedTodaySorted.length ? _completedTodaySorted[0] : null;
+    var _completedIds = new Set(_completedTodaySorted.map(function(s){return s.name;}));
+
+    // Build rows: for each scheduled workout, show completed (muted + finish time) or pending
+    var rowsHtml = '';
     if (state.activeSession) {
       var _sesName = state.activeSession.name || 'Quick session';
-      workoutRowsEl.innerHTML = '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">' + _sesName + ' <span style="color:#F07C3A;font-size:11px">● In progress</span></div>';
-      if (playBtnEl) {
-        playBtnEl.style.display = 'inline-flex';
-        playBtnEl.innerHTML = '<i class="ti ti-arrow-right"></i>';
-        playBtnEl.onclick = function(){ navigate('workout'); };
-      }
-    } else if (_completedToday) {
-      var _cCount = _completedTodaySorted.length;
-      workoutRowsEl.innerHTML = '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">' + (_completedToday.name||'Workout') + (_cCount > 1 ? ' +' + (_cCount-1) : '') + ' <span style="color:#4ADE80;font-size:11px">✓</span></div>';
-      if (playBtnEl) {
-        playBtnEl.style.display = 'inline-flex';
-        playBtnEl.innerHTML = '<i class="ti ti-check"></i>';
-        playBtnEl.onclick = function(){ navigate('workout'); };
-      }
-    } else if (_todaySwArr.length && !_todayIsRest) {
-      var _todayWorkoutIds = _todaySwArr.filter(function(id){return id!=='rest';});
-      var _todaySw = (state.savedWorkouts||[]).find(function(w){return w.id===_todayWorkoutIds[0];});
-      if (_todaySw) {
-        var _planLabel = _todayWorkoutIds.length > 1 ? _todaySw.name + ' +' + (_todayWorkoutIds.length-1) : _todaySw.name;
-        workoutRowsEl.innerHTML = '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#9A98A0">' + _planLabel + '</div>';
-        if (playBtnEl) {
-          playBtnEl.style.display = 'inline-flex';
-          playBtnEl.innerHTML = '<i class="ti ti-player-play"></i>';
-          playBtnEl.onclick = function(){ navigate('workout'); };
-        }
-      } else {
-        workoutRowsEl.innerHTML = '<div style="color:#5A5860">No workout planned</div>';
-        if (playBtnEl) playBtnEl.style.display = 'none';
-      }
+      rowsHtml = '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">' + _sesName + ' <span style="color:#F07C3A;font-size:11px">● In progress</span></div>';
     } else if (_todayIsRest) {
-      workoutRowsEl.innerHTML = '<div style="color:#5A5860">Rest day</div>';
-      if (playBtnEl) playBtnEl.style.display = 'none';
+      rowsHtml = '<div style="color:#5A5860">Rest day</div>';
+    } else if (_todayWorkoutIds.length) {
+      _todayWorkoutIds.forEach(function(wid) {
+        var sw = (state.savedWorkouts||[]).find(function(w){return w.id===wid;});
+        var wName = sw ? sw.name : wid;
+        // find completed session matching this workout name
+        var cEntry = _completedTodaySorted.find(function(s){return s.name===wName;});
+        if (cEntry) {
+          var cEndLabel = cEntry.endTime ? ' · ' + format12hr(new Date(cEntry.endTime)).toLowerCase() : '';
+          rowsHtml += '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#5A5860">' + wName + '<span style="font-size:11px;color:#5A5860">' + cEndLabel + ' ✓</span></div>';
+        } else {
+          rowsHtml += '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">' + wName + '</div>';
+        }
+      });
+      // also show any extra completed sessions not tied to a scheduled workout
+      _completedTodaySorted.forEach(function(s) {
+        if (!_todayWorkoutIds.some(function(wid){var sw=(state.savedWorkouts||[]).find(function(w){return w.id===wid;});return sw&&sw.name===s.name;})) {
+          var cEndLabel2 = s.endTime ? ' · ' + format12hr(new Date(s.endTime)).toLowerCase() : '';
+          rowsHtml += '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#5A5860">' + (s.name||'Workout') + '<span style="font-size:11px;color:#5A5860">' + cEndLabel2 + ' ✓</span></div>';
+        }
+      });
+    } else if (_completedTodaySorted.length) {
+      _completedTodaySorted.forEach(function(s) {
+        var cEndLabel = s.endTime ? ' · ' + format12hr(new Date(s.endTime)).toLowerCase() : '';
+        rowsHtml += '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#5A5860">' + (s.name||'Workout') + '<span style="font-size:11px;color:#5A5860">' + cEndLabel + ' ✓</span></div>';
+      });
     } else {
-      workoutRowsEl.innerHTML = '<div style="color:#5A5860">No workout planned</div>';
-      if (playBtnEl) playBtnEl.style.display = 'none';
+      rowsHtml = '<div style="color:#5A5860">No workout planned</div>';
+    }
+    workoutRowsEl.innerHTML = rowsHtml;
+
+    if (playBtnEl) {
+      playBtnEl.style.display = 'inline-flex';
+      playBtnEl.innerHTML = '<i class="ti ti-player-play"></i>';
+      playBtnEl.onclick = function() {
+        navigate('workout');
+        // If exactly 1 unstarted scheduled workout, start it
+        if (!state.activeSession && _todayWorkoutIds.length === 1) {
+          var unstartedId = _todayWorkoutIds[0];
+          var sw0 = (state.savedWorkouts||[]).find(function(w){return w.id===unstartedId;});
+          var alreadyDone = _completedTodaySorted.some(function(s){return sw0&&s.name===sw0.name;});
+          if (sw0 && !alreadyDone) setTimeout(function(){wkBeginSession(sw0);}, 100);
+        }
+      };
     }
   }
   // Meals row — logged > planned priority, max 3 rows
@@ -4740,7 +4755,7 @@ function searchOpenFoodFacts(query, brandFilter, signal, page) {
       try { localStorage.setItem('off_v2_' + cacheKey, JSON.stringify({ts: Date.now(), products: combined})); } catch(e) {}
     }
 
-    return combined;
+    return {results: combined, rawPageFull: glRaw.length >= 50};
   });
 }
 
@@ -4788,7 +4803,12 @@ function normaliseQuery(query) {
 
 function runFoodSearch(query) {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-  if (!query || query.length < 2) { clearSearchResults(); return; }
+  if (!query || query.length < 2) {
+    if (activeSearchController) { activeSearchController.abort(); activeSearchController = null; }
+    _searchGen++;
+    clearSearchResults();
+    return;
+  }
   searchDebounceTimer = setTimeout(function() { executeFoodSearch(normaliseQuery(query)); }, 600);
 }
 
@@ -4849,9 +4869,11 @@ function executeFoodSearch(query) {
   var offPromise = searchOpenFoodFacts(foodQuery, brandFilter || null, signal, 1);
 
   offPromise
-    .then(function(offResults) {
+    .then(function(offData) {
       if (myGen !== _searchGen) return; // stale — a newer search has taken over
       activeSearchController = null;
+      var offResults = offData.results;
+      var rawPageFull = offData.rawPageFull;
       var usedIds = new Set(instantResults.map(function(f){return f.id;}));
       var newOff = _sortByCountryAndRelevance(
         offResults.filter(function(f){return !usedIds.has(f.id);}),
@@ -4869,7 +4891,7 @@ function executeFoodSearch(query) {
         if (usdaCount) parts.push('USDA (' + usdaCount + ')');
         if (customCount) parts.push('Custom (' + customCount + ')');
         if (newOff.length) parts.push('OFF (' + newOff.length + ')');
-        var hasMore = offResults.length >= 25;
+        var hasMore = rawPageFull;
         var countStr = hasMore ? (total + '+') : (total + '');
         var status = countStr + ' result' + (total === 1 ? '' : 's') + (parts.length ? ' · ' + parts.join(' · ') : '');
         _setFoodSourceLine(status);
@@ -4904,9 +4926,10 @@ function _appendLoadMoreButton() {
   var containerId = (_searchContext && _searchContext.resultsId) ? _searchContext.resultsId : 'food-search-results';
   var container = document.getElementById(containerId);
   if (!container) return;
-  var btn = document.createElement('div');
+  var btn = document.createElement('button');
+  btn.type = 'button';
   btn.id = 'load-more-btn';
-  btn.style.cssText = 'text-align:center;padding:12px;color:#4ADE80;font-size:13px;cursor:pointer;border-top:0.5px solid #22222E;';
+  btn.style.cssText = 'text-align:center;padding:12px;min-height:44px;width:100%;color:#4ADE80;font-size:13px;cursor:pointer;border-top:0.5px solid #22222E;background:none;border-left:none;border-right:none;border-bottom:none;padding-bottom:16px;';
   btn.textContent = 'See more results';
   btn.onclick = _loadMoreResults;
   container.appendChild(btn);
@@ -4918,43 +4941,64 @@ function _loadMoreResults() {
   var btn = document.getElementById('load-more-btn');
   if (btn) btn.textContent = 'Loading...';
 
-  var nextPage = (s.page || 1) + 1;
-  var signal = null; // don't cancel on load more
+  var startPage = (s.page || 1) + 1;
+  var lmContainerId = (_searchContext && _searchContext.resultsId) ? _searchContext.resultsId : 'food-search-results';
 
-  var offPromise = searchOpenFoodFacts(s.foodQuery, s.brandFilter || null, signal, nextPage);
-
-  offPromise.then(function(offResults) {
-    var usedIds = new Set(
-      s.instantResults.map(function(f){return f.id;}).concat(
-      s.loadedOff.map(function(f){return f.id;}))
-    );
-    var newOff = offResults.filter(function(f){return !usedIds.has(f.id);});
-    if (btn) btn.remove();
-    if (newOff.length === 0) {
-      // Genuinely no more results
+  function tryPage(pageNum, pagesLeft, totalNewOff) {
+    if (pagesLeft <= 0) {
+      var container = document.getElementById(lmContainerId);
+      if (btn) btn.remove();
+      if (totalNewOff === 0) {
+        if (container) {
+          var noMore = document.createElement('div');
+          noMore.style.cssText = 'text-align:center;padding:12px;color:var(--txt3);font-size:13px';
+          noMore.textContent = 'No more results';
+          container.appendChild(noMore);
+        }
+      }
       return;
     }
-    var lmContainerId = (_searchContext && _searchContext.resultsId) ? _searchContext.resultsId : 'food-search-results';
-    var container = document.getElementById(lmContainerId);
-    if (container) {
-      var frag = document.createElement('div');
-      frag.innerHTML = newOff.map(renderFoodResult).join('');
-      while (frag.firstChild) container.appendChild(frag.firstChild);
-    }
-    s.loadedOff = s.loadedOff.concat(newOff);
-    s.page = nextPage;
-    var total = s.instantResults.length + s.loadedOff.length;
-    var lmParts = [];
-    var lmUsda = s.instantResults.filter(function(f){return f.source==='USDA';}).length;
-    var lmCustom = s.instantResults.filter(function(f){return f.source==='Custom';}).length;
-    if (lmUsda) lmParts.push('USDA (' + lmUsda + ')');
-    if (lmCustom) lmParts.push('Custom (' + lmCustom + ')');
-    if (s.loadedOff.length) lmParts.push('OFF (' + s.loadedOff.length + ')');
-    _setFoodSourceLine(total + ' result' + (total === 1 ? '' : 's') + (lmParts.length ? ' · ' + lmParts.join(' · ') : ''));
-    if (newOff.length >= 25) _appendLoadMoreButton();
-  }).catch(function(){
-    if (btn) btn.textContent = 'See more results';
-  });
+    searchOpenFoodFacts(s.foodQuery, s.brandFilter || null, null, pageNum).then(function(offData) {
+      var usedIds = new Set(
+        s.instantResults.map(function(f){return f.id;}).concat(
+        s.loadedOff.map(function(f){return f.id;}))
+      );
+      var newOff = offData.results.filter(function(f){return !usedIds.has(f.id);});
+      var container = document.getElementById(lmContainerId);
+      if (newOff.length > 0 && container) {
+        var frag = document.createElement('div');
+        frag.innerHTML = newOff.map(renderFoodResult).join('');
+        while (frag.firstChild) container.appendChild(frag.firstChild);
+        s.loadedOff = s.loadedOff.concat(newOff);
+      }
+      s.page = pageNum;
+      var cumulativeNew = totalNewOff + newOff.length;
+      if (cumulativeNew >= 10 || !offData.rawPageFull) {
+        if (btn) btn.remove();
+        var total = s.instantResults.length + s.loadedOff.length;
+        var lmParts = [];
+        var lmUsda = s.instantResults.filter(function(f){return f.source==='USDA';}).length;
+        var lmCustom = s.instantResults.filter(function(f){return f.source==='Custom';}).length;
+        if (lmUsda) lmParts.push('USDA (' + lmUsda + ')');
+        if (lmCustom) lmParts.push('Custom (' + lmCustom + ')');
+        if (s.loadedOff.length) lmParts.push('OFF (' + s.loadedOff.length + ')');
+        _setFoodSourceLine(total + ' result' + (total === 1 ? '' : 's') + (lmParts.length ? ' · ' + lmParts.join(' · ') : ''));
+        if (offData.rawPageFull && cumulativeNew >= 10) _appendLoadMoreButton();
+        else if (cumulativeNew === 0 && container) {
+          var noMore2 = document.createElement('div');
+          noMore2.style.cssText = 'text-align:center;padding:12px;color:var(--txt3);font-size:13px';
+          noMore2.textContent = 'No more results';
+          container.appendChild(noMore2);
+        }
+      } else {
+        tryPage(pageNum + 1, pagesLeft - 1, cumulativeNew);
+      }
+    }).catch(function(){
+      if (btn) btn.textContent = 'See more results';
+    });
+  }
+
+  tryPage(startPage, 5, 0);
 }
 
 function clearSearchResults() {
@@ -4962,6 +5006,7 @@ function clearSearchResults() {
   var r = document.getElementById(containerId);
   if (r) r.innerHTML = '';
   _setFoodSourceLine('');
+  _lastSearchState = null;
 }
 
 function _setFoodSourceLine(msg) {
@@ -6308,6 +6353,8 @@ function wkRenderToday() {
   }
   if (isToday && _wkSession && (_wkSession.exercises||[]).length) html += wkRenderExerciseCards();
   document.getElementById('wk-today-content').innerHTML = html;
+  var actionBtns = document.getElementById('wk-today-action-btns');
+  if (actionBtns) actionBtns.style.display = isToday ? 'grid' : 'none';
   wkTickTimer();
 }
 function changeWkTodayDay(delta) {
@@ -6420,7 +6467,7 @@ function wkBuildExerciseCard(ex,i) {
     html += '</div>';
     html += '<button class="btn btn-sm btn-outline" style="margin-top:4px" onclick="wkAddSet('+i+')">+ Set</button>';
     var _nextUpActive=ex.nextUp;
-    html += '<button class="btn btn-sm" style="margin-top:4px;margin-left:6px;'+(_nextUpActive?'background:rgba(96,165,250,0.2);color:#60A5FA;border-color:#60A5FA':'background:none;border:1px solid var(--border);color:var(--txt2)')+'" onclick="wkToggleNextUp('+i+')">↑ Heavier next time</button>';
+    html += '<button class="btn btn-sm" style="margin-top:4px;margin-left:6px;'+(_nextUpActive?'background:rgba(240,124,58,0.2);color:#F07C3A;border-color:#F07C3A':'background:none;border:1px solid var(--border);color:var(--txt2)')+'" onclick="wkToggleNextUp('+i+')">↑ Heavier next time</button>';
   } else if (ex.type==='bodyweight') {
     var metric = ex.metric||'reps';
     html += '<div style="display:flex;gap:6px;margin-bottom:8px">';
@@ -6641,8 +6688,12 @@ function wkOpenUsePlan(){
 function wkLoadPlan(id){
   var sw=(state.savedWorkouts||[]).find(function(w){return w.id===id;});if(!sw)return;
   if(_wkSession&&(_wkSession.exercises||[]).length){
-    showConfirmSheet({title:'Replace exercises?',message:'This will replace your current exercise list.',confirmText:'Replace',onConfirm:function(){closeModal('modal-wk-use-plan');wkBeginSession(sw);}});
-  } else {closeModal('modal-wk-use-plan');wkBeginSession(sw);}
+    showActionSheet({title:sw.name,actions:[
+      {label:'Replace',action:function(){closeModal('modal-wk-use-plan');_wkSession=null;state.activeSession=null;navigate('workout');setTimeout(function(){wkBeginSession(sw);},100);}},
+      {label:'Add to session',action:function(){closeModal('modal-wk-use-plan');(sw.exercises||[]).forEach(function(ex){var e={name:ex.name,type:ex.type,target:ex.target||''};if(ex.metric)e.metric=ex.metric;if(ex.type==='lift'){e.sets=[{kg:_wkLastKg(ex.name),reps:'',done:false}];}else if(ex.type==='bodyweight'){e.sets=[{value:'',done:false}];}else if(ex.type==='timed-hold'){e.sets=[{seconds:30,done:false}];}else if(ex.type==='cardio-distance'){e.distanceKm='';e.timeSeconds=0;e.paceSecPerKm=0;}else if(ex.type==='cardio-duration'){e.timeMinutes='';e.notes='';}else if(ex.type==='rehab'){e.rounds=0;}_wkSession.exercises.push(e);});state.activeSession=_wkSession;saveState();wkRenderToday();}},
+      {label:'Cancel',action:function(){}}
+    ]});
+  } else {closeModal('modal-wk-use-plan');navigate('workout');setTimeout(function(){wkBeginSession(sw);},100);}
 }
 
 function wkRenderPlans(){
@@ -6654,10 +6705,10 @@ function wkRenderPlans(){
   html+='<button class="btn btn-sm btn-outline" onclick="changeWkPlanWeek(-1)">&#8249;</button>';
   html+='<span class="plan-weeknav-label">'+_wkWeekLabel(dates)+'</span>';
   html+='<button class="btn btn-sm btn-outline" onclick="changeWkPlanWeek(1)">&#8250;</button></div>';
-  html+='<div class="plan-toolbar"><div class="ptb-row">';
-  html+='<button class="btn btn-secondary btn-sm" style="flex:1" onclick="wkSaveTemplate()">Save template</button>';
-  html+='<button class="btn btn-secondary btn-sm" style="flex:1" onclick="wkShowTemplates()">Load template</button></div></div>';
   html+=wkRenderMiniGrid(dates,schedule);
+  html+='<div class="plan-toolbar"><div class="ptb-row">';
+  html+='<button class="btn btn-secondary btn-sm" style="flex:1" onclick="openTemplateSheet(\'workout\',\'save\')">Save template</button>';
+  html+='<button class="btn btn-secondary btn-sm" style="flex:1" onclick="openTemplateSheet(\'workout\',\'load\')">Load template</button></div></div>';
   html+=wkRenderDaySchedule(dates,schedule,today);
   html+='<div style="margin-top:16px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--txt3);margin-bottom:8px">Saved Workouts</div>';
   html+=wkRenderSavedWorkouts();
@@ -6725,11 +6776,11 @@ function wkRenderDaySchedule(dates,schedule,today){
     html+='<div class="meal-day-header" style="display:flex;justify-content:space-between;align-items:center">';
     html+='<span>'+fullNames[i]+' '+d.getDate()+'</span>'+todayPill+'</div>';
     if(isRest){
-      html+='<div class="meal-slot"><span style="color:var(--txt2)">Rest day</span><button type="button" class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px;width:auto" onclick="wkClearDay('+i+')">&#215;</button></div>';
+      html+='<div class="meal-slot"><span class="meal-slot-food">Rest day</span><button type="button" class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px;width:auto" onclick="wkClearDay('+i+')">&#215;</button></div>';
     } else {
       workoutIds.forEach(function(id){
         var sw=(state.savedWorkouts||[]).find(function(w){return w.id===id;});
-        html+='<div class="meal-slot"><span class="slot-name" style="font-weight:600">'+( sw?sw.name:id)+'</span><button type="button" class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px;width:auto" onclick="wkRemoveFromDay('+i+',\''+id+'\')">&#215;</button></div>';
+        html+='<div class="meal-slot"><span class="meal-slot-food" style="cursor:pointer" onclick="wkOpenAssignedWorkoutSheet('+i+',\''+id+'\')">'+( sw?sw.name:id)+'</span><button type="button" class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px;width:auto" onclick="wkRemoveFromDay('+i+',\''+id+'\')">&#215;</button></div>';
       });
       html+='<div class="meal-slot" style="cursor:pointer" onclick="wkOpenDayPicker('+i+')"><span class="meal-slot-food" style="color:var(--txt3)">+ Add workout</span></div>';
     }
@@ -7016,9 +7067,9 @@ function renderWkhSessionCards(){
   var schedule=(state.workoutSchedule||{})[weekISO]||{};
   var log=state.workoutLog||{};
   var dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-  var html='<div class="row-between" style="margin-bottom:12px"><button class="btn btn-sm btn-outline" onclick="changeWkhSessionWeek(-1)">&#8249;</button><span style="font-size:13px;color:var(--txt2)">'+_wkWeekLabel(dates)+'</span><button class="btn btn-sm btn-outline" onclick="changeWkhSessionWeek(1)">&#8250;</button></div>';
+  var html='<div class="row-between" style="margin-bottom:12px"><button class="btn btn-sm btn-outline" onclick="changeWkhSessionWeek(-1)">&#8249;</button><button class="btn btn-sm btn-outline" style="font-size:13px;color:var(--txt2);background:none;border:1px solid var(--border)" onclick="wkOpenWeekPicker()">'+_wkWeekLabel(dates)+'</button><button class="btn btn-sm btn-outline" onclick="changeWkhSessionWeek(1)">&#8250;</button></div>';
   var rendered=false;
-  dates.forEach(function(d,i){
+  dates.slice().reverse().forEach(function(d,ri){var i=dates.length-1-ri;
     var dateStr=localDateStr(d);
     var dayEntries=Array.isArray(log[dateStr])?log[dateStr]:(log[dateStr]?[log[dateStr]]:[]);
     var asgn=schedule[i];
@@ -7053,6 +7104,139 @@ function wkSortSessions(list){
   return list.slice().sort(function(a,b){return (b.endTime||b.startTime||0)-(a.endTime||a.startTime||0);});
 }
 function _wkFmtDateDMY(iso){var p=iso.split('-');return p[2]+'/'+p[1];}
+
+function wkOpenWeekPicker() {
+  var now = new Date();
+  var currentYear = now.getFullYear();
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var html = '<div style="padding:16px">';
+  html += '<button class="btn btn-secondary" style="width:100%;margin-bottom:12px" onclick="wkGoToThisWeek();closeModal(\'modal-week-picker\')">This week</button>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  for (var y = currentYear; y >= currentYear - 2; y--) {
+    for (var m = (y === currentYear ? now.getMonth() : 11); m >= 0; m--) {
+      html += '<button class="btn btn-secondary" onclick="wkGoToMonth(' + y + ',' + m + ');closeModal(\'modal-week-picker\')">';
+      html += months[m] + ' ' + y + '</button>';
+    }
+  }
+  html += '</div></div>';
+  var modal = document.getElementById('modal-week-picker');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-week-picker';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = '<div class="modal"><div class="modal-handle"></div><div class="modal-header"><span>Go to week</span><button class="modal-close" onclick="closeModal(\'modal-week-picker\')">&times;</button></div><div id="week-picker-body" style="max-height:60vh;overflow-y:auto"></div></div>';
+    document.body.appendChild(modal);
+  }
+  document.getElementById('week-picker-body').innerHTML = html;
+  modal.classList.add('open');
+}
+function wkGoToThisWeek() { _wkhSessionWeekOff = 0; renderWkhSessionCards(); }
+function wkGoToMonth(year, month) {
+  var now = new Date();
+  var target = new Date(year, month, 1);
+  var daysFromMon = now.getDay() === 0 ? 6 : now.getDay() - 1;
+  var thisWeekStart = new Date(now);
+  thisWeekStart.setDate(now.getDate() - daysFromMon);
+  var diff = Math.round((target - thisWeekStart) / (7 * 24 * 60 * 60 * 1000));
+  _wkhSessionWeekOff = diff;
+  renderWkhSessionCards();
+}
+
+function showActionSheet(opts) {
+  var existing = document.getElementById('action-sheet-overlay');
+  if (existing) existing.remove();
+  window._actionSheetOpts = opts;
+  var overlay = document.createElement('div');
+  overlay.id = 'action-sheet-overlay';
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'display:flex;z-index:10000';
+  var actionsHtml = (opts.actions||[]).map(function(a, i) {
+    var style = a.danger ? 'color:#EF4444' : '';
+    return '<button type="button" class="btn btn-secondary" style="width:100%;margin-bottom:8px;'+style+'" onclick="_actionSheetRun('+i+')">' + a.label + '</button>';
+  }).join('');
+  overlay.innerHTML = '<div class="modal" style="max-width:340px">' +
+    '<div class="modal-handle"></div>' +
+    (opts.title?'<div style="font-size:14px;font-weight:600;text-align:center;margin-bottom:16px">'+opts.title+'</div>':'') +
+    actionsHtml + '</div>';
+  overlay.addEventListener('click', function(e) { if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  overlay.classList.add('open');
+}
+function _actionSheetRun(idx) {
+  var overlay = document.getElementById('action-sheet-overlay');
+  if (overlay) overlay.remove();
+  var opts = window._actionSheetOpts || {};
+  var act = (opts.actions||[])[idx];
+  if (act && typeof act.action === 'function') act.action();
+  window._actionSheetOpts = null;
+}
+
+function openTemplateSheet(kind, mode) {
+  if (kind === 'workout') {
+    if (mode === 'save') wkSaveTemplate();
+    else wkShowTemplates();
+  } else {
+    if (mode === 'save') showSaveTemplatePrompt();
+    else showTemplatesSheet();
+  }
+}
+
+function wkOpenAssignedWorkoutSheet(dayIdx, swId) {
+  var sw = (state.savedWorkouts || []).find(function(w) { return w.id === swId; });
+  if (!sw) return;
+  showActionSheet({
+    title: sw.name,
+    actions: [
+      {label: 'Replace', action: function() { wkOpenDayPicker(dayIdx); }},
+      {label: 'Remove', danger: true, action: function() {
+        var weekISO = localDateStr(_wkWeekStart || (function(){var d=_wkWeekDates(_wkPlanWeekOff);return d[0];}()));
+        if (state.workoutSchedule && state.workoutSchedule[weekISO] && state.workoutSchedule[weekISO][dayIdx]) {
+          state.workoutSchedule[weekISO][dayIdx] = state.workoutSchedule[weekISO][dayIdx].filter(function(id) { return id !== swId; });
+          saveState();
+          wkRenderPlans();
+        }
+      }}
+    ]
+  });
+}
+
+function wkTypeForExercise(name) {
+  var n = (name || '').toLowerCase().trim();
+  if (/^(run|walk|cycl|row)/.test(n) || ['running','walking','cycling','rowing','morning run','evening run','afternoon run'].indexOf(n) >= 0) return 'cardio-distance';
+  if (['swim','swimming','dance','groove','netball','hike','hiking','hiit','boxing','elliptical','stair climber','jump rope','dancing'].indexOf(n) >= 0 || /^(swim|danc|groove|netball|hik|hiit|box|ellip|stair|jump rope)/.test(n)) return 'cardio-duration';
+  if (/plank|hold$/.test(n)) return 'timed-hold';
+  if (/^(push[\s-]?up|sit[\s-]?up)/.test(n) || ['push up','pushup','sit up','situp','push-up','sit-up'].indexOf(n) >= 0) return 'bodyweight';
+  if (/crunch|leg[\s-]?raise|flutter[\s-]?kick|bicycle[\s-]?crunch|mountain[\s-]?climber|burpee|jumping[\s-]?jack|lunge/.test(n)) return 'bodyweight';
+  if (/calf[\s-]?raise|rehab|physio|stretch|foam[\s-]?roll/.test(n)) return null;
+  return 'lift';
+}
+
+function wkCanonicalExercise(name) {
+  var n = (name || '').toLowerCase().trim();
+  if (n === 'run' || n === 'running' || /^(morning|evening|afternoon) run$/.test(n)) return 'Run';
+  return name;
+}
+
+function wkSessionTitle(session) {
+  if (session && session.name && session.name.trim()) return session.name.trim();
+  var exs = (session && session.exercises) || [];
+  if (exs.length === 0) return 'Quick workout';
+  if (exs.length === 1) {
+    var ex = exs[0];
+    var canonical = wkCanonicalExercise(ex.name);
+    if (ex.type === 'cardio-distance' && ex.distanceKm) {
+      var d = parseFloat(ex.distanceKm);
+      var dStr = d === Math.floor(d) ? String(Math.floor(d)) : String(d);
+      return dStr + ' km ' + canonical;
+    }
+    if (ex.type === 'cardio-duration' && ex.timeSeconds) {
+      var mins = Math.round(ex.timeSeconds / 60);
+      return mins + ' min ' + canonical;
+    }
+    return canonical || ex.name || 'Quick workout';
+  }
+  return 'Quick workout';
+}
 
 // ============================================================
 // MEAL PLAN
@@ -7242,13 +7426,6 @@ function renderMealPlanGrid() {
   html += '<button type="button" class="btn btn-sm btn-outline" onclick="changeMealPlanWeek(-1)">&#8249;</button>';
   html += '<span class="plan-weeknav-label">'+weekLabel+'</span>';
   html += '<button type="button" class="btn btn-sm btn-outline" onclick="changeMealPlanWeek(1)">&#8250;</button></div>';
-  html += '<div class="plan-toolbar"><div class="ptb-row">';
-  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="copyLastMealPlanWeek()">Copy last week</button>';
-  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="togglePlanSnacks()">'+(state.planShowSnacks?'Hide snacks':'Show snacks')+'</button>';
-  html += '</div><div class="ptb-row">';
-  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="showSaveTemplatePrompt()">Save template</button>';
-  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="showTemplatesSheet()">Load template</button>';
-  html += '</div></div>';
   var ntTiles=dates.map(function(d,i){
     var ds=localDateStr(d);
     var isToday=ds===todayDs;
@@ -7257,6 +7434,13 @@ function renderMealPlanGrid() {
     return{label:dnames[i],dots:dots,isToday:isToday,hasAsgn:dots.some(function(dot){return dot.filled;})};
   });
   html+=renderPlanDayStrip(ntTiles,'#4ADE80');
+  html += '<div class="plan-toolbar"><div class="ptb-row">';
+  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="copyLastMealPlanWeek()">Copy last week</button>';
+  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="togglePlanSnacks()">'+(state.planShowSnacks?'Hide snacks':'Show snacks')+'</button>';
+  html += '</div><div class="ptb-row">';
+  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="openTemplateSheet(\'meal\',\'save\')">Save template</button>';
+  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="openTemplateSheet(\'meal\',\'load\')">Load template</button>';
+  html += '</div></div>';
   dates.forEach(function(d,i){
     var ds = localDateStr(d);
     var isToday = ds===todayDs;
@@ -8846,6 +9030,7 @@ function initFoodSearch(context) {
     runFoodSearch(this.value.trim());
   });
   clearSearchResults();
+  _lastSearchState = null;
   if (!_searchContext.isRecipe) {
     var loadEl = document.getElementById('food-search-loading');
     if (loadEl) loadEl.style.display = 'none';
@@ -8899,6 +9084,7 @@ function openModal(id) {
   if (id === 'modal-recipe') {
     // Ensure recipe context is set for the shared search system
     _searchContext = { inputId: 'recipe-ingredient-search', resultsId: 'recipe-ingredient-results', onSelect: selectRecipeIngredient, isRecipe: true, sourceLineId: 'recipe-source-line' };
+    _lastSearchState = null;
   }
 }
 function closeModal(id) {

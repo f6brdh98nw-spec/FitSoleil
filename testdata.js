@@ -178,7 +178,7 @@
           {name:'Bench Press',     type:'lift',       target:'4 × 6–10'},
           {name:'Barbell Row',     type:'lift',       target:'4 × 8–10'},
           {name:'Overhead Press',  type:'lift',       target:'3 × 10'},
-          {name:'Lateral Raise',   type:'bodyweight', metric:'reps', target:'3 × 15'},
+          {name:'Lateral Raise',   type:'lift',       target:'3 × 15'},
           {name:'Tricep Pushdown', type:'lift',       target:'3 × 12'},
         ],
       },
@@ -228,7 +228,8 @@
 
     // ── Workout log ──────────────────────────────────────────────────────────
     var workoutLog = {};
-    function liftSession(date, workoutName, benchKg, sqKg, ohpKg) {
+    function liftSession(date, workoutName, benchKg, sqKg, ohpKg, lrKg) {
+      var lrWeight = lrKg || 12;
       return {
         name: workoutName,
         startTime: new Date(date+'T07:30:00').getTime(),
@@ -251,10 +252,10 @@
             {kg:ohpKg,     reps:10, done:true},
             {kg:ohpKg+2.5, reps:8,  done:true},
           ]},
-          {name:'Lateral Raise', type:'bodyweight', metric:'reps', sets:[
-            {value:15, done:true},
-            {value:15, done:true},
-            {value:12, done:true},
+          {name:'Lateral Raise', type:'lift', sets:[
+            {kg:lrWeight,       reps:15, done:true},
+            {kg:lrWeight,       reps:15, done:true},
+            {kg:lrWeight+0.5,   reps:12, done:true},
           ]},
         ],
       };
@@ -286,7 +287,7 @@
         ],
       };
     }
-    var benchStart = 52.5, sqStart = 67.5, ohpStart = 32.5;
+    var benchStart = 52.5, sqStart = 67.5, ohpStart = 32.5, lrStart = 6;
     for (var wk = 5; wk >= 0; wk--) {
       var monOff = daysFromMon + wk * 7;
       var monDate = daysAgo(monOff);
@@ -296,9 +297,10 @@
       var benchKg = benchStart + prog * 2.5;
       var sqKg    = sqStart    + prog * 2.5;
       var ohpKg   = ohpStart   + prog * 1.25;
-      if (monOff > 0)  workoutLog[monDate] = [liftSession(monDate,  'Upper A', benchKg, sqKg, ohpKg)];
+      var lrKg    = lrStart    + prog * 0.5;
+      if (monOff > 0)  workoutLog[monDate] = [liftSession(monDate,  'Upper A', benchKg, sqKg, ohpKg, lrKg)];
       if (monOff > -2) workoutLog[wedDate] = [lowerSession(wedDate, sqKg)];
-      if (monOff > -4) workoutLog[friDate] = [liftSession(friDate,  'Upper A', benchKg + 1.25, sqKg, ohpKg)];
+      if (monOff > -4) workoutLog[friDate] = [liftSession(friDate,  'Upper A', benchKg + 1.25, sqKg, ohpKg, lrKg)];
     }
     workoutLog[daysAgo(1)] = [
       {
@@ -328,6 +330,32 @@
         {name:'Groove',      type:'cardio-duration', timeSeconds:1800, notes:'7:00–7:30am'},
       ],
     }];
+
+    // ── 8 weeks of runs ─────────────────────────────────────────────────────
+    (function(){
+      var runs = [
+        {wk:-8, km:5.0,   pace:395},
+        {wk:-7, km:3.5,   pace:400},
+        {wk:-6, km:6.0,   pace:390},
+        {wk:-5, km:4.0,   pace:385},
+        {wk:-4, km:7.0,   pace:380},
+        {wk:-3, km:5.5,   pace:375},
+        {wk:-2, km:8.0,   pace:365},
+        {wk:-1, km:6.5,   pace:355},
+      ];
+      runs.forEach(function(r){
+        var d = daysAgo((-r.wk) * 7 + 2);
+        var totalSec = Math.round(r.km * r.pace);
+        var entry = {
+          name: 'Morning Run',
+          startTime: new Date(d+'T06:30:00').getTime(),
+          endTime:   new Date(d+'T06:30:00').getTime() + totalSec * 1000,
+          exercises: [{name:'Run', type:'cardio-distance', distanceKm:r.km, timeSeconds:totalSec, paceSecPerKm:r.pace}],
+        };
+        if (!workoutLog[d]) workoutLog[d] = [];
+        workoutLog[d].push(entry);
+      });
+    })();
 
     // ── Goals ────────────────────────────────────────────────────────────────
     var goals = [
