@@ -547,6 +547,7 @@
   /* Exercise search */
   .exercise-tag { display: inline-flex; padding: 4px 10px; background: var(--s2); border-radius: 99px; font-size: 11px; margin: 2px; cursor: pointer; color: var(--txt2); border: 0.5px solid var(--s3); }
   .exercise-tag.selected { background: rgba(240,124,58,0.15); color: #F07C3A; border: 0.5px solid rgba(240,124,58,0.4); }
+  .time-calc-display { font-size:20px; font-weight:600; color:var(--txt); font-family:monospace; letter-spacing:1px; min-height:40px; border:1px solid var(--border); border-radius:var(--r-sm); padding:8px; background:#22222E; display:flex; align-items:center; }
 
   /* Quick action tiles */
   .quick-tile {
@@ -2256,12 +2257,13 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
   <div class="modal" style="display:flex;flex-direction:column;max-height:80vh;padding-bottom:0">
     <div class="modal-handle"></div>
     <div class="modal-title">Add Exercise</div>
-    <div style="overflow-y:auto;flex:1;padding-bottom:4px">
-      <div class="input-group" style="margin-bottom:8px">
-        <label class="input-label">Search</label>
-        <input type="text" id="wk-ex-search" placeholder="e.g. bench, squat…" style="background:#22222E" oninput="wkExSearch(this.value)" autocomplete="off"/>
-        <div id="wk-ex-search-results" style="display:none;border:1px solid var(--border);border-radius:8px;margin-top:4px;background:#22222E;max-height:120px;overflow-y:auto"></div>
-      </div>
+    <div style="padding:0 0 8px;flex-shrink:0">
+      <input type="text" id="wk-ex-search" placeholder="Search exercises…" style="background:#22222E;width:100%" oninput="wkExSearch(this.value)" autocomplete="off"/>
+    </div>
+    <!-- Library list (shown by default) -->
+    <div id="wk-ex-library" style="overflow-y:auto;flex:1;padding-bottom:4px"></div>
+    <!-- Custom form (hidden by default) -->
+    <div id="wk-ex-custom-form" style="display:none;overflow-y:auto;flex:1;padding-bottom:4px">
       <div class="input-group" style="margin-bottom:8px">
         <label class="input-label">Exercise name</label>
         <input type="text" id="wk-add-ex-name" placeholder="e.g. Bench Press" style="background:#22222E"/>
@@ -2290,8 +2292,14 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
       </div>
     </div>
     <div style="padding:12px 0 16px;border-top:1px solid var(--border);flex-shrink:0">
-      <button type="button" class="btn btn-accent-orange" onclick="wkSubmitAddExercise()">Add</button>
-      <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-add-ex')">Cancel</button>
+      <div id="wk-ex-library-footer">
+        <button type="button" class="btn btn-secondary" onclick="_wkShowCustomForm()">+ Custom exercise</button>
+        <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-wk-add-ex')">Cancel</button>
+      </div>
+      <div id="wk-ex-custom-footer" style="display:none">
+        <button type="button" class="btn btn-accent-orange" onclick="wkSubmitAddExercise()">Add</button>
+        <button class="btn btn-outline" style="margin-top:8px" onclick="_wkShowLibrary()">Back</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2756,7 +2764,7 @@ function loadTestData() {
         {name:'Bench Press',     type:'lift',       target:'4 × 6–10'},
         {name:'Barbell Row',     type:'lift',       target:'4 × 8–10'},
         {name:'Overhead Press',  type:'lift',       target:'3 × 10'},
-        {name:'Lateral Raise',   type:'bodyweight', metric:'reps', target:'3 × 15'},
+        {name:'Lateral Raise',   type:'lift',       target:'3 × 15'},
         {name:'Tricep Pushdown', type:'lift',       target:'3 × 12'},
       ],
     },
@@ -2783,7 +2791,7 @@ function loadTestData() {
     {
       id: swCardio, name: 'Morning Cardio',
       exercises: [
-        {name:'Morning Run',  type:'cardio-distance'},
+        {name:'Run',  type:'cardio-distance'},
         {name:'Groove',       type:'cardio-duration'},
       ],
     },
@@ -2813,8 +2821,9 @@ function loadTestData() {
   // ── Workout log: 6 weeks of history for exercise progress charts ──────────
   const workoutLog = {};
   // Helper: build a lift log entry with slight progression
-  function liftSession(date, workoutName, benchKg, sqKg, ohpKg) {
+  function liftSession(date, workoutName, benchKg, sqKg, ohpKg, lrKg) {
     var d = date;
+    var lrWeight = lrKg || 10;
     return {
       name: workoutName,
       startTime: new Date(d+'T07:30:00').getTime(),
@@ -2837,10 +2846,10 @@ function loadTestData() {
           {kg:ohpKg,    reps:10, done:true},
           {kg:ohpKg+2.5,reps:8,  done:true},
         ]},
-        {name:'Lateral Raise', type:'bodyweight', metric:'reps', sets:[
-          {value:15, done:true},
-          {value:15, done:true},
-          {value:12, done:true},
+        {name:'Lateral Raise', type:'lift', sets:[
+          {kg:lrWeight,       reps:15, done:true},
+          {kg:lrWeight,       reps:15, done:true},
+          {kg:lrWeight+0.5,   reps:12, done:true},
         ]},
       ],
     };
@@ -2873,7 +2882,7 @@ function loadTestData() {
     };
   }
   // 6 weeks of Upper A + Lower A, Mon/Wed/Fri pattern
-  var benchStart = 52.5, sqStart = 67.5, ohpStart = 32.5;
+  var benchStart = 52.5, sqStart = 67.5, ohpStart = 32.5, lrStart = 6;
   for (var wk = 5; wk >= 0; wk--) {
     var monOff = daysFromMon + wk * 7;
     var monDate = daysAgo(monOff);
@@ -2883,9 +2892,10 @@ function loadTestData() {
     var benchKg = benchStart + prog * 2.5;
     var sqKg    = sqStart    + prog * 2.5;
     var ohpKg   = ohpStart   + prog * 1.25;
-    if (monOff > 0)  workoutLog[monDate] = [liftSession(monDate,  'Upper A', benchKg, sqKg, ohpKg)];
+    var lrKg    = lrStart    + prog * 0.5;
+    if (monOff > 0)  workoutLog[monDate] = [liftSession(monDate,  'Upper A', benchKg, sqKg, ohpKg, lrKg)];
     if (monOff > -2) workoutLog[wedDate] = [lowerSession(wedDate, sqKg)];
-    if (monOff > -4) workoutLog[friDate] = [liftSession(friDate,  'Upper A', benchKg + 1.25, sqKg, ohpKg)];
+    if (monOff > -4) workoutLog[friDate] = [liftSession(friDate,  'Upper A', benchKg + 1.25, sqKg, ohpKg, lrKg)];
   }
   // Yesterday: 2 sessions — morning upper + evening cardio
   workoutLog[daysAgo(1)] = [
@@ -2903,7 +2913,7 @@ function loadTestData() {
       startTime: new Date(daysAgo(1)+'T18:00:00').getTime(),
       endTime:   new Date(daysAgo(1)+'T18:50:00').getTime(),
       exercises: [
-        {name:'Running', type:'cardio-distance', distanceKm:8.0, timeSeconds:2800, paceSecPerKm:350},
+        {name:'Run', type:'cardio-distance', distanceKm:8.0, timeSeconds:2800, paceSecPerKm:350},
       ],
     }
   ];
@@ -2913,7 +2923,7 @@ function loadTestData() {
     startTime: new Date(daysAgo(3)+'T06:45:00').getTime(),
     endTime:   new Date(daysAgo(3)+'T07:35:00').getTime(),
     exercises: [
-      {name:'Morning Run', type:'cardio-distance', distanceKm:4.2, timeSeconds:1470, paceSecPerKm:350},
+      {name:'Run', type:'cardio-distance', distanceKm:4.2, timeSeconds:1470, paceSecPerKm:350},
       {name:'Groove',      type:'cardio-duration', timeSeconds:1800, notes:'7:00–7:30am'},
     ],
   }];
@@ -4037,12 +4047,12 @@ function renderDashboard() {
     var _todayWorkoutIds = _todaySwArr.filter(function(id){return id!=='rest';});
     var _completedTodayArr = (state.workoutLog||{})[state.activeDate];
     var _completedTodaySorted = Array.isArray(_completedTodayArr) ? (typeof wkSortSessions==='function'?wkSortSessions(_completedTodayArr):_completedTodayArr) : (_completedTodayArr?[_completedTodayArr]:[]);
-    var _completedIds = new Set(_completedTodaySorted.map(function(s){return s.name;}));
+    var _completedIds = new Set(_completedTodaySorted.map(function(s){return s.planId||s.name;}));
 
     // Build rows: for each scheduled workout, show completed (muted + finish time) or pending
     var rowsHtml = '';
     if (state.activeSession) {
-      var _sesName = state.activeSession.name || 'Quick session';
+      var _sesName = wkSessionTitle(state.activeSession);
       rowsHtml = '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F0EEE8">' + _sesName + ' <span style="color:#F07C3A;font-size:11px">● In progress</span></div>';
     } else if (_todayIsRest) {
       rowsHtml = '<div style="color:#5A5860">Rest day</div>';
@@ -4050,8 +4060,8 @@ function renderDashboard() {
       _todayWorkoutIds.forEach(function(wid) {
         var sw = (state.savedWorkouts||[]).find(function(w){return w.id===wid;});
         var wName = sw ? sw.name : wid;
-        // find completed session matching this workout name
-        var cEntry = _completedTodaySorted.find(function(s){return s.name===wName;});
+        // find completed session matching this workout by planId first, then name
+        var cEntry = _completedTodaySorted.find(function(s){return s.planId===wid||(!s.planId&&s.name===wName);});
         if (cEntry) {
           var cEndLabel = cEntry.endTime ? ' · ' + format12hr(new Date(cEntry.endTime)).toLowerCase() : '';
           rowsHtml += '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#5A5860">' + wName + '<span style="font-size:11px;color:#5A5860">' + cEndLabel + ' ✓</span></div>';
@@ -4061,15 +4071,15 @@ function renderDashboard() {
       });
       // also show any extra completed sessions not tied to a scheduled workout
       _completedTodaySorted.forEach(function(s) {
-        if (!_todayWorkoutIds.some(function(wid){var sw=(state.savedWorkouts||[]).find(function(w){return w.id===wid;});return sw&&sw.name===s.name;})) {
+        if (!_todayWorkoutIds.some(function(wid){return s.planId===wid||((state.savedWorkouts||[]).find(function(w){return w.id===wid&&w.name===s.name;}));})) {
           var cEndLabel2 = s.endTime ? ' · ' + format12hr(new Date(s.endTime)).toLowerCase() : '';
-          rowsHtml += '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#5A5860">' + (s.name||'Workout') + '<span style="font-size:11px;color:#5A5860">' + cEndLabel2 + ' ✓</span></div>';
+          rowsHtml += '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#5A5860">' + wkSessionTitle(s) + '<span style="font-size:11px;color:#5A5860">' + cEndLabel2 + ' ✓</span></div>';
         }
       });
     } else if (_completedTodaySorted.length) {
       _completedTodaySorted.forEach(function(s) {
         var cEndLabel = s.endTime ? ' · ' + format12hr(new Date(s.endTime)).toLowerCase() : '';
-        rowsHtml += '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#5A5860">' + (s.name||'Workout') + '<span style="font-size:11px;color:#5A5860">' + cEndLabel + ' ✓</span></div>';
+        rowsHtml += '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#5A5860">' + wkSessionTitle(s) + '<span style="font-size:11px;color:#5A5860">' + cEndLabel + ' ✓</span></div>';
       });
     } else {
       rowsHtml = '<div style="color:#5A5860">No workout planned</div>';
@@ -4085,7 +4095,7 @@ function renderDashboard() {
         if (!state.activeSession && _todayWorkoutIds.length === 1) {
           var unstartedId = _todayWorkoutIds[0];
           var sw0 = (state.savedWorkouts||[]).find(function(w){return w.id===unstartedId;});
-          var alreadyDone = _completedTodaySorted.some(function(s){return sw0&&s.name===sw0.name;});
+          var alreadyDone = _completedTodaySorted.some(function(s){return sw0&&(s.planId===sw0.id||s.name===sw0.name);});
           if (sw0 && !alreadyDone) setTimeout(function(){wkBeginSession(sw0);}, 100);
         }
       };
@@ -6296,7 +6306,7 @@ function wkRenderToday() {
   if (isToday && _wkSession) {
     html += '<div class="card" style="border:1px solid rgba(240,124,58,0.4);background:rgba(240,124,58,0.05);margin-bottom:12px">';
     html += '<div class="row-between" style="margin-bottom:8px"><div>';
-    html += '<div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + (_wkSession.name||'Quick session') + '</div>';
+    html += '<div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + wkSessionTitle(_wkSession) + '</div>';
     html += '<div style="font-size:12px;color:var(--txt2)" id="wk-timer-display">00:00</div>';
     html += '</div><button class="btn btn-sm btn-danger" onclick="wkEndSession()">End</button></div>';
     html += '<textarea id="wk-session-note" placeholder="Session notes (optional)" rows="2" style="width:100%;background:#22222E;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:13px;color:var(--txt);resize:none;box-sizing:border-box" oninput="if(_wkSession)_wkSession.note=this.value">'+((_wkSession&&_wkSession.note)||'')+'</textarea>';
@@ -6365,12 +6375,14 @@ function changeWkTodayDay(delta) {
 function wkStartScheduled(swId) { var sw=(state.savedWorkouts||[]).find(function(w){return w.id===swId;}); if(sw) wkBeginSession(sw); }
 function wkBeginSession(sw) {
   _wkSession = {
-    name: sw ? sw.name : 'Quick session',
+    name: sw ? sw.name : '',
+    planId: sw ? sw.id : null,
     startTime: Date.now(),
     exercises: sw ? sw.exercises.map(function(ex) {
-      var e = { name:ex.name, type:ex.type, target:ex.target||'' };
+      var cName = wkCanonicalExercise(ex.name);
+      var e = { name:cName, type:ex.type, target:ex.target||'' };
       if (ex.metric) e.metric = ex.metric;
-      if (ex.type==='lift') { e.sets = [{kg:_wkLastKg(ex.name),reps:'',done:false}]; }
+      if (ex.type==='lift') { e.sets = [{kg:_wkLastKg(cName),reps:'',done:false}]; }
       else if (ex.type==='bodyweight') { e.sets = [{value:'',done:false}]; }
       else if (ex.type==='timed-hold') { e.sets = [{seconds:30,done:false}]; }
       else if (ex.type==='cardio-distance') { e.distanceKm=''; e.timeSeconds=0; e.paceSecPerKm=0; }
@@ -6421,7 +6433,7 @@ function wkEndSession(skipConfirm) {
   function doEnd() {
     var dateKey = localDateStr(new Date());
     state.workoutLog = state.workoutLog||{};
-    var _session = {name:_wkSession.name,startTime:_wkSession.startTime,endTime:Date.now(),exercises:JSON.parse(JSON.stringify(_wkSession.exercises)),note:_wkSession.note||''};
+    var _session = {name:_wkSession.name,planId:_wkSession.planId||null,startTime:_wkSession.startTime,endTime:Date.now(),exercises:JSON.parse(JSON.stringify(_wkSession.exercises)),note:_wkSession.note||''};
     if (!Array.isArray(state.workoutLog[dateKey])) state.workoutLog[dateKey] = [];
     state.workoutLog[dateKey].push(_session);
     _wkSession = null;
@@ -6440,6 +6452,34 @@ function _wkTypePill(type) {
   return '<span class="pill" style="background:rgba(240,124,58,0.15);color:#F07C3A;font-size:10px">'+(labels[type]||type)+'</span>';
 }
 function _wkSecToMMSS(s) { s=parseInt(s)||0; return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function _wkTimeToDigits(seconds) {
+  var s=parseInt(seconds)||0; var mins=Math.floor(s/60); var secs=s%60;
+  if(mins>=60){var hrs=Math.floor(mins/60);var m2=mins%60;return String(hrs)+String(m2).padStart(2,'0')+String(secs).padStart(2,'0');}
+  return String(mins).padStart(2,'0')+String(secs).padStart(2,'0');
+}
+function _wkDigitsToSeconds(digits) {
+  var d=(digits||'').replace(/\D/g,'');
+  var secs=parseInt(d.slice(-2)||'0')||0; var mins=parseInt(d.slice(-4,-2)||'0')||0; var hrs=parseInt(d.slice(0,-4)||'0')||0;
+  return hrs*3600+mins*60+secs;
+}
+function _wkSecToTimeDisplay(seconds) {
+  var s=parseInt(seconds)||0;
+  if(!s)return '<span style="color:var(--txt3)">0:00</span>';
+  var hrs=Math.floor(s/3600); var mins=Math.floor((s%3600)/60); var secs=s%60;
+  if(hrs>0)return hrs+':'+String(mins).padStart(2,'0')+':'+String(secs).padStart(2,'0');
+  return mins+':'+String(secs).padStart(2,'0');
+}
+function wkTimeCalcInput(exIdx) {
+  if(!_wkSession)return;
+  var inp=document.getElementById('wk-time-raw-'+exIdx); if(!inp)return;
+  var digits=inp.value.replace(/\D/g,'').slice(-6); inp.value=digits;
+  var ex=_wkSession.exercises[exIdx];
+  ex.timeSeconds=_wkDigitsToSeconds(digits);
+  var dispEl=document.getElementById('wk-time-disp-'+exIdx);
+  if(dispEl)dispEl.innerHTML=_wkSecToTimeDisplay(ex.timeSeconds);
+  if(ex.distanceKm&&ex.timeSeconds){ex.paceSecPerKm=Math.round(ex.timeSeconds/ex.distanceKm);var pEl=document.getElementById('wk-pace-'+exIdx);if(pEl)pEl.textContent=_wkSecToMMSS(ex.paceSecPerKm)+' /km';}
+  saveState();
+}
 
 function wkRenderExerciseCards() {
   return (_wkSession.exercises||[]).map(function(ex,i){return wkBuildExerciseCard(ex,i);}).join('');
@@ -6467,7 +6507,7 @@ function wkBuildExerciseCard(ex,i) {
     html += '</div>';
     html += '<button class="btn btn-sm btn-outline" style="margin-top:4px" onclick="wkAddSet('+i+')">+ Set</button>';
     var _nextUpActive=ex.nextUp;
-    html += '<button class="btn btn-sm" style="margin-top:4px;margin-left:6px;'+(_nextUpActive?'background:rgba(240,124,58,0.2);color:#F07C3A;border-color:#F07C3A':'background:none;border:1px solid var(--border);color:var(--txt2)')+'" onclick="wkToggleNextUp('+i+')">↑ Heavier next time</button>';
+    html += '<span class="exercise-tag'+(_nextUpActive?' selected':'')+'" style="margin-top:4px;cursor:pointer;display:inline-block" onclick="wkToggleNextUp('+i+')">↑ Heavier next time</span>';
   } else if (ex.type==='bodyweight') {
     var metric = ex.metric||'reps';
     html += '<div style="display:flex;gap:6px;margin-bottom:8px">';
@@ -6504,7 +6544,11 @@ function wkBuildExerciseCard(ex,i) {
     if (ex.distanceKm&&ex.timeSeconds){var ps=Math.round(ex.timeSeconds/ex.distanceKm);pace=_wkSecToMMSS(ps)+' /km';}
     html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end">';
     html += '<div><label class="input-label" style="font-size:11px">Distance</label><div style="display:flex;align-items:center;gap:4px"><input type="text" inputmode="decimal" value="'+(ex.distanceKm||'')+'" placeholder="3.2" style="background:#22222E" oninput="wkCardioDistInput('+i+',this.value)"/> <span style="font-size:12px;color:var(--txt2)">km</span></div></div>';
-    html += '<div><label class="input-label" style="font-size:11px">Time (mm:ss)</label><input type="text" inputmode="decimal" value="'+(ex.timeSeconds?_wkSecToMMSS(ex.timeSeconds):'')+'" placeholder="19:45" style="background:#22222E" oninput="wkCardioTimeInput('+i+',this.value)"/></div>';
+    html += '<div><label class="input-label" style="font-size:11px">Time</label>';
+    html += '<input type="tel" id="wk-time-raw-'+i+'" style="position:absolute;opacity:0;width:0;height:0" value="'+(ex.timeSeconds?_wkTimeToDigits(ex.timeSeconds):'')+'" oninput="wkTimeCalcInput('+i+')">';
+    html += '<div class="time-calc-display" id="wk-time-disp-'+i+'" onclick="document.getElementById(\'wk-time-raw-'+i+'\').focus()" style="cursor:pointer">';
+    html += _wkSecToTimeDisplay(ex.timeSeconds);
+    html += '</div></div>';
     html += '<div><label class="input-label" style="font-size:11px">Pace</label><div id="wk-pace-'+i+'" style="font-size:14px;color:#F07C3A;padding:8px 0">'+(pace||'&#8212;')+'</div></div></div>';
   } else if (ex.type==='cardio-duration') {
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
@@ -6609,15 +6653,67 @@ function wkRehabRounds(exIdx,r){
 
 function wkOpenAddExercise(context) {
   _wkEditorContext=context;
-  var nameEl=document.getElementById('wk-add-ex-name');if(nameEl)nameEl.value='';
-  var targetEl=document.getElementById('wk-add-ex-target');if(targetEl)targetEl.value='';
   var searchEl=document.getElementById('wk-ex-search');if(searchEl)searchEl.value='';
-  var resEl=document.getElementById('wk-ex-search-results');if(resEl){resEl.style.display='none';resEl.innerHTML='';}
+  _wkRenderExLibrary('');
+  _wkShowLibrary();
+  openModal('modal-wk-add-ex');
+}
+function _wkShowLibrary() {
+  var lib=document.getElementById('wk-ex-library'); var form=document.getElementById('wk-ex-custom-form');
+  var lf=document.getElementById('wk-ex-library-footer'); var cf=document.getElementById('wk-ex-custom-footer');
+  if(lib)lib.style.display=''; if(form)form.style.display='none';
+  if(lf)lf.style.display=''; if(cf)cf.style.display='none';
+}
+function _wkShowCustomForm() {
+  var lib=document.getElementById('wk-ex-library'); var form=document.getElementById('wk-ex-custom-form');
+  var lf=document.getElementById('wk-ex-library-footer'); var cf=document.getElementById('wk-ex-custom-footer');
+  if(lib)lib.style.display='none'; if(form)form.style.display='';
+  if(lf)lf.style.display='none'; if(cf)cf.style.display='';
+  var nameEl=document.getElementById('wk-add-ex-name');if(nameEl){nameEl.value='';nameEl.focus();}
+  var targetEl=document.getElementById('wk-add-ex-target');if(targetEl)targetEl.value='';
   document.querySelectorAll('#wk-add-ex-types .exercise-tag').forEach(function(t){t.classList.toggle('selected',t.dataset.type==='lift');});
   var mr=document.getElementById('wk-add-ex-metric-row');if(mr)mr.style.display='none';
-  var tr=document.getElementById('wk-add-ex-target-row');if(tr)tr.style.display='';
   document.querySelectorAll('#wk-add-ex-metrics .exercise-tag').forEach(function(t){t.classList.toggle('selected',t.dataset.metric==='reps');});
-  openModal('modal-wk-add-ex');
+}
+function _wkRenderExLibrary(filter) {
+  var el=document.getElementById('wk-ex-library');if(!el)return;
+  var q=(filter||'').toLowerCase().trim();
+  var html='';
+  Object.keys(EXERCISES).forEach(function(group){
+    var items=EXERCISES[group];
+    var filtered=q?items.filter(function(n){return n.toLowerCase().indexOf(q)>=0;}):items;
+    if(!filtered.length)return;
+    html+='<div style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;padding:8px 0 4px">'+group+'</div>';
+    filtered.forEach(function(name){
+      var type=wkTypeForExercise(name);
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;min-height:44px" onclick="wkPickLibraryExercise(\''+name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')"><span style="font-size:14px">'+name+'</span>'+_wkTypePill(type||'lift')+'</div>';
+    });
+  });
+  if(!html)html='<div style="text-align:center;color:var(--txt3);padding:16px">No exercises found</div>';
+  el.innerHTML=html;
+}
+function wkExSearch(q) { _wkRenderExLibrary(q||''); }
+function wkPickLibraryExercise(name) {
+  var canonical=wkCanonicalExercise(name);
+  var type=wkTypeForExercise(canonical)||'lift';
+  _wkAddExerciseWithType(canonical,type,'');
+}
+function _wkAddExerciseWithType(name,type,target,metric) {
+  var ex={name:name,type:type}; if(target)ex.target=target;
+  if(_wkEditorContext==='today'){
+    if(!_wkSession)_wkSession={name:'',planId:null,startTime:Date.now(),exercises:[]};
+    if(type==='lift'){ex.sets=[{kg:_wkLastKg(name),reps:'',done:false}];}
+    else if(type==='bodyweight'){ex.metric=metric||'reps';ex.sets=[{value:'',done:false}];}
+    else if(type==='timed-hold'){ex.sets=[{seconds:30,done:false}];}
+    else if(type==='cardio-distance'){ex.distanceKm='';ex.timeSeconds=0;ex.paceSecPerKm=0;}
+    else if(type==='cardio-duration'){ex.timeMinutes='';ex.notes='';}
+    else if(type==='rehab'){ex.rounds=0;}
+    _wkSession.exercises.push(ex); state.activeSession=_wkSession; saveState();
+    closeModal('modal-wk-add-ex'); wkRenderToday();
+  } else {
+    if(type==='bodyweight')ex.metric=metric||'reps';
+    _wkEditorExercises.push(ex); closeModal('modal-wk-add-ex'); wkRenderEditorExercises();
+  }
 }
 function wkSelectExType(btn) {
   btn.closest('#wk-add-ex-types').querySelectorAll('.exercise-tag').forEach(function(t){t.classList.remove('selected');});btn.classList.add('selected');
@@ -6627,54 +6723,18 @@ function wkSelectExType(btn) {
   var targetEl=document.getElementById('wk-add-ex-target');
   if(targetEl){var ph={'lift':'e.g. 4 × 6–10','bodyweight':'e.g. 3 × 15','timed-hold':'e.g. 3 × 30s','rehab':'e.g. 2 × 10'};targetEl.placeholder=ph[type]||'e.g. 4 × 6–10';}
 }
-function wkExSearch(q) {
-  var res=document.getElementById('wk-ex-search-results');if(!res)return;
-  q=(q||'').trim().toLowerCase();
-  if(!q){res.style.display='none';res.innerHTML='';return;}
-  var allEx=[];Object.values(EXERCISES).forEach(function(arr){allEx=allEx.concat(arr);});
-  var matches=allEx.filter(function(n){return n.toLowerCase().indexOf(q)>=0;}).slice(0,8);
-  if(!matches.length){res.style.display='none';return;}
-  res.innerHTML=matches.map(function(n){return '<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px" onclick="wkExSearchPick(\''+n.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')" >'+n+'</div>';}).join('');
-  res.style.display='block';
-}
-function wkExSearchPick(name) {
-  var nameEl=document.getElementById('wk-add-ex-name');if(nameEl)nameEl.value=name;
-  var searchEl=document.getElementById('wk-ex-search');if(searchEl)searchEl.value='';
-  var resEl=document.getElementById('wk-ex-search-results');if(resEl){resEl.style.display='none';resEl.innerHTML='';}
-}
 function wkSelectBwMetric(btn){btn.closest('#wk-add-ex-metrics').querySelectorAll('.exercise-tag').forEach(function(t){t.classList.remove('selected');});btn.classList.add('selected');}
 function wkConfirmAddExercise() {
-  var name=(document.getElementById('wk-add-ex-name').value||'').trim();
+  var name=wkCanonicalExercise((document.getElementById('wk-add-ex-name').value||'').trim());
   if(!name){showToast('Enter an exercise name');return;}
   var typeSel=document.querySelector('#wk-add-ex-types .exercise-tag.selected');
   var type=typeSel?typeSel.dataset.type:'lift';
   var target=(document.getElementById('wk-add-ex-target').value||'').trim();
   var metricSel=document.querySelector('#wk-add-ex-metrics .exercise-tag.selected');
   var metric=metricSel?metricSel.dataset.metric:'reps';
-  var ex={name:name,type:type};if(target)ex.target=target;
-  if(_wkEditorContext==='today'){
-    if(!_wkSession)_wkSession={name:'Quick session',startTime:Date.now(),exercises:[]};
-    if(type==='lift'){ex.sets=[{kg:_wkLastKg(name),reps:'',done:false}];}
-    else if(type==='bodyweight'){ex.metric=metric;ex.sets=[{value:'',done:false}];}
-    else if(type==='timed-hold'){ex.sets=[{seconds:30,done:false}];}
-    else if(type==='cardio-distance'){ex.distanceKm='';ex.timeSeconds=0;ex.paceSecPerKm=0;}
-    else if(type==='cardio-duration'){ex.timeMinutes='';ex.notes='';}
-    else if(type==='rehab'){ex.rounds=0;}
-    _wkSession.exercises.push(ex);
-    state.activeSession = _wkSession;
-    saveState();
-    closeModal('modal-wk-add-ex');wkRenderToday();
-  } else {
-    if(type==='bodyweight')ex.metric=metric;
-    _wkEditorExercises.push(ex);
-    closeModal('modal-wk-add-ex');wkRenderEditorExercises();
-  }
+  _wkAddExerciseWithType(name,type,target,metric);
 }
-
-function wkSubmitAddExercise() {
-  console.log('[wk] wkSubmitAddExercise called, _wkEditorContext:', _wkEditorContext);
-  wkConfirmAddExercise();
-}
+function wkSubmitAddExercise() { wkConfirmAddExercise(); }
 var wkConfirmAddEx = wkSubmitAddExercise;
 
 function wkOpenUsePlan(){
@@ -6776,11 +6836,11 @@ function wkRenderDaySchedule(dates,schedule,today){
     html+='<div class="meal-day-header" style="display:flex;justify-content:space-between;align-items:center">';
     html+='<span>'+fullNames[i]+' '+d.getDate()+'</span>'+todayPill+'</div>';
     if(isRest){
-      html+='<div class="meal-slot"><span class="meal-slot-food">Rest day</span><button type="button" class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px;width:auto" onclick="wkClearDay('+i+')">&#215;</button></div>';
+      html+='<div class="meal-slot" style="cursor:pointer;min-height:44px;display:flex;align-items:center" onclick="wkOpenRestDaySheet('+i+')"><span class="meal-slot-food">Rest day</span></div>';
     } else {
       workoutIds.forEach(function(id){
         var sw=(state.savedWorkouts||[]).find(function(w){return w.id===id;});
-        html+='<div class="meal-slot"><span class="meal-slot-food" style="cursor:pointer" onclick="wkOpenAssignedWorkoutSheet('+i+',\''+id+'\')">'+( sw?sw.name:id)+'</span><button type="button" class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px;width:auto" onclick="wkRemoveFromDay('+i+',\''+id+'\')">&#215;</button></div>';
+        html+='<div class="meal-slot" style="cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:space-between" onclick="wkOpenAssignedWorkoutSheet('+i+',\''+id+'\')"><span class="meal-slot-food">'+( sw?sw.name:id)+'</span><button type="button" class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px;width:auto" onclick="event.stopPropagation();wkRemoveFromDay('+i+',\''+id+'\')">&#215;</button></div>';
       });
       html+='<div class="meal-slot" style="cursor:pointer" onclick="wkOpenDayPicker('+i+')"><span class="meal-slot-food" style="color:var(--txt3)">+ Add workout</span></div>';
     }
@@ -6834,6 +6894,12 @@ function wkClearDay(dayIdx){
   if(!state.workoutSchedule||!state.workoutSchedule[weekISO])return;
   delete state.workoutSchedule[weekISO][dayIdx];
   saveState();wkRenderPlans();
+}
+function wkOpenRestDaySheet(dayIdx){
+  showActionSheet({title:'Rest day',actions:[
+    {label:'Replace with workout',action:function(){wkOpenDayPicker(dayIdx);}},
+    {label:'Remove',danger:true,action:function(){wkClearDay(dayIdx);}}
+  ]});
 }
 
 function wkSaveTemplate(){
@@ -6953,7 +7019,7 @@ function wkRenderHistory(){
   var progressContent=document.getElementById('wkh-progress-content');if(!progressContent)return;
   var log=state.workoutLog||{};
   var names={};
-  Object.values(log).forEach(function(dayEntries){var entries=Array.isArray(dayEntries)?dayEntries:[dayEntries];entries.forEach(function(entry){(entry.exercises||[]).forEach(function(ex){names[ex.name]=ex.type;});});});
+  Object.values(log).forEach(function(dayEntries){var entries=Array.isArray(dayEntries)?dayEntries:[dayEntries];entries.forEach(function(entry){(entry.exercises||[]).forEach(function(ex){var can=wkCanonicalExercise(ex.name);names[can]=ex.type;});});});
   var nameList=Object.keys(names);
   if(!_wkhSelectedEx&&nameList.length)_wkhSelectedEx=nameList[0];
   var html='<div class="input-group" style="margin-bottom:8px"><label class="input-label">Exercise</label>';
@@ -6991,7 +7057,7 @@ function renderWkhProgressChart(){
   Object.keys(log).sort().forEach(function(date){
     var dayEntries=Array.isArray(log[date])?log[date]:(log[date]?[log[date]]:[]);
     wkSortSessions(dayEntries).forEach(function(entry){
-      var ex=(entry.exercises||[]).find(function(e){return e.name===_wkhSelectedEx;});
+      var ex=(entry.exercises||[]).find(function(e){return wkCanonicalExercise(e.name)===_wkhSelectedEx;});
       if(!ex)return;
       var v=null;
       if(ex.type==='lift'&&ex.sets){
@@ -7018,7 +7084,7 @@ function renderWkhProgressChart(){
     Object.keys(log).sort().forEach(function(date){
       var dayE=Array.isArray(log[date])?log[date]:(log[date]?[log[date]]:[]);
       dayE.forEach(function(entry){
-        var ex=(entry.exercises||[]).find(function(e){return e.name===_wkhSelectedEx;});
+        var ex=(entry.exercises||[]).find(function(e){return wkCanonicalExercise(e.name)===_wkhSelectedEx;});
         if(!ex||ex.type!=='cardio-distance')return;
         var d=parseFloat(ex.distanceKm)||0;if(!d)return;
         var dObj=new Date(date);var mon=new Date(dObj);mon.setDate(dObj.getDate()-((dObj.getDay()+6)%7));
@@ -7105,29 +7171,57 @@ function wkSortSessions(list){
 }
 function _wkFmtDateDMY(iso){var p=iso.split('-');return p[2]+'/'+p[1];}
 
-function wkOpenWeekPicker() {
-  var now = new Date();
-  var currentYear = now.getFullYear();
-  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var html = '<div style="padding:16px">';
-  html += '<button class="btn btn-secondary" style="width:100%;margin-bottom:12px" onclick="wkGoToThisWeek();closeModal(\'modal-week-picker\')">This week</button>';
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  for (var y = currentYear; y >= currentYear - 2; y--) {
-    for (var m = (y === currentYear ? now.getMonth() : 11); m >= 0; m--) {
-      html += '<button class="btn btn-secondary" onclick="wkGoToMonth(' + y + ',' + m + ');closeModal(\'modal-week-picker\')">';
-      html += months[m] + ' ' + y + '</button>';
-    }
+var _wkCalViewYear = 0, _wkCalViewMonth = 0;
+function _wkCalRenderGrid() {
+  var log = state.workoutLog||{};
+  var markers = {};
+  Object.keys(log).forEach(function(d){var e=Array.isArray(log[d])?log[d]:(log[d]?[log[d]]:[]);if(e.length)markers[d]=true;});
+  var year=_wkCalViewYear; var month=_wkCalViewMonth;
+  var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var todayStr=localDateStr(new Date());
+  var firstDay=new Date(year,month,1); var lastDay=new Date(year,month+1,0);
+  var startDow=(firstDay.getDay()+6)%7;
+  var html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+  html+='<button class="btn btn-sm btn-outline" onclick="wkCalPrevMonth()">&#8249;</button>';
+  html+='<span style="font-weight:600">'+monthNames[month]+' '+year+'</span>';
+  html+='<button class="btn btn-sm btn-outline" onclick="wkCalNextMonth()">&#8250;</button></div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">';
+  ['M','T','W','T','F','S','S'].forEach(function(d){html+='<div style="text-align:center;font-size:11px;color:var(--txt3);padding:4px 0">'+d+'</div>';});
+  html+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
+  for(var e=0;e<startDow;e++)html+='<div></div>';
+  for(var d=1;d<=lastDay.getDate();d++){
+    var dateStr=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var isToday=dateStr===todayStr; var hasDot=!!markers[dateStr];
+    var style='text-align:center;padding:6px 2px;border-radius:6px;cursor:pointer;font-size:14px;'+(isToday?'background:rgba(240,124,58,0.15);color:#F07C3A;font-weight:700;':'color:var(--txt);');
+    var dot=hasDot?'<div style="width:4px;height:4px;border-radius:50%;background:#F07C3A;margin:1px auto 0"></div>':'<div style="width:4px;height:4px"></div>';
+    html+='<div style="'+style+'" onclick="wkCalPickDay(\''+dateStr+'\')"><div>'+d+'</div>'+dot+'</div>';
   }
-  html += '</div></div>';
-  var modal = document.getElementById('modal-week-picker');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'modal-week-picker';
-    modal.className = 'modal-overlay';
-    modal.innerHTML = '<div class="modal"><div class="modal-handle"></div><div class="modal-header"><span>Go to week</span><button class="modal-close" onclick="closeModal(\'modal-week-picker\')">&times;</button></div><div id="week-picker-body" style="max-height:60vh;overflow-y:auto"></div></div>';
+  html+='</div>';
+  return html;
+}
+function wkCalPrevMonth(){_wkCalViewMonth--;if(_wkCalViewMonth<0){_wkCalViewMonth=11;_wkCalViewYear--;}var g=document.getElementById('wk-cal-grid');if(g)g.innerHTML=_wkCalRenderGrid();}
+function wkCalNextMonth(){_wkCalViewMonth++;if(_wkCalViewMonth>11){_wkCalViewMonth=0;_wkCalViewYear++;}var g=document.getElementById('wk-cal-grid');if(g)g.innerHTML=_wkCalRenderGrid();}
+function wkCalPickDay(dateStr){
+  var target=new Date(dateStr+'T12:00:00'); var now=new Date();
+  var dfm=now.getDay()===0?6:now.getDay()-1; var tws=new Date(now); tws.setDate(now.getDate()-dfm);
+  var tdw=target.getDay()===0?6:target.getDay()-1; var ttws=new Date(target); ttws.setDate(target.getDate()-tdw);
+  _wkhSessionWeekOff=Math.round((ttws-tws)/(7*24*60*60*1000));
+  closeModal('modal-week-picker'); renderWkhSessionCards();
+}
+function wkOpenWeekPicker() {
+  var now = new Date(); _wkCalViewYear=now.getFullYear(); _wkCalViewMonth=now.getMonth();
+  var html='<div style="padding:16px">';
+  html+='<button class="btn btn-secondary" style="width:100%;margin-bottom:12px" onclick="wkGoToThisWeek();closeModal(\'modal-week-picker\')">This week</button>';
+  html+='<div id="wk-cal-grid">'+_wkCalRenderGrid()+'</div>';
+  html+='<button class="btn btn-outline" style="width:100%;margin-top:16px" onclick="closeModal(\'modal-week-picker\')">Cancel</button>';
+  html+='</div>';
+  var modal=document.getElementById('modal-week-picker');
+  if(!modal){
+    modal=document.createElement('div');modal.id='modal-week-picker';modal.className='modal-overlay';
+    modal.innerHTML='<div class="modal"><div class="modal-handle"></div><div style="font-size:14px;font-weight:600;text-align:center;padding:8px 0 0">Go to week</div><div id="week-picker-body" style="max-height:70vh;overflow-y:auto"></div></div>';
     document.body.appendChild(modal);
   }
-  document.getElementById('week-picker-body').innerHTML = html;
+  document.getElementById('week-picker-body').innerHTML=html;
   modal.classList.add('open');
 }
 function wkGoToThisWeek() { _wkhSessionWeekOff = 0; renderWkhSessionCards(); }

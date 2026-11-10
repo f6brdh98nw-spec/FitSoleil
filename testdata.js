@@ -205,7 +205,7 @@
       {
         id: swCardio, name: 'Morning Cardio',
         exercises: [
-          {name:'Morning Run',  type:'cardio-distance'},
+          {name:'Run',  type:'cardio-distance'},
           {name:'Groove',       type:'cardio-duration'},
         ],
       },
@@ -317,7 +317,7 @@
         startTime: new Date(daysAgo(1)+'T18:00:00').getTime(),
         endTime:   new Date(daysAgo(1)+'T18:50:00').getTime(),
         exercises: [
-          {name:'Running', type:'cardio-distance', distanceKm:8.0, timeSeconds:2800, paceSecPerKm:350},
+          {name:'Run', type:'cardio-distance', distanceKm:8.0, timeSeconds:2800, paceSecPerKm:350},
         ],
       }
     ];
@@ -326,7 +326,7 @@
       startTime: new Date(daysAgo(3)+'T06:45:00').getTime(),
       endTime:   new Date(daysAgo(3)+'T07:35:00').getTime(),
       exercises: [
-        {name:'Morning Run', type:'cardio-distance', distanceKm:4.2, timeSeconds:1470, paceSecPerKm:350},
+        {name:'Run', type:'cardio-distance', distanceKm:4.2, timeSeconds:1470, paceSecPerKm:350},
         {name:'Groove',      type:'cardio-duration', timeSeconds:1800, notes:'7:00–7:30am'},
       ],
     }];
