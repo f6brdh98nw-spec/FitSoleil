@@ -275,6 +275,11 @@ var SECTIONS = [
     {id:"W.25",type:"manual",label:"Plans: tap a day — picker opens with saved workouts + Rest + Clear",run:null},
     {id:"W.26",type:"manual",label:"Plans: save as template, load on different week — fills correctly",run:null},
     {id:"W.27",type:"manual",label:"Use Plan — loads saved workout exercises into session",run:null},
+    {id:"W.28",type:"manual",label:"Active session card has a Notes textarea",run:null},
+    {id:"W.29",type:"manual",label:"Session note is shown in History after ending session",run:null},
+    {id:"W.30",type:"auto",label:"Lift card prefills kg from the most recent logged session",run:function(a){var snap=JSON.stringify(a.state.workoutLog||{});var k=a.localDateStr(new Date(Date.now()-86400000));a.state.workoutLog=a.state.workoutLog||{};var cur=a.state.workoutLog[k];var entry={name:'PrefillSrc',startTime:Date.now()-90000000,endTime:Date.now()-86000000,exercises:[{name:'Prefill Press XYZ',type:'lift',sets:[{kg:42.5,reps:8,done:true}]}]};a.state.workoutLog[k]=(Array.isArray(cur)?cur:(cur?[cur]:[])).concat([entry]);a.wkBeginSession({id:'pf',name:'PF',exercises:[{name:'Prefill Press XYZ',type:'lift'}]});var kg=a._wkSession&&a._wkSession.exercises[0]&&a._wkSession.exercises[0].sets&&a._wkSession.exercises[0].sets[0]?a._wkSession.exercises[0].sets[0].kg:null;a._wkSession=null;a.state.activeSession=null;a.state.workoutLog=JSON.parse(snap);return parseFloat(kg)===42.5?true:{pass:false,msg:'first set kg is '+kg};}},
+    {id:"W.31",type:"manual",label:"'↑ Heavier next time' chip toggles highlight on tap",run:null},
+    {id:"W.32",type:"manual",label:"After toggling '↑ Heavier', next session shows '· try heavier' instead of 'Last: X kg × Y'",run:null},
   ]},
   { id:'P', title:"Progress screen", color:"#C084FC", tests:[
     {id:"P.01",type:"auto",label:"renderTrends function exists",run:function(a){return typeof a.renderTrends==='function';}},
@@ -339,8 +344,8 @@ var SECTIONS = [
       run:function(a){return typeof a.wkSaveEditTemplate==='function';}},
     {id:"R.10",type:"auto",label:"modal-wk-edit-tpl element exists in DOM",
       run:function(a){return!!a.document.getElementById('modal-wk-edit-tpl');}},
-    {id:"R.11",type:"auto",label:"meal-plan-day-pills element exists in DOM",
-      run:function(a){return!!a.document.getElementById('meal-plan-day-pills');}},
+    {id:"R.11",type:"auto",label:".plan-daystrip exists inside #meal-plan-container",
+      run:function(a){var c=a.document.getElementById('meal-plan-container');if(!c)return{pass:false,msg:'meal-plan-container not found'};return!!c.querySelector('.plan-daystrip');}},
     {id:"R.12",type:"auto",label:"_wkWeekLabel returns range format with en-dash",
       run:function(a){
         if(typeof a._wkWeekLabel!=='function')return{pass:false,msg:'_wkWeekLabel not found'};
@@ -493,6 +498,9 @@ var SECTIONS = [
         if(hasMin)return{pass:false,msg:'Found NNmin pattern in session cards'};
         return true;
       }},
+    {id:"G.10",type:"auto",label:"Recipe results box is tall enough to show OFF products",run:function(a){var c=a.document.getElementById('recipe-ingredient-results');if(!c)return{pass:false,msg:'recipe-ingredient-results missing'};var mh=a.getComputedStyle(c).maxHeight;var px=mh==='none'?9999:parseFloat(mh);return px>=300?true:{pass:false,msg:'max-height '+mh+' hides OFF products below the fold'};}},
+    {id:"G.11",type:"auto",label:"Recipe modal has a source/count line",run:function(a){return !!a.document.querySelector('#modal-recipe [id*="source-line"]');}},
+    {id:"G.12",type:"auto",label:"Nutrition template sheet uses modal-overlay style (not bottom sheet)",run:function(a){if(typeof a.showTemplatesSheet!=='function')return{pass:false,msg:'showTemplatesSheet not found'};a.showTemplatesSheet();var el=a.document.getElementById('modal-nt-template-list');var ok=el&&el.classList.contains('modal-overlay');if(el)a.closeModal&&a.closeModal('modal-nt-template-list');return ok?true:{pass:false,msg:el?'element found but missing modal-overlay class':'modal-nt-template-list not in DOM'};}},
   ]},
 ];
 
