@@ -501,6 +501,79 @@ var SECTIONS = [
     {id:"G.10",type:"auto",label:"Recipe results box is tall enough to show OFF products",run:function(a){var c=a.document.getElementById('recipe-ingredient-results');if(!c)return{pass:false,msg:'recipe-ingredient-results missing'};var mh=a.getComputedStyle(c).maxHeight;var px=mh==='none'?9999:parseFloat(mh);return px>=300?true:{pass:false,msg:'max-height '+mh+' hides OFF products below the fold'};}},
     {id:"G.11",type:"auto",label:"Recipe modal has a source/count line",run:function(a){return !!a.document.querySelector('#modal-recipe [id*="source-line"]');}},
     {id:"G.12",type:"auto",label:"Nutrition template sheet uses modal-overlay style (not bottom sheet)",run:function(a){if(typeof a.showTemplatesSheet!=='function')return{pass:false,msg:'showTemplatesSheet not found'};a.showTemplatesSheet();var el=a.document.getElementById('modal-nt-template-list');var ok=el&&el.classList.contains('modal-overlay');if(el)a.closeModal&&a.closeModal('modal-nt-template-list');return ok?true:{pass:false,msg:el?'element found but missing modal-overlay class':'modal-nt-template-list not in DOM'};}},
+    {id:"G.13",type:"auto",label:"Show snacks button is present in Nutrition plan toolbar",run:function(a){
+      if(typeof a.renderMealPlanGrid!=='function')return{pass:false,msg:'renderMealPlanGrid not found'};
+      a.renderMealPlanGrid();
+      var el=a.document.getElementById('meal-plan-container');
+      if(!el)return{pass:false,msg:'meal-plan-container not found'};
+      var btns=Array.prototype.slice.call(el.querySelectorAll('button'));
+      var found=btns.some(function(b){var t=b.textContent.toLowerCase();return t.indexOf('snack')!==-1;});
+      return found?true:{pass:false,msg:'No snacks toggle button found in plan toolbar'};
+    }},
+    {id:"G.14",type:"auto",label:"Show snacks adds snack meal rows in Nutrition plan",run:function(a){
+      if(typeof a.renderMealPlanGrid!=='function')return{pass:false,msg:'renderMealPlanGrid not found'};
+      var el=a.document.getElementById('meal-plan-container');
+      if(!el)return{pass:false,msg:'meal-plan-container not found'};
+      a.state.planShowSnacks=false;a.renderMealPlanGrid();
+      var before=el.querySelectorAll('.meal-slot').length;
+      a.state.planShowSnacks=true;a.renderMealPlanGrid();
+      var after=el.querySelectorAll('.meal-slot').length;
+      a.state.planShowSnacks=false;a.renderMealPlanGrid();
+      return after>before?true:{pass:false,msg:'slots before='+before+' after='+after+'; snacks not adding rows'};
+    }},
+    {id:"G.15",type:"auto",label:"Plan day tiles show dots not text abbreviations",run:function(a){
+      if(typeof a.renderMealPlanGrid!=='function')return{pass:false,msg:'renderMealPlanGrid not found'};
+      a.renderMealPlanGrid();
+      var el=a.document.getElementById('meal-plan-container');
+      if(!el)return{pass:false,msg:'meal-plan-container not found'};
+      var strip=el.querySelector('.plan-daystrip');
+      if(!strip)return{pass:false,msg:'plan-daystrip not found in meal-plan-container'};
+      var dots=strip.querySelectorAll('.dots');
+      if(!dots.length)return{pass:false,msg:'No .dots containers found in day strip tiles'};
+      return true;
+    }},
+    {id:"G.16",type:"auto",label:"Workout day card names use .slot-name class (same style as meal slot labels)",run:function(a){
+      if(typeof a.wkRenderPlans!=='function')return{pass:false,msg:'wkRenderPlans not found'};
+      a.wkRenderPlans();
+      var el=a.document.getElementById('wk-plans-content');
+      if(!el)return{pass:false,msg:'wk-plans-content not found'};
+      var mealSlot=el.querySelector('.meal-slot .slot-name');
+      if(mealSlot)return true;
+      // If no schedule assigned, check that .meal-slot-name is not in workout rows
+      var badSpan=el.querySelector('.meal-slot .meal-slot-name');
+      if(badSpan)return{pass:false,msg:'Workout row uses .meal-slot-name instead of .slot-name'};
+      return true;
+    }},
+    {id:"G.17",type:"auto",label:"Workout history session cards show date and time",run:function(a){
+      if(typeof a.wkRenderHistory!=='function')return{pass:false,msg:'wkRenderHistory not found'};
+      a.wkRenderHistory();
+      var el=a.document.getElementById('wk-history');
+      if(!el)return{pass:false,msg:'wk-history not found'};
+      var text=el.textContent||el.innerText||'';
+      var hasDate=/\d{2}-\d{2}-\d{4}/.test(text);
+      if(!hasDate)return{pass:false,msg:'No dd-mm-yyyy date found in wk-history (load test data first)'};
+      return true;
+    }},
+    {id:"G.18",type:"auto",label:"Macro CSS variables --macro-p/c/f are defined in :root",run:function(a){
+      var style=a.getComputedStyle(a.document.documentElement);
+      var mp=style.getPropertyValue('--macro-p').trim();
+      var mc=style.getPropertyValue('--macro-c').trim();
+      var mf=style.getPropertyValue('--macro-f').trim();
+      if(!mp)return{pass:false,msg:'--macro-p not defined in :root'};
+      if(!mc)return{pass:false,msg:'--macro-c not defined in :root'};
+      if(!mf)return{pass:false,msg:'--macro-f not defined in :root'};
+      return true;
+    }},
+    {id:"G.19",type:"auto",label:"Today completed card shows time only (no dd-mm-yyyy date)",run:function(a){
+      if(typeof a.wkRenderToday!=='function')return{pass:false,msg:'wkRenderToday not found'};
+      a._wkDayOff=0;
+      a.wkRenderToday();
+      var el=a.document.getElementById('wk-today-content');
+      if(!el)return{pass:false,msg:'wk-today-content not found'};
+      var text=el.textContent||el.innerText||'';
+      var dateMatches=(text.match(/\d{2}-\d{2}-\d{4}/g)||[]);
+      return dateMatches.length===0?true:{pass:false,msg:'Today card shows date(s): '+dateMatches.join(', ')};
+    }},
   ]},
 ];
 

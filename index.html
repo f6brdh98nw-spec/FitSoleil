@@ -39,6 +39,10 @@
     /* Layout */
     --nav-h: 72px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
+    /* Macro colours — defined once, used everywhere */
+    --macro-p: #60A5FA;
+    --macro-c: #34D399;
+    --macro-f: #E8C547;
   }
 
   /* ── Per-screen section accents ── */
@@ -124,6 +128,9 @@
   .plan-weeknav-label{font-size:13px;color:var(--txt2)}
   .plan-daystrip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px}
   .plan-day-tile{border-radius:8px;padding:6px 2px;text-align:center}
+  .plan-day-tile .dots{display:flex;gap:3px;justify-content:center;align-items:center;min-height:14px;flex-wrap:wrap;margin-top:3px}
+  .plan-day-tile .dot{border-radius:50%;background:var(--border)}
+  .slot-name{font-size:12px;color:var(--txt2)}
   .plan-toolbar{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
   .plan-toolbar .ptb-row{display:flex;gap:8px}
   .modal button, .modal-overlay button, .bottom-sheet button,
@@ -486,7 +493,7 @@
   .meal-day-header { background: var(--s3); padding: 8px 12px; font-size: 12px; font-weight: 700; color: var(--acc); }
   .meal-slot { padding: 8px 12px; border-bottom: 1px solid var(--s3); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
   .meal-slot:last-child { border-bottom: none; }
-  .meal-slot-name { font-size: 12px; color: var(--txt2); }
+  .meal-slot-name, .slot-name { font-size: 12px; color: var(--txt2); }
   .meal-slot-food { font-size: 13px; font-weight: 500; }
 
   /* TAG PILLS */
@@ -985,9 +992,9 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <div style="font-size:10px;color:#5A5860;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px">Macros</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div style="background:#22222E;border-radius:9px;padding:9px;text-align:center">
-            <div class="macro-val" id="m-protein" style="color:#60A5FA">0g</div>
+            <div class="macro-val" id="m-protein" style="color:var(--macro-p)">0g</div>
             <div class="macro-label">Protein</div>
-            <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-protein" style="background:#60A5FA;width:0%"></div></div>
+            <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-protein" style="background:var(--macro-p);width:0%"></div></div>
             <div style="font-size:10px;color:var(--txt3);margin-top:3px"><span id="mv-protein">0</span> / <span id="tgt-protein">120</span>g</div>
           </div>
           <div style="background:#22222E;border-radius:9px;padding:9px;text-align:center">
@@ -997,9 +1004,9 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
             <div style="font-size:10px;color:var(--txt3);margin-top:3px"><span id="mv-carbs">0</span> / <span id="tgt-carbs">150</span>g</div>
           </div>
           <div style="background:#22222E;border-radius:9px;padding:9px;text-align:center">
-            <div class="macro-val" id="m-fat" style="color:#E8C547">0g</div>
+            <div class="macro-val" id="m-fat" style="color:var(--macro-f)">0g</div>
             <div class="macro-label">Fat</div>
-            <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-fat" style="background:#E8C547;width:0%"></div></div>
+            <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="p-fat" style="background:var(--macro-f);width:0%"></div></div>
             <div style="font-size:10px;color:var(--txt3);margin-top:3px"><span id="mv-fat">0</span> / <span id="tgt-fat">55</span>g</div>
           </div>
           <div style="background:#22222E;border-radius:9px;padding:9px;text-align:center">
@@ -1106,7 +1113,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
                 <span style="font-size:11px;color:var(--txt2)" id="nd-protein-label">0g / 0g</span>
               </div>
               <div style="height:4px;background:var(--s3,#2A2A36);border-radius:2px">
-                <div id="nd-protein-bar" style="height:100%;width:0%;background:#60A5FA;border-radius:2px;transition:width .3s"></div>
+                <div id="nd-protein-bar" style="height:100%;width:0%;background:var(--macro-p);border-radius:2px;transition:width .3s"></div>
               </div>
             </div>
             <div style="background:var(--s2);border-radius:10px;padding:10px">
@@ -1115,7 +1122,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
                 <span style="font-size:11px;color:var(--txt2)" id="nd-carbs-label">0g / 0g</span>
               </div>
               <div style="height:4px;background:var(--s3,#2A2A36);border-radius:2px">
-                <div id="nd-carbs-bar" style="height:100%;width:0%;background:#4ADE80;border-radius:2px;transition:width .3s"></div>
+                <div id="nd-carbs-bar" style="height:100%;width:0%;background:var(--macro-c);border-radius:2px;transition:width .3s"></div>
               </div>
             </div>
             <div style="background:var(--s2);border-radius:10px;padding:10px">
@@ -1124,7 +1131,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
                 <span style="font-size:11px;color:var(--txt2)" id="nd-fat-label">0g / 0g</span>
               </div>
               <div style="height:4px;background:var(--s3,#2A2A36);border-radius:2px">
-                <div id="nd-fat-bar" style="height:100%;width:0%;background:#E8C547;border-radius:2px;transition:width .3s"></div>
+                <div id="nd-fat-bar" style="height:100%;width:0%;background:var(--macro-f);border-radius:2px;transition:width .3s"></div>
               </div>
             </div>
             <div style="background:var(--s2);border-radius:10px;padding:10px">
@@ -3981,9 +3988,9 @@ function renderDashboard() {
 
   // ── Macros 2×2 ──
   const macroData = [
-    { key:'protein', val:totals.protein,       tgt:tgt.protein||0, color:'#60A5FA' },
-    { key:'carbs',   val:totals.carbs,          tgt:tgt.carbs||0,   color:'#34D399' },
-    { key:'fat',     val:totals.fat,            tgt:tgt.fat||0,      color:'#E8C547' },
+    { key:'protein', val:totals.protein,       tgt:tgt.protein||0, color:'var(--macro-p)' },
+    { key:'carbs',   val:totals.carbs,          tgt:tgt.carbs||0,   color:'var(--macro-c)' },
+    { key:'fat',     val:totals.fat,            tgt:tgt.fat||0,      color:'var(--macro-f)' },
     { key:'fiber',   val:totals.fiber||0,       tgt:tgt.fibre||0,    color:'#F07C3A' },
   ];
   macroData.forEach(m => {
@@ -4112,9 +4119,9 @@ function renderDashboard() {
   const ndTgt = document.getElementById('nd-cals-target');
   if (ndTgt) ndTgt.textContent = '/ ' + (ntTgt.calories||2000).toLocaleString() + ' kcal target';
   const ntMacros = [
-    {key:'protein', val:ntTotals.protein,   tgt:ntTgt.protein||0, color:'#60A5FA'},
-    {key:'carbs',   val:ntTotals.carbs,     tgt:ntTgt.carbs||0,   color:'#4ADE80'},
-    {key:'fat',     val:ntTotals.fat,       tgt:ntTgt.fat||0,     color:'#E8C547'},
+    {key:'protein', val:ntTotals.protein,   tgt:ntTgt.protein||0, color:'var(--macro-p)'},
+    {key:'carbs',   val:ntTotals.carbs,     tgt:ntTgt.carbs||0,   color:'var(--macro-c)'},
+    {key:'fat',     val:ntTotals.fat,       tgt:ntTgt.fat||0,     color:'var(--macro-f)'},
     {key:'fiber',   val:ntTotals.fiber||0,  tgt:ntTgt.fibre||0,   color:'#F07C3A'},
   ];
   ntMacros.forEach(m => {
@@ -5100,8 +5107,8 @@ function renderFoodDetailMacros() {
   var ratio = serving / 100;
   document.getElementById('fd-macros').innerHTML =
     '<div class="macro-item"><div class="macro-val" style="color:var(--acc)">' + Math.round(cals100*ratio) + '</div><div class="macro-label">kcal</div></div>' +
-    '<div class="macro-item"><div class="macro-val" style="color:#60A5FA">' + Math.round(prot100*ratio) + 'g</div><div class="macro-label">Protein</div></div>' +
-    '<div class="macro-item"><div class="macro-val" style="color:#34D399">' + Math.round(carbs100*ratio) + 'g</div><div class="macro-label">Carbs</div></div>' +
+    '<div class="macro-item"><div class="macro-val" style="color:var(--macro-p)">' + Math.round(prot100*ratio) + 'g</div><div class="macro-label">Protein</div></div>' +
+    '<div class="macro-item"><div class="macro-val" style="color:var(--macro-c)">' + Math.round(carbs100*ratio) + 'g</div><div class="macro-label">Carbs</div></div>' +
     '<div class="macro-item"><div class="macro-val" style="color:#F07C3A">' + Math.round(fat100*ratio) + 'g</div><div class="macro-label">Fat</div></div>';
 }
 document.addEventListener('input', e => { if (e.target.id === 'fd-serving') renderFoodDetailMacros(); });
@@ -5770,9 +5777,9 @@ function updateRecipePerServe() {
   el.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;';
   function macroChips(p,c,f){
     return '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">'+
-      '<span style="background:rgba(96,165,250,0.15);color:#60A5FA;font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px">P '+Math.round(p*10)/10+'g</span>'+
-      '<span style="background:rgba(52,211,153,0.15);color:#34D399;font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px">C '+Math.round(c*10)/10+'g</span>'+
-      '<span style="background:rgba(232,197,71,0.15);color:#E8C547;font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px">F '+Math.round(f*10)/10+'g</span>'+
+      '<span style="background:rgba(96,165,250,0.15);color:var(--macro-p);font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px">P '+Math.round(p*10)/10+'g</span>'+
+      '<span style="background:rgba(52,211,153,0.15);color:var(--macro-c);font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px">C '+Math.round(c*10)/10+'g</span>'+
+      '<span style="background:rgba(232,197,71,0.15);color:var(--macro-f);font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px">F '+Math.round(f*10)/10+'g</span>'+
     '</div>';
   }
   var perP=tot.protein/serves,perC=tot.carbs/serves,perF=tot.fat/serves;
@@ -6262,7 +6269,7 @@ function wkRenderToday() {
         var _dNames2=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
         var _cEndDate=completedEntry.endTime?new Date(completedEntry.endTime):null;
         var _cDateFmt=_cEndDate?function(){var dk=localDateStr(_cEndDate);var p=dk.split('-');return p[2]+'-'+p[1]+'-'+p[0];}():'';
-        var _cEndLabel=_cEndDate?(_dNames2[_cEndDate.getDay()]+' '+_cDateFmt+' \xb7 '+format12hr(_cEndDate).toLowerCase()):'';
+        var _cEndLabel=_cEndDate?format12hr(_cEndDate).toLowerCase():'';
         html += '<div class="card" style="margin-bottom:12px;border:1px solid rgba(74,222,128,0.3);background:rgba(74,222,128,0.05)">';
         html += '<div style="font-size:11px;color:#4ADE80;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">Completed ✓</div>';
         html += '<div class="row-between" style="margin-bottom:4px"><div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + (completedEntry.name||'Workout') + '</div>'+(_cEndLabel?'<span style="font-size:12px;color:var(--txt2)">'+_cEndLabel+'</span>':'')+'</div>';
@@ -6666,7 +6673,19 @@ function renderPlanDayStrip(tiles,accent){
     var bg=t.hasAsgn?'background:rgba('+hexToRgb(accent)+',0.08)':'';
     html+='<div class="plan-day-tile" style="'+bdr+';'+bg+'">';
     html+='<div style="font-size:10px;color:var(--txt3)">'+t.label+'</div>';
-    html+='<div style="font-size:11px;font-weight:600;color:'+(t.hasAsgn?accent:'var(--txt2)')+'">'+t.abbr+'</div></div>';
+    if(t.isRest){
+      html+='<div class="dots" style="font-size:8px;color:var(--txt2)">Rest</div>';
+    }else if(t.dots&&t.dots.length){
+      var dotSz=t.dots.length>4?'4px':'5px';
+      html+='<div class="dots">';
+      t.dots.forEach(function(dot){
+        html+='<span class="dot'+(dot.filled?' filled':'')+'" style="width:'+dotSz+';height:'+dotSz+(dot.filled?';background:'+accent:'')+'"></span>';
+      });
+      html+='</div>';
+    }else{
+      html+='<div class="dots"></div>';
+    }
+    html+='</div>';
   });
   return html+'</div>';
 }
@@ -6686,9 +6705,9 @@ function wkRenderMiniGrid(dates,schedule){
     var sws=workoutIds.map(function(id){return (state.savedWorkouts||[]).find(function(w){return w.id===id;});}).filter(Boolean);
     var isToday=localDateStr(d)===today;
     var hasAsgn=asgnArr.length>0;
-    var abbr=isRest?'&#8211;':(sws.length?sws[0].name.replace(/\s+/g,'').substring(0,3):'');
-    if(sws.length>1)abbr+='<sup style="font-size:7px">+'+(sws.length-1)+'</sup>';
-    return{label:labels[i],abbr:abbr,isToday:isToday,hasAsgn:hasAsgn};
+    var dotCount=Math.min(workoutIds.length,4);
+    var dots=[];for(var dk=0;dk<dotCount;dk++)dots.push({filled:true});
+    return{label:labels[i],dots:dots,isRest:isRest,isToday:isToday,hasAsgn:hasAsgn};
   });
   return renderPlanDayStrip(tiles,'#F07C3A');
 }
@@ -6710,7 +6729,7 @@ function wkRenderDaySchedule(dates,schedule,today){
     } else {
       workoutIds.forEach(function(id){
         var sw=(state.savedWorkouts||[]).find(function(w){return w.id===id;});
-        html+='<div class="meal-slot"><span style="font-weight:600;color:var(--txt)">'+( sw?sw.name:id)+'</span><button type="button" class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px;width:auto" onclick="wkRemoveFromDay('+i+',\''+id+'\')">&#215;</button></div>';
+        html+='<div class="meal-slot"><span class="slot-name" style="font-weight:600">'+( sw?sw.name:id)+'</span><button type="button" class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px;width:auto" onclick="wkRemoveFromDay('+i+',\''+id+'\')">&#215;</button></div>';
       });
       html+='<div class="meal-slot" style="cursor:pointer" onclick="wkOpenDayPicker('+i+')"><span class="meal-slot-food" style="color:var(--txt3)">+ Add workout</span></div>';
     }
@@ -6907,6 +6926,7 @@ function wkRenderHistory(){
   html+='<div id="wkh-chart-container" style="margin-bottom:12px"></div><div id="wkh-stats-card"></div>';
   progressContent.innerHTML=html;
   renderWkhProgressChart();
+  renderWkhSessionCards();
 }
 
 function renderWkhProgressChart(){
@@ -7224,6 +7244,7 @@ function renderMealPlanGrid() {
   html += '<button type="button" class="btn btn-sm btn-outline" onclick="changeMealPlanWeek(1)">&#8250;</button></div>';
   html += '<div class="plan-toolbar"><div class="ptb-row">';
   html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="copyLastMealPlanWeek()">Copy last week</button>';
+  html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="togglePlanSnacks()">'+(state.planShowSnacks?'Hide snacks':'Show snacks')+'</button>';
   html += '</div><div class="ptb-row">';
   html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="showSaveTemplatePrompt()">Save template</button>';
   html += '<button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="showTemplatesSheet()">Load template</button>';
@@ -7232,9 +7253,8 @@ function renderMealPlanGrid() {
     var ds=localDateStr(d);
     var isToday=ds===todayDs;
     var dayMeals=(state.mealPlan[ds]||{});
-    var filled=planMeals.filter(function(m){return dayMeals[m];}).length;
-    var abbr=filled?filled+'/'+planMeals.length:'–';
-    return{label:dnames[i],abbr:abbr,isToday:isToday,hasAsgn:filled>0};
+    var dots=planMeals.map(function(m){return{filled:!!dayMeals[m]};});
+    return{label:dnames[i],dots:dots,isToday:isToday,hasAsgn:dots.some(function(dot){return dot.filled;})};
   });
   html+=renderPlanDayStrip(ntTiles,'#4ADE80');
   dates.forEach(function(d,i){
@@ -7245,7 +7265,7 @@ function renderMealPlanGrid() {
     planMeals.forEach(function(meal){
       var assigned = (state.mealPlan[ds]||{})[meal];
       html += '<div class="meal-slot" onclick="openMealPlanSlot(\''+ds+'\',\''+meal+'\')">';
-      html += '<span class="meal-slot-name">'+meal+'</span>';
+      html += '<span class="slot-name">'+meal+'</span>';
       html += '<span class="meal-slot-food">'+(assigned||'+ Add')+'</span></div>';
     });
     html += '</div>';
