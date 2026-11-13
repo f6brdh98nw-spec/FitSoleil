@@ -1816,6 +1816,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
         <div class="card-title">Data</div>
         <button class="btn btn-outline" onclick="exportData()" style="margin-bottom:8px">Export All Data (JSON)</button>
         <button class="btn btn-secondary" onclick="loadTestDataAndReload()" style="margin-bottom:8px">Load Test Data</button>
+        <button class="btn btn-outline" onclick="doFullReset()" style="margin-bottom:8px">Reset (blank, show onboarding)</button>
         <button class="btn btn-danger" onclick="clearData()">Reset App</button>
       </div>
     </div>
@@ -2541,6 +2542,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
 // ============================================================
 // STATE
 // ============================================================
+var TEST_DATA_VERSION = 5;
 var state = {
   profile: { name: '', height: 0, dob: '' },
   targets: { calories: 2000, protein: 150, carbs: 200, fat: 65, fibre: 25, water: 2000, macroMode: 'auto', macroSplit: 'balanced', nutritionDaysPerWeek: 5 },
@@ -2596,11 +2598,21 @@ function loadTestData() {
   function monthsFromNow(n) { const d=new Date(); d.setMonth(d.getMonth()+n); return localStr(d); }
   const todayStr = localStr(new Date());
 
-  // Weight log — 7 days, 73.2 → 72.6 gradual loss
-  const baseWeights = [73.2, 73.0, 72.9, 72.8, 72.8, 72.7, 72.6];
-  const weightLog = baseWeights.map(function(kg, i) {
-    return { date: daysAgo(6 - i), kg: kg, timeOfDay: 'morning' };
-  });
+  // Weight log — 365 days, entry every 2-3 days, gentle downward trend 80→72.6 with noise
+  var weightLog = (function(){
+    var entries=[];
+    var noise=[0,0.2,-0.1,0.3,-0.2,0.1,-0.3,0.2,0,-0.1,0.3,-0.2,0.1,0.2,-0.1];
+    var n=0;
+    for(var d=365;d>=0;d-=2){
+      if(d%3===0&&d>5)continue;
+      var progress=1-(d/365);
+      var base=80-progress*7.4;
+      var kg=Math.round((base+noise[n%noise.length])*10)/10;
+      entries.push({date:daysAgo(d),kg:kg,timeOfDay:'morning'});
+      n++;
+    }
+    return entries;
+  })();
 
   // ── Recipes ──────────────────────────────────────────────────────────────
   const recipes = [
@@ -2672,8 +2684,35 @@ function loadTestData() {
 
   // ── Diary (state.logs) ───────────────────────────────────────────────────
   const logs = {};
-
-  // Today — ~1,240 kcal: USDA(330)+USDA(105)+recipe(481)+custom(120)+OFF(204) = 1240
+  // 120 days of food logs, 5-6 days per week
+  (function(){
+    var mealTemplates=[
+      [{name:'Rolled Oats with Honey',meal:'Breakfast',serving:90,calories:330,protein:12,carbs:66,fat:6,fiber:9},
+       {name:'Chicken & Rice Bowl',meal:'Lunch',serving:481,calories:481,protein:41,carbs:48,fat:13,fiber:5},
+       {name:'Seared Salmon Fillet',meal:'Dinner',serving:130,calories:204,protein:30,carbs:0,fat:9,fiber:0}],
+      [{name:'Protein Smoothie',meal:'Breakfast',serving:327,calories:327,protein:30,carbs:30,fat:13,fiber:4},
+       {name:'Avocado Toast',meal:'Lunch',serving:405,calories:405,protein:16,carbs:38,fat:22,fiber:8},
+       {name:'Bolognese',meal:'Dinner',serving:370,calories:370,protein:32,carbs:37,fat:9,fiber:3}],
+      [{name:'Greek Yogurt with Berries',meal:'Breakfast',serving:300,calories:214,protein:19,carbs:26,fat:4,fiber:4},
+       {name:'Chicken & Rice Bowl',meal:'Lunch',serving:481,calories:481,protein:41,carbs:48,fat:13,fiber:5},
+       {name:'Bolognese',meal:'Dinner',serving:370,calories:370,protein:32,carbs:37,fat:9,fiber:3}],
+      [{name:'Avocado Toast',meal:'Breakfast',serving:405,calories:405,protein:16,carbs:38,fat:22,fiber:8},
+       {name:'Protein Smoothie',meal:'Lunch',serving:327,calories:327,protein:30,carbs:30,fat:13,fiber:4},
+       {name:'Seared Salmon Fillet',meal:'Dinner',serving:200,calories:313,protein:46,carbs:0,fat:14,fiber:0}],
+      [{name:'Rolled Oats with Honey',meal:'Breakfast',serving:90,calories:330,protein:12,carbs:66,fat:6,fiber:9},
+       {name:'Avocado Toast',meal:'Lunch',serving:405,calories:405,protein:16,carbs:38,fat:22,fiber:8},
+       {name:'Chicken & Rice Bowl',meal:'Dinner',serving:481,calories:481,protein:41,carbs:48,fat:13,fiber:5}],
+    ];
+    var skipMod=6;
+    for(var d=120;d>=0;d--){
+      if(d%skipMod===0)continue;
+      var tmpl=mealTemplates[d%mealTemplates.length];
+      var dateStr=daysAgo(d);
+      var waterVal=1600+((d*17)%600);
+      logs[dateStr]={water:waterVal,meals:tmpl.map(function(m){return Object.assign({},m,{time:dateStr+'T12:00:00.000Z'});})};
+    }
+  })();
+  // Ensure today and yesterday have specific data
   logs[todayStr] = {
     water: 1500,
     meals: [
@@ -2684,9 +2723,6 @@ function loadTestData() {
       {name:'Seared Salmon Fillet',   meal:'Dinner',          serving:130, calories:204, protein:30, carbs:0,  fat:9,                fiber:0, time:todayStr+'T18:30:00.000Z'},
     ]
   };
-  // 330+105+481+120+204 = 1240 ✓
-
-  // Yesterday — USDA, recipe, recipe, custom, OFF
   var yesterday = daysAgo(1);
   logs[yesterday] = {
     water: 1800,
@@ -2698,8 +2734,6 @@ function loadTestData() {
       {name:'Countdown Butter Chicken',        meal:'Dinner',          serving:350, calories:455, protein:32, carbs:42, fat:18, fiber:4, time:yesterday+'T18:30:00.000Z'},
     ]
   };
-
-  // 5 days ago — USDA, custom, USDA, recipe, OFF
   var fiveDaysAgo = daysAgo(5);
   logs[fiveDaysAgo] = {
     water: 2000,
@@ -2738,12 +2772,16 @@ function loadTestData() {
   mealPlan[weekDates[5]] = {Lunch:'Chicken & Rice Bowl',    Dinner:'Avocado Toast'};       // Sat: no breakfast
   // Sun (weekDates[6]): all empty — tests empty-cell behaviour
 
-  // ── Fast log: 3 completed fasts, last one ending yesterday ───────────────
-  const fastLog = [
-    {id:'F001', start:daysAgo(7)+'T19:00:00.000', end:daysAgo(6)+'T11:00:00.000', protocol:'16:8', hours:16, lengthHours:16},
-    {id:'F002', start:daysAgo(4)+'T19:30:00.000', end:daysAgo(3)+'T11:30:00.000', protocol:'16:8', hours:16, lengthHours:16},
-    {id:'F003', start:daysAgo(2)+'T20:00:00.000', end:daysAgo(1)+'T12:00:00.000', protocol:'16:8', hours:16, lengthHours:16},
-  ];
+  // ── Fast log: 120 days of fasts, ~5/week
+  const fastLog = (function(){
+    var entries=[];
+    var id=1;
+    for(var d=120;d>=2;d--){
+      if(d%7===0||d%7===3)continue;
+      entries.push({id:'F'+String(id++).padStart(3,'0'),start:daysAgo(d)+'T19:00:00.000',end:daysAgo(d-1)+'T11:00:00.000',protocol:'16:8',hours:16,lengthHours:16});
+    }
+    return entries;
+  })();
 
   // Cycle log — 2 periods
   const cycleLog = [
@@ -2818,38 +2856,28 @@ function loadTestData() {
     },
   ];
 
-  // ── Workout log: 6 weeks of history for exercise progress charts ──────────
+  // ── Workout log: 180 days, 3-5/week ─────────────────────────────────────
   const workoutLog = {};
-  // Helper: build a lift log entry with slight progression
   function liftSession(date, workoutName, benchKg, sqKg, ohpKg, lrKg) {
-    var d = date;
     var lrWeight = lrKg || 10;
     return {
       name: workoutName,
-      startTime: new Date(d+'T07:30:00').getTime(),
-      endTime:   new Date(d+'T08:25:00').getTime(),
+      startTime: new Date(date+'T07:30:00').getTime(),
+      endTime:   new Date(date+'T08:25:00').getTime(),
       exercises: [
         {name:'Bench Press', type:'lift', sets:[
-          {kg:benchKg,      reps:8, done:true},
-          {kg:benchKg,      reps:8, done:true},
-          {kg:benchKg+2.5,  reps:7, done:true},
-          {kg:benchKg+2.5,  reps:6, done:true},
+          {kg:benchKg,     reps:8, done:true},{kg:benchKg,     reps:8, done:true},
+          {kg:benchKg+2.5, reps:7, done:true},{kg:benchKg+2.5, reps:6, done:true},
         ]},
         {name:'Barbell Row', type:'lift', sets:[
-          {kg:benchKg-5,    reps:10,done:true},
-          {kg:benchKg-5,    reps:9, done:true},
-          {kg:benchKg-2.5,  reps:8, done:true},
-          {kg:benchKg-2.5,  reps:8, done:true},
+          {kg:benchKg-5,   reps:10,done:true},{kg:benchKg-5,   reps:9, done:true},
+          {kg:benchKg-2.5, reps:8, done:true},{kg:benchKg-2.5, reps:8, done:true},
         ]},
         {name:'Overhead Press', type:'lift', sets:[
-          {kg:ohpKg,    reps:10, done:true},
-          {kg:ohpKg,    reps:10, done:true},
-          {kg:ohpKg+2.5,reps:8,  done:true},
+          {kg:ohpKg,     reps:10, done:true},{kg:ohpKg,     reps:10, done:true},{kg:ohpKg+2.5,reps:8,done:true},
         ]},
         {name:'Lateral Raise', type:'lift', sets:[
-          {kg:lrWeight,       reps:15, done:true},
-          {kg:lrWeight,       reps:15, done:true},
-          {kg:lrWeight+0.5,   reps:12, done:true},
+          {kg:lrWeight,     reps:15,done:true},{kg:lrWeight,     reps:15,done:true},{kg:lrWeight+0.5,reps:12,done:true},
         ]},
       ],
     };
@@ -2861,60 +2889,69 @@ function loadTestData() {
       endTime:   new Date(date+'T08:30:00').getTime(),
       exercises: [
         {name:'Squat', type:'lift', sets:[
-          {kg:sqKg,     reps:8, done:true},
-          {kg:sqKg,     reps:8, done:true},
-          {kg:sqKg+2.5, reps:7, done:true},
-          {kg:sqKg+2.5, reps:6, done:true},
+          {kg:sqKg,     reps:8, done:true},{kg:sqKg,     reps:8, done:true},
+          {kg:sqKg+2.5, reps:7, done:true},{kg:sqKg+2.5, reps:6, done:true},
         ]},
         {name:'Romanian Deadlift', type:'lift', sets:[
-          {kg:sqKg-10, reps:10, done:true},
-          {kg:sqKg-10, reps:10, done:true},
-          {kg:sqKg-7.5,reps:9,  done:true},
+          {kg:sqKg-10,  reps:10,done:true},{kg:sqKg-10,  reps:10,done:true},{kg:sqKg-7.5,reps:9,done:true},
         ]},
         {name:'Side Plank', type:'timed-hold', sets:[
-          {seconds:30, done:true},
-          {seconds:30, done:true},
-          {seconds:25, done:true},
+          {seconds:30,done:true},{seconds:30,done:true},{seconds:25,done:true},
         ]},
         {name:'Single Calf Raise L', type:'rehab', rounds:3},
         {name:'Single Calf Raise R', type:'rehab', rounds:3},
       ],
     };
   }
-  // 6 weeks of Upper A + Lower A, Mon/Wed/Fri pattern
-  var benchStart = 52.5, sqStart = 67.5, ohpStart = 32.5, lrStart = 6;
-  for (var wk = 5; wk >= 0; wk--) {
+  // 26 weeks (182 days) of Upper A + Lower A + run, Mon/Wed/Fri pattern
+  var benchStart = 42.5, sqStart = 57.5, ohpStart = 25, lrStart = 5;
+  var totalWks = 26;
+  for (var wk = totalWks-1; wk >= 0; wk--) {
     var monOff = daysFromMon + wk * 7;
-    var monDate = daysAgo(monOff);
-    var wedDate = daysAgo(monOff - 2);
-    var friDate = daysAgo(monOff - 4);
-    var prog = (5 - wk);  // 0 at oldest week, 5 at most recent
-    var benchKg = benchStart + prog * 2.5;
-    var sqKg    = sqStart    + prog * 2.5;
-    var ohpKg   = ohpStart   + prog * 1.25;
-    var lrKg    = lrStart    + prog * 0.5;
-    if (monOff > 0)  workoutLog[monDate] = [liftSession(monDate,  'Upper A', benchKg, sqKg, ohpKg, lrKg)];
-    if (monOff > -2) workoutLog[wedDate] = [lowerSession(wedDate, sqKg)];
-    if (monOff > -4) workoutLog[friDate] = [liftSession(friDate,  'Upper A', benchKg + 1.25, sqKg, ohpKg, lrKg)];
+    var wedOff = monOff - 2;
+    var friOff = monOff - 4;
+    var prog = (totalWks-1-wk);
+    var benchKg = benchStart + prog * 1.25;
+    var sqKg    = sqStart    + prog * 1.25;
+    var ohpKg   = ohpStart   + prog * 0.625;
+    var lrKg    = lrStart    + prog * 0.25;
+    var runPaceSec = Math.round(400 - prog * (50/totalWks));
+    var runKm = 4.0 + prog * (4.0/totalWks);
+    if (monOff > 0) {
+      var monDate = daysAgo(monOff);
+      workoutLog[monDate] = [liftSession(monDate, 'Upper A', benchKg, sqKg, ohpKg, lrKg)];
+    }
+    if (wedOff > 0) {
+      var wedDate = daysAgo(wedOff);
+      workoutLog[wedDate] = [lowerSession(wedDate, sqKg)];
+    }
+    if (friOff > 0) {
+      var friDate = daysAgo(friOff);
+      var totalSec = Math.round(runKm * runPaceSec);
+      workoutLog[friDate] = [{
+        name: 'Morning Run',
+        startTime: new Date(friDate+'T06:30:00').getTime(),
+        endTime:   new Date(friDate+'T06:30:00').getTime() + totalSec * 1000,
+        exercises: [{name:'Run', type:'cardio-distance', distanceKm:Math.round(runKm*10)/10, timeSeconds:totalSec, paceSecPerKm:runPaceSec}],
+      }];
+    }
   }
-  // Yesterday: 2 sessions — morning upper + evening cardio
+  // Yesterday: 2 sessions — morning upper + evening cardio (R.03)
   workoutLog[daysAgo(1)] = [
     {
       name: 'Morning Upper Body',
       startTime: new Date(daysAgo(1)+'T07:00:00').getTime(),
       endTime:   new Date(daysAgo(1)+'T07:50:00').getTime(),
       exercises: [
-        {name:'Bench Press', type:'lift', sets:[{kg:'60',reps:'8',done:true},{kg:'60',reps:'8',done:true},{kg:'60',reps:'7',done:true}]},
-        {name:'Overhead Press', type:'lift', sets:[{kg:'40',reps:'8',done:true},{kg:'40',reps:'8',done:true}]},
+        {name:'Bench Press', type:'lift', sets:[{kg:60,reps:8,done:true},{kg:60,reps:8,done:true},{kg:60,reps:7,done:true}]},
+        {name:'Overhead Press', type:'lift', sets:[{kg:40,reps:8,done:true},{kg:40,reps:8,done:true}]},
       ],
     },
     {
       name: 'Evening Cardio',
       startTime: new Date(daysAgo(1)+'T18:00:00').getTime(),
       endTime:   new Date(daysAgo(1)+'T18:50:00').getTime(),
-      exercises: [
-        {name:'Run', type:'cardio-distance', distanceKm:8.0, timeSeconds:2800, paceSecPerKm:350},
-      ],
+      exercises: [{name:'Run', type:'cardio-distance', distanceKm:8.0, timeSeconds:2800, paceSecPerKm:350}],
     }
   ];
   // Cardio session 3 days ago
@@ -2924,7 +2961,7 @@ function loadTestData() {
     endTime:   new Date(daysAgo(3)+'T07:35:00').getTime(),
     exercises: [
       {name:'Run', type:'cardio-distance', distanceKm:4.2, timeSeconds:1470, paceSecPerKm:350},
-      {name:'Groove',      type:'cardio-duration', timeSeconds:1800, notes:'7:00–7:30am'},
+      {name:'Groove', type:'cardio-duration', timeSeconds:1800, notes:'7:00–7:30am'},
     ],
   }];
 
@@ -3018,6 +3055,9 @@ function loadTestData() {
     reviewStep: 1,
     trendPeriod: 30,
   };
+  state.testDataVersion = TEST_DATA_VERSION;
+  state.seededByTestData = true;
+  saveState();
 }
 
 window.addEventListener('load', () => {
@@ -3039,10 +3079,8 @@ function loadState() {
     const saved = localStorage.getItem('fitsol_v2');
     if (saved) {
       state = { ...state, ...JSON.parse(saved) };
-    } else {
-      loadTestData();
     }
-  } catch(e) { loadTestData(); }
+  } catch(e) { /* parse error — start blank */ }
   if (!(state.cycleViewDate instanceof Date)) state.cycleViewDate = new Date();
   state.activeDate = localDateStr(new Date());
   state.nutritionDate = localDateStr(new Date());

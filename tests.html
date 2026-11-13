@@ -114,7 +114,42 @@ var SECTIONS = [
     {id:"C.07",type:"auto",label:"navigate('progress') makes screen-progress active",run:function(a){a.navigate('progress');var el=a.document.getElementById('screen-progress');return el&&el.classList.contains('active');}},
     {id:"C.08",type:"auto",label:"showToast function exists",run:function(a){return typeof a.showToast==='function';}},
     {id:"C.09",type:"auto",label:"drawLineChart function exists",run:function(a){return typeof a.drawLineChart==='function';}},
-    {id:"C.10",type:"auto",label:"calcAuto macro function exists and returns object with p/c/f",run:function(a){if(typeof a.calcAuto!=='function')return false;var r=a.calcAuto(2000,'balanced');return r&&('protein'in r||'p'in r)&&typeof(r.protein||r.p)==='number';}}
+    {id:"C.10",type:"auto",label:"calcAuto macro function exists and returns object with p/c/f",run:function(a){if(typeof a.calcAuto!=='function')return false;var r=a.calcAuto(2000,'balanced');return r&&('protein'in r||'p'in r)&&typeof(r.protein||r.p)==='number';}},
+    {id:"C.11",type:"auto",label:"loadTestData() saves what it loads (so a page reload keeps the test data)",run:function(a){
+  var prevState=a.state,prevStore=a.localStorage.getItem('fitsol_v2');var res;
+  try{
+    a.localStorage.removeItem('fitsol_v2');
+    a.loadTestData();
+    var saved=null;try{saved=JSON.parse(a.localStorage.getItem('fitsol_v2')||'null');}catch(e){}
+    res=(saved&&(saved.savedWorkouts||[]).length>0&&saved.onboardingComplete===true)?true:{pass:false,msg:'loadTestData() changes the app but does not save it, so a reload throws the test data away (add saveState() at the end of loadTestData)'};
+  }catch(e){res={pass:false,msg:'error '+e.message};}
+  a.state=prevState;
+  if(prevStore!==null)a.localStorage.setItem('fitsol_v2',prevStore);else a.localStorage.removeItem('fitsol_v2');
+  return res;
+}},
+    {id:"C.12",type:"auto",label:"Test data has enough history for every graph range (weight 180+ days, food 90+, workouts 150+, fasts 90+)",run:function(a){
+  var st=a.state;var today=new Date();today.setHours(0,0,0,0);
+  var toDate=function(v){return typeof v==='number'?new Date(v):new Date(String(v).slice(0,10)+'T00:00:00');};
+  var age=function(list){var ds=list.map(toDate).filter(function(d){return !isNaN(d.getTime());});if(!ds.length)return 0;return Math.round((today-Math.min.apply(null,ds))/86400000);};
+  var need=[
+   ['weight log',(st.weightLog||[]).map(function(x){return x.date;}),180],
+   ['food logs',Object.keys(st.logs||{}).filter(function(k){return ((st.logs[k]||{}).meals||[]).length;}),90],
+   ['workout log',Object.keys(st.workoutLog||{}),150],
+   ['fasts',(st.fastLog||[]).map(function(x){return x.date||x.start||x.startTime||'';}),90]
+  ];
+  var bad=[];need.forEach(function(n){var d=age(n[1]);if(d<n[2])bad.push(n[0]+' only reaches back '+d+' days (want '+n[2]+'+)');});
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"C.13",type:"auto",label:"Loaded test data matches the version this build ships (TEST_DATA_VERSION)",run:function(a){
+  if(typeof a.TEST_DATA_VERSION==='undefined')return{pass:false,msg:'window.TEST_DATA_VERSION is not defined'};
+  var v=a.state&&a.state.testDataVersion;
+  return v===a.TEST_DATA_VERSION?true:{pass:false,msg:'loaded data is version '+v+' but this build ships '+a.TEST_DATA_VERSION+' (reload test data)'};
+}},
+    {id:"C.14",type:"auto",label:"App never seeds test data by itself on a blank start (source check of loadState)",run:function(a){
+  var src=typeof a.loadState==='function'?String(a.loadState):'';
+  if(!src)return{pass:false,msg:'loadState missing'};
+  return src.indexOf('loadTestData')<0?true:{pass:false,msg:'loadState() calls loadTestData() when storage is empty. A blank start must show onboarding. This is also why Reset app seems to do nothing, and on live it would save fake data as real data'};
+}}
   ]},
   { id:"H", title:"Auto: Home", color:"#E8C547", tests:[
     {id:"H.01",type:"auto",label:"renderDashboard function exists",run:function(a){return typeof a.renderDashboard==='function';}},
@@ -770,9 +805,9 @@ function resetApp(){try{document.getElementById('app-frame').contentWindow.local
 function loadTestData(){
   if(!app||!appOk){log('Cannot load test data: app frame is blocked or not loaded','err');return;}
   try{
-    if(typeof app.loadTestData==='function'){app.loadTestData();app.location.reload();log('Test data loaded - reloading app','ok');}
-    else if(typeof app.loadTestDataAndReload==='function'){app.loadTestDataAndReload();log('Test data loaded','ok');}
-    else{log('loadTestData not found in app','err');}
+    if(typeof app.loadTestDataAndReload==='function'){app.loadTestDataAndReload();log('Test data loaded and SAVED (build '+buildId()+')','ok');}
+    else if(typeof app.loadTestData==='function'){app.loadTestData();if(typeof app.saveState==='function')app.saveState();app.location.reload();log('Test data loaded, saved, reloading','ok');}
+    else{log('No test data loader found in the app','err');}
   }catch(e){log('Error: '+e.message,'err');}
 }
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
