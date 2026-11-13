@@ -547,7 +547,7 @@
   /* Exercise search */
   .exercise-tag { display: inline-flex; padding: 4px 10px; background: var(--s2); border-radius: 99px; font-size: 11px; margin: 2px; cursor: pointer; color: var(--txt2); border: 0.5px solid var(--s3); }
   .exercise-tag.selected { background: rgba(240,124,58,0.15); color: #F07C3A; border: 0.5px solid rgba(240,124,58,0.4); }
-  .time-calc-display { font-size:20px; font-weight:600; color:var(--txt); font-family:monospace; letter-spacing:1px; min-height:40px; border:1px solid var(--border); border-radius:var(--r-sm); padding:8px; background:#22222E; display:flex; align-items:center; }
+  .time-calc-display { font-size:14px; font-weight:600; color:var(--txt); font-family:'DM Sans',sans-serif; letter-spacing:normal; height:44px; box-sizing:border-box; border:1px solid var(--border); border-radius:var(--r-sm); padding:8px; background:#22222E; display:flex; align-items:center; }
 
   /* Quick action tiles */
   .quick-tile {
@@ -2542,7 +2542,7 @@ textarea::placeholder { color: #5A5860 !important; -webkit-text-fill-color: #5A5
 // ============================================================
 // STATE
 // ============================================================
-var TEST_DATA_VERSION = 5;
+var TEST_DATA_VERSION = 6;
 var state = {
   profile: { name: '', height: 0, dob: '' },
   targets: { calories: 2000, protein: 150, carbs: 200, fat: 65, fibre: 25, water: 2000, macroMode: 'auto', macroSplit: 'balanced', nutritionDaysPerWeek: 5 },
@@ -5956,7 +5956,7 @@ function showConfirmSheet(opts) {
   overlay.innerHTML = '<div class="modal" style="max-width:340px">' +
     '<div class="modal-handle"></div>' +
     '<div style="font-size:14px;color:var(--txt1);margin-bottom:20px;text-align:center">' + opts.message + '</div>' +
-    '<button class="btn btn-primary" style="width:100%;margin-bottom:8px;' + btnStyle + '" onclick="_confirmSheetConfirm()">' + (opts.confirmLabel || 'Confirm') + '</button>' +
+    '<button class="btn btn-primary" style="width:100%;margin-bottom:8px;' + btnStyle + '" onclick="_confirmSheetConfirm()">' + (opts.confirmLabel || opts.confirmText || 'Confirm') + '</button>' +
     '<button class="btn btn-outline" style="width:100%" onclick="_confirmSheetCancel()">Cancel</button>' +
     '</div>';
   window._confirmSheetOnConfirm = opts.onConfirm || null;
@@ -6356,34 +6356,27 @@ function wkRenderToday() {
     var viewIsRest = viewAsgnArr.length === 1 && viewAsgnArr[0] === 'rest';
     var le = (state.workoutLog||{})[viewDateStr];
     var completedSessions = Array.isArray(le) ? le : (le ? [le] : []);
-    if (completedSessions.length) {
-      wkSortSessions(completedSessions).forEach(function(completedEntry) {
-        var _exCount = (completedEntry.exercises||[]).length;
-        var _dNames2=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-        var _cEndDate=completedEntry.endTime?new Date(completedEntry.endTime):null;
-        var _cDateFmt=_cEndDate?function(){var dk=localDateStr(_cEndDate);var p=dk.split('-');return p[2]+'-'+p[1]+'-'+p[0];}():'';
-        var _cEndLabel=_cEndDate?format12hr(_cEndDate).toLowerCase():'';
-        html += '<div class="card" style="margin-bottom:12px;border:1px solid rgba(74,222,128,0.3);background:rgba(74,222,128,0.05)">';
-        html += '<div style="font-size:11px;color:#4ADE80;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">Completed ✓</div>';
-        html += '<div class="row-between" style="margin-bottom:4px"><div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + (completedEntry.name||'Workout') + '</div>'+(_cEndLabel?'<span style="font-size:12px;color:var(--txt2)">'+_cEndLabel+'</span>':'')+'</div>';
-        if(completedEntry.note)html+='<div style="font-size:12px;color:var(--txt2);margin-bottom:4px;font-style:italic">'+completedEntry.note+'</div>';
-        html += '<div style="font-size:12px;color:var(--txt2);margin-bottom:6px">' + _exCount + ' exercises</div>';
-        (completedEntry.exercises||[]).forEach(function(ex){
-          var setSum='';
-          if(ex.type==='lift'&&ex.sets){var ds=ex.sets.filter(function(s){return s.done||(parseFloat(s.kg)>0||parseFloat(s.reps)>0);});if(ds.length)setSum=ds.length+'\xd7'+ds.map(function(s){return (s.kg||0)+'kg';}).join('/');}
-          else if(ex.type==='bodyweight'&&ex.sets){var ds2=ex.sets.filter(function(s){return s.done||parseFloat(s.value)>0;});if(ds2.length)setSum=ds2.length+' sets';}
-          else if(ex.type==='cardio-distance'){setSum=(ex.distanceKm||0)+' km';}
-          else if(ex.type==='cardio-duration'){setSum=(ex.timeMinutes||0)+' min';}
-          else if(ex.type==='timed-hold'&&ex.sets){var ds3=ex.sets.filter(function(s){return s.done||parseFloat(s.seconds)>0;});if(ds3.length)setSum=ds3.length+' sets';}
-          else if(ex.type==='rehab'){setSum=(ex.rounds||0)+' rounds';}
-          html+='<div style="font-size:11px;color:var(--txt2)">'+ex.name+(setSum?' \xb7 '+setSum:'')+'</div>';
-        });
-        html+='</div>';
+    wkSortSessions(completedSessions).forEach(function(completedEntry) {
+      var _exCount = (completedEntry.exercises||[]).length;
+      var _cEndDate=completedEntry.endTime?new Date(completedEntry.endTime):null;
+      var _cEndLabel=_cEndDate?format12hr(_cEndDate).toLowerCase():'';
+      html += '<div class="card" style="margin-bottom:12px;border:1px solid rgba(74,222,128,0.3);background:rgba(74,222,128,0.05)">';
+      html += '<div style="font-size:11px;color:#4ADE80;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">Completed ✓</div>';
+      html += '<div class="row-between" style="margin-bottom:4px"><div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + wkSessionTitle(completedEntry) + '</div>'+(_cEndLabel?'<span style="font-size:12px;color:var(--txt2)">'+_cEndLabel+'</span>':'')+'</div>';
+      if(completedEntry.note)html+='<div style="font-size:12px;color:var(--txt2);margin-bottom:4px;font-style:italic">'+completedEntry.note+'</div>';
+      html += '<div style="font-size:12px;color:var(--txt2);margin-bottom:6px">' + _exCount + ' exercises</div>';
+      (completedEntry.exercises||[]).forEach(function(ex){
+        var setSum=wkExerciseSummary(ex);
+        html+='<div style="font-size:11px;color:var(--txt2)">'+ex.name+(setSum?' \xb7 '+setSum:'')+'</div>';
       });
-    } else if (viewAsgnArr.length && !viewIsRest) {
+      html+='</div>';
+    });
+    if (!viewIsRest && viewAsgnArr.length) {
       viewAsgnArr.filter(function(id){return id!=='rest';}).forEach(function(wid){
         var sw = (state.savedWorkouts||[]).find(function(w) { return w.id === wid; });
-        if (sw) {
+        if (!sw) return;
+        var isDone = completedSessions.some(function(s){ return s.planId===wid || (!s.planId && s.name===sw.name); });
+        if (!isDone) {
           html += '<div class="card" style="margin-bottom:8px"><div class="row-between"><div>';
           html += '<div style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em">Scheduled' + (isToday ? ' today' : '') + '</div>';
           html += '<div style="font-family:\'DM Serif Display\',serif;font-style:italic;font-size:16px">' + sw.name + '</div>';
@@ -6391,12 +6384,15 @@ function wkRenderToday() {
           html += '</div>' + (isToday ? '<button class="btn btn-sm btn-accent-orange" onclick="wkStartScheduled(\'' + sw.id + '\')">Start</button>' : '') + '</div></div>';
         }
       });
-    } else if (viewIsRest) {
+    }
+    if (!completedSessions.length && viewIsRest) {
       html += '<div class="card" style="margin-bottom:12px;text-align:center;color:var(--txt2);font-size:13px">Rest day scheduled</div>';
-    } else if (isToday) {
-      html += '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:12px 0 4px">No workout scheduled — start a quick session or load a plan</div>';
-    } else {
-      html += '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:12px 0 4px">No workout logged</div>';
+    } else if (!completedSessions.length && !viewAsgnArr.length) {
+      if (isToday) {
+        html += '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:12px 0 4px">No workout scheduled — start a quick session or load a plan</div>';
+      } else {
+        html += '<div style="text-align:center;color:var(--txt3);font-size:13px;padding:12px 0 4px">No workout logged</div>';
+      }
     }
   }
   if (isToday && _wkSession && (_wkSession.exercises||[]).length) html += wkRenderExerciseCards();
@@ -6514,7 +6510,7 @@ function wkTimeCalcInput(exIdx) {
   var digits=inp.value.replace(/\D/g,'').slice(-6); inp.value=digits;
   var ex=_wkSession.exercises[exIdx];
   ex.timeSeconds=_wkDigitsToSeconds(digits);
-  var dispEl=document.getElementById('wk-time-disp-'+exIdx);
+  var dispEl=document.getElementById('wk-time-display-'+exIdx);
   if(dispEl)dispEl.innerHTML=_wkSecToTimeDisplay(ex.timeSeconds);
   if(ex.distanceKm&&ex.timeSeconds){ex.paceSecPerKm=Math.round(ex.timeSeconds/ex.distanceKm);var pEl=document.getElementById('wk-pace-'+exIdx);if(pEl)pEl.textContent=_wkSecToMMSS(ex.paceSecPerKm)+' /km';}
   saveState();
@@ -6532,16 +6528,14 @@ function wkBuildExerciseCard(ex,i) {
   if (ex.type==='lift') {
     var _topSet=_wkLastTopSet(ex.name);
     if(_topSet){var _lastLbl=_topSet.nextUp?'· try heavier':'Last: '+_topSet.kg+' kg \xd7 '+_topSet.reps;html+='<div style="font-size:11px;color:var(--txt3);margin-bottom:6px">'+_lastLbl+'</div>';}
-    html += '<div style="display:grid;grid-template-columns:28px 1fr 1fr 32px;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>kg</span><span>Reps</span><span></span></div>';
+    html += '<div style="display:grid;grid-template-columns:28px 1fr 1fr;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>kg</span><span>Reps</span></div>';
     html += '<div id="wk-sets-'+i+'">';
     (ex.sets||[]).forEach(function(set,si) {
       var bg = set.done?'background:rgba(240,124,58,0.08);border-color:var(--orange)':'';
-      var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
-      html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
+      html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr 1fr;gap:4px;align-items:center;margin-bottom:4px">';
       html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
       html += '<input type="text" inputmode="decimal" value="'+(set.kg||'')+'" placeholder="kg" style="background:#22222E;'+bg+'" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+i+','+si+',\'kg\',this.value)"/>';
-      html += '<input type="text" inputmode="decimal" value="'+(set.reps||'')+'" placeholder="reps" style="background:#22222E;'+bg+'" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+i+','+si+',\'reps\',this.value)"/>';
-      html += '<button id="wk-tick-'+i+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
+      html += '<input type="text" inputmode="decimal" value="'+(set.reps||'')+'" placeholder="reps" style="background:#22222E;'+bg+'" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+i+','+si+',\'reps\',this.value)"/></div>';
     });
     html += '</div>';
     html += '<button class="btn btn-sm btn-outline" style="margin-top:4px" onclick="wkAddSet('+i+')">+ Set</button>';
@@ -6552,29 +6546,25 @@ function wkBuildExerciseCard(ex,i) {
     html += '<div style="display:flex;gap:6px;margin-bottom:8px">';
     html += '<span class="exercise-tag'+(metric==='reps'?' selected':'')+'" onclick="wkToggleBwMetric('+i+',\'reps\')">Reps</span>';
     html += '<span class="exercise-tag'+(metric==='time'?' selected':'')+'" onclick="wkToggleBwMetric('+i+',\'time\')">Time</span></div>';
-    html += '<div style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>'+(metric==='reps'?'Reps':'Time (sec)')+'</span><span></span></div>';
+    html += '<div style="display:grid;grid-template-columns:28px 1fr;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>'+(metric==='reps'?'Reps':'Time (sec)')+'</span></div>';
     html += '<div id="wk-sets-'+i+'">';
     (ex.sets||[]).forEach(function(set,si) {
       var bg = set.done?'background:rgba(240,124,58,0.08);border-color:var(--orange)':'';
-      var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
-      html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
+      html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr;gap:4px;align-items:center;margin-bottom:4px">';
       html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
-      html += '<input type="text" inputmode="decimal" value="'+(set.value||'')+'" placeholder="'+(metric==='reps'?'reps':'sec')+'" style="background:#22222E;'+bg+'" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+i+','+si+',\'value\',this.value)"/>';
-      html += '<button id="wk-tick-'+i+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
+      html += '<input type="text" inputmode="decimal" value="'+(set.value||'')+'" placeholder="'+(metric==='reps'?'reps':'sec')+'" style="background:#22222E;'+bg+'" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+i+','+si+',\'value\',this.value)"/></div>';
     });
     html += '</div>';
     html += '<button class="btn btn-sm btn-outline" style="margin-top:4px" onclick="wkAddSet('+i+')">+ Set</button>';
   } else if (ex.type==='timed-hold') {
     html += '<div style="font-size:12px;color:var(--txt2);margin-bottom:6px">Duration per set (seconds)</div>';
-    html += '<div style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>Seconds</span><span></span></div>';
+    html += '<div style="display:grid;grid-template-columns:28px 1fr;gap:4px;align-items:center;font-size:12px;color:var(--txt2);margin-bottom:4px"><span>#</span><span>Seconds</span></div>';
     html += '<div id="wk-sets-'+i+'">';
     (ex.sets||[]).forEach(function(set,si) {
       var bg = set.done?'background:rgba(240,124,58,0.08);border-color:var(--orange)':'';
-      var tk = set.done?'background:#F07C3A;border-color:#F07C3A;color:#fff':'background:none;border:2px solid var(--border);color:transparent';
-      html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr 32px;gap:4px;align-items:center;margin-bottom:4px">';
+      html += '<div id="wk-set-row-'+i+'-'+si+'" style="display:grid;grid-template-columns:28px 1fr;gap:4px;align-items:center;margin-bottom:4px">';
       html += '<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
-      html += '<input type="text" inputmode="decimal" value="'+(set.seconds||'')+'" placeholder="sec" style="background:#22222E;'+bg+'" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+i+','+si+',\'seconds\',this.value)"/>';
-      html += '<button id="wk-tick-'+i+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;'+tk+';font-size:12px" onclick="wkTickSet('+i+','+si+')">&#10003;</button></div>';
+      html += '<input type="text" inputmode="decimal" value="'+(set.seconds||'')+'" placeholder="sec" style="background:#22222E;'+bg+'" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+i+','+si+',\'seconds\',this.value)"/></div>';
     });
     html += '</div>';
     html += '<button class="btn btn-sm btn-outline" style="margin-top:4px" onclick="wkAddSet('+i+')">+ Set</button>';
@@ -6582,16 +6572,16 @@ function wkBuildExerciseCard(ex,i) {
     var pace = '';
     if (ex.distanceKm&&ex.timeSeconds){var ps=Math.round(ex.timeSeconds/ex.distanceKm);pace=_wkSecToMMSS(ps)+' /km';}
     html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end">';
-    html += '<div><label class="input-label" style="font-size:11px">Distance</label><div style="display:flex;align-items:center;gap:4px"><input type="text" inputmode="decimal" value="'+(ex.distanceKm||'')+'" placeholder="3.2" style="background:#22222E" oninput="wkCardioDistInput('+i+',this.value)"/> <span style="font-size:12px;color:var(--txt2)">km</span></div></div>';
+    html += '<div><label class="input-label" style="font-size:11px">Distance</label><div style="display:flex;align-items:center;gap:4px"><input type="text" inputmode="decimal" value="'+(ex.distanceKm||'')+'" placeholder="3.2" style="background:#22222E" oninput="wkNumericOnly(this);wkCardioDistInput('+i+',this.value)"/> <span style="font-size:12px;color:var(--txt2)">km</span></div></div>';
     html += '<div><label class="input-label" style="font-size:11px">Time</label>';
     html += '<input type="tel" id="wk-time-raw-'+i+'" style="position:absolute;opacity:0;width:0;height:0" value="'+(ex.timeSeconds?_wkTimeToDigits(ex.timeSeconds):'')+'" oninput="wkCardioTimeInput('+i+',this.value)">';
-    html += '<div class="time-calc-display" id="wk-time-disp-'+i+'" onclick="document.getElementById(\'wk-time-raw-'+i+'\').focus()" style="cursor:pointer">';
+    html += '<div class="time-calc-display" id="wk-time-display-'+i+'" onclick="document.getElementById(\'wk-time-raw-'+i+'\').focus()" style="cursor:pointer">';
     html += _wkSecToTimeDisplay(ex.timeSeconds);
     html += '</div></div>';
     html += '<div><label class="input-label" style="font-size:11px">Pace</label><div id="wk-pace-'+i+'" style="font-size:14px;color:#F07C3A;padding:8px 0">'+(pace||'&#8212;')+'</div></div></div>';
   } else if (ex.type==='cardio-duration') {
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-    html += '<div><label class="input-label" style="font-size:11px">Duration</label><div style="display:flex;align-items:center;gap:4px"><input type="text" inputmode="decimal" value="'+(ex.timeMinutes||'')+'" placeholder="60" style="background:#22222E" onchange="wkExVal('+i+',\'timeMinutes\',this.value)"/> <span style="font-size:12px;color:var(--txt2)">min</span></div></div>';
+    html += '<div><label class="input-label" style="font-size:11px">Duration</label><div style="display:flex;align-items:center;gap:4px"><input type="text" inputmode="decimal" value="'+(ex.timeMinutes||'')+'" placeholder="60" style="background:#22222E" oninput="wkNumericOnly(this)" onchange="wkExVal('+i+',\'timeMinutes\',this.value)"/> <span style="font-size:12px;color:var(--txt2)">min</span></div></div>';
     html += '<div><label class="input-label" style="font-size:11px">Notes (optional)</label><input type="text" value="'+(ex.notes||'')+'" placeholder="7:15&#8211;8:15pm" style="background:#22222E" onchange="wkExVal('+i+',\'notes\',this.value)"/></div></div>';
   } else if (ex.type==='rehab') {
     html += '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--txt2)">Rounds:</span>';
@@ -6627,7 +6617,7 @@ function wkAddSet(exIdx) {
   var setsEl=document.getElementById('wk-sets-'+exIdx);
   if(!setsEl)return;
   var set=ex.sets[si];
-  var cols=ex.type==='lift'?'28px 1fr 1fr 32px':'28px 1fr 32px';
+  var cols=ex.type==='lift'?'28px 1fr 1fr':'28px 1fr';
   var row='<div id="wk-set-row-'+exIdx+'-'+si+'" style="display:grid;grid-template-columns:'+cols+';gap:4px;align-items:center;margin-bottom:4px">';
   row+='<span style="font-size:12px;color:var(--txt2)">'+(si+1)+'</span>';
   if(ex.type==='lift'){
@@ -6639,7 +6629,7 @@ function wkAddSet(exIdx) {
   } else if(ex.type==='timed-hold'){
     row+='<input type="text" inputmode="decimal" value="'+(set.seconds||'')+'" placeholder="sec" style="background:#22222E" oninput="this.value=this.value.replace(/[^0-9.]/g,\'\')" onchange="wkSetVal('+exIdx+','+si+',\'seconds\',this.value)"/>';
   }
-  row+='<button id="wk-tick-'+exIdx+'-'+si+'" class="isq" style="width:28px;height:28px;border-radius:50%;background:none;border:2px solid var(--border);color:transparent;font-size:12px" onclick="wkTickSet('+exIdx+','+si+')">&#10003;</button></div>';
+  row+='</div>';
   setsEl.insertAdjacentHTML('beforeend',row);
 }
 function wkSetVal(exIdx,setIdx,field,val){if(_wkSession)_wkSession.exercises[exIdx].sets[setIdx][field]=val;}
@@ -6686,7 +6676,7 @@ function wkCardioTimeInput(exIdx,val){
   ex.timeSeconds=_wkDigitsToSeconds(digits);
   var rawEl=document.getElementById('wk-time-raw-'+exIdx);
   if(rawEl)rawEl.value=digits?_wkSecToMMSS(ex.timeSeconds):'';
-  var dispEl=document.getElementById('wk-time-disp-'+exIdx);
+  var dispEl=document.getElementById('wk-time-display-'+exIdx);
   if(dispEl)dispEl.innerHTML=_wkSecToTimeDisplay(ex.timeSeconds);
   if(ex.distanceKm&&ex.timeSeconds){
     ex.paceSecPerKm=Math.round(ex.timeSeconds/ex.distanceKm);
@@ -6928,6 +6918,7 @@ function wkOpenDayPicker(dayIdx){
 function wkPickDay(id){_wkAssignDay(_wkDayPickerIdx,id);}
 function wkPickDayRest(){_wkAssignDay(_wkDayPickerIdx,'rest');}
 function wkPickDayClear(){_wkAssignDay(_wkDayPickerIdx,null);}
+var _wkReplaceId = null;
 function _wkAssignDay(dayIdx,value){
   var weekISO=_wkWeekISO(_wkPlanWeekOff);
   if(!state.workoutSchedule)state.workoutSchedule={};
@@ -6939,7 +6930,8 @@ function _wkAssignDay(dayIdx,value){
   } else {
     var cur=state.workoutSchedule[weekISO][dayIdx];
     if(!Array.isArray(cur)||cur.length===0||cur[0]==='rest')cur=[];
-    if(cur.indexOf(value)===-1)cur=cur.concat([value]);
+    if(_wkReplaceId && cur.indexOf(_wkReplaceId)>=0){var ri=cur.indexOf(_wkReplaceId);var nxt=cur.slice();nxt[ri]=value;cur=nxt;_wkReplaceId=null;}
+    else if(cur.indexOf(value)===-1){cur=cur.concat([value]);}
     state.workoutSchedule[weekISO][dayIdx]=cur;
   }
   saveState();closeModal('modal-wk-day-picker');wkRenderPlans();
@@ -6962,7 +6954,7 @@ function wkClearDay(dayIdx){
 }
 function wkOpenRestDaySheet(dayIdx){
   showActionSheet({title:'Rest day',actions:[
-    {label:'Replace with workout',action:function(){wkOpenDayPicker(dayIdx);}},
+    {label:'Replace',action:function(){wkOpenDayPicker(dayIdx);}},
     {label:'Remove',danger:true,action:function(){wkClearDay(dayIdx);}}
   ]});
 }
@@ -7126,11 +7118,11 @@ function renderWkhProgressChart(){
       if(!ex)return;
       var v=null;
       if(ex.type==='lift'&&ex.sets){
-        var done=ex.sets.filter(function(s){return s.done||(parseFloat(s.kg)>0||parseFloat(s.reps)>0);});if(!done.length)return;
+        var done=ex.sets.filter(function(s){return parseFloat(s.reps)>0;});if(!done.length)return;
         if(_wkhMetric==='max-kg')v=Math.max.apply(null,done.map(function(s){return parseFloat(s.kg)||0;}));
         else if(_wkhMetric==='volume')v=done.reduce(function(a,s){return a+(parseFloat(s.kg)||0)*(parseFloat(s.reps)||0);},0);
         else v=done.reduce(function(a,s){return a+(parseFloat(s.reps)||0);},0);
-      }else if(ex.type==='bodyweight'&&ex.sets){var done2=ex.sets.filter(function(s){return s.done||parseFloat(s.value)>0;});if(!done2.length)return;v=done2.reduce(function(a,s){return a+(parseFloat(s.value)||0);},0);}
+      }else if(ex.type==='bodyweight'&&ex.sets){var done2=ex.sets.filter(function(s){return parseFloat(s.value)>0;});if(!done2.length)return;v=done2.reduce(function(a,s){return a+(parseFloat(s.value)||0);},0);}
       else if(ex.type==='cardio-distance'){
         var dist=parseFloat(ex.distanceKm)||0;var tsec=parseFloat(ex.timeSeconds)||0;
         if(_wkhMetric==='pace'){if(!dist||!tsec)return;v=Math.round(tsec/dist);}
@@ -7139,7 +7131,7 @@ function renderWkhProgressChart(){
       }
       else if(ex.type==='cardio-duration'){v=parseFloat(ex.timeMinutes)||0;}
       else if(ex.type==='rehab'){v=ex.rounds||0;}
-      else if(ex.type==='timed-hold'&&ex.sets){var done3=ex.sets.filter(function(s){return s.done||parseFloat(s.seconds)>0;});if(!done3.length)return;v=done3.reduce(function(a,s){return a+(parseFloat(s.seconds)||0);},0);}
+      else if(ex.type==='timed-hold'&&ex.sets){var done3=ex.sets.filter(function(s){return parseFloat(s.seconds)>0;});if(!done3.length)return;v=done3.reduce(function(a,s){return a+(parseFloat(s.seconds)||0);},0);}
       if(v!==null){if(date===todayStr)todayIdx=vals.length;vals.push({x:_wkFmtDateDMY(date),v:v});}
     });
   });
@@ -7165,7 +7157,7 @@ function renderWkhProgressChart(){
   }
   var lowerIsBetter=_wkhMetric==='pace';
   var chartColor='#F07C3A';
-  if(typeof drawLineChart==='function')drawLineChart(container,vals,chartColor,{todayIdx:todayIdx>=0?todayIdx:null,gradientId:'wkh-grad',height:180,width:container.clientWidth||300});
+  if(typeof drawLineChart==='function')drawLineChart(container,vals,chartColor,{todayIdx:todayIdx>=0?todayIdx:null,gradientId:'wkh-grad',height:180,width:container.clientWidth||300,invertY:lowerIsBetter});
   if(lowerIsBetter){
     var fastest=Math.min.apply(null,vals.map(function(v){return v.v;}));
     var slowest=Math.max.apply(null,vals.map(function(v){return v.v;}));
@@ -7174,7 +7166,7 @@ function renderWkhProgressChart(){
     var nowD=new Date();var thisMonStr=localDateStr(new Date(nowD.getFullYear(),nowD.getMonth(),nowD.getDate()-((nowD.getDay()+6)%7)));
     var lastMonD=new Date(nowD);lastMonD.setDate(nowD.getDate()-7);var lastMonStr=localDateStr(new Date(lastMonD.getFullYear(),lastMonD.getMonth(),lastMonD.getDate()-((lastMonD.getDay()+6)%7)));
     Object.keys(log).forEach(function(date){var dObj=new Date(date);var mon=new Date(dObj);mon.setDate(dObj.getDate()-((dObj.getDay()+6)%7));var wk=localDateStr(mon);var dayE=Array.isArray(log[date])?log[date]:(log[date]?[log[date]]:[]);dayE.forEach(function(entry){var ex=(entry.exercises||[]).find(function(e){return e.name===_wkhSelectedEx;});if(!ex||ex.type!=='cardio-distance')return;var d=parseFloat(ex.distanceKm)||0;if(wk===thisMonStr){thisWkDist+=d;thisWkSec+=parseFloat(ex.timeSeconds)||0;}if(wk===lastMonStr)lastWkDist+=d;});});
-    if(statsCard)statsCard.innerHTML='<div class="card"><div style="font-size:11px;color:var(--txt3);margin-bottom:4px">Lower is faster</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><div style="font-size:11px;color:var(--txt3)">Best pace</div><div style="font-size:18px;font-weight:600;color:#F07C3A">'+_wkSecToMMSS(fastest)+'/km</div></div><div><div style="font-size:11px;color:var(--txt3)">Slowest</div><div style="font-size:18px;font-weight:600">'+_wkSecToMMSS(slowest)+'/km</div></div><div><div style="font-size:11px;color:var(--txt3)">km this week</div><div style="font-size:18px;font-weight:600">'+thisWkDist.toFixed(1)+'</div></div><div><div style="font-size:11px;color:var(--txt3)">km last 4 wks</div><div style="font-size:18px;font-weight:600">'+lastWkDist.toFixed(1)+'</div></div></div></div>';
+    var _rs=wkRunStats();if(statsCard)statsCard.innerHTML='<div class="card"><div style="font-size:11px;color:var(--txt3);margin-bottom:4px">Lower is faster</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><div style="font-size:11px;color:var(--txt3)">Best pace</div><div style="font-size:18px;font-weight:600;color:#F07C3A">'+_wkSecToMMSS(fastest)+'/km</div></div><div><div style="font-size:11px;color:var(--txt3)">Slowest</div><div style="font-size:18px;font-weight:600">'+_wkSecToMMSS(slowest)+'/km</div></div><div><div style="font-size:11px;color:var(--txt3)">km this week</div><div style="font-size:18px;font-weight:600">'+_rs.kmThisWeek.toFixed(1)+'</div></div><div><div style="font-size:11px;color:var(--txt3)">km last 4 wks</div><div style="font-size:18px;font-weight:600">'+_rs.kmLast4Weeks.toFixed(1)+'</div></div></div></div>';
   } else if(_wkhMetric==='distance'||_wkhMetric==='weekly-km'){
     var longestRun=Math.max.apply(null,vals.map(function(v){return v.v;}));
     var thisWkKm2=0,last4WkKm=0;
@@ -7209,17 +7201,11 @@ function renderWkhSessionCards(){
         rendered=true;
         var _dp=dateStr.split('-');var _hDateFmt=_dp[2]+'-'+_dp[1]+'-'+_dp[0];
         var _hEndLabel=entry.endTime?dayNames[i].substring(0,3)+' '+_hDateFmt+' \xb7 '+format12hr(new Date(entry.endTime)).toLowerCase():dayNames[i].substring(0,3)+' '+_hDateFmt;
-        html+='<div class="card" style="margin-bottom:8px"><div class="row-between" style="margin-bottom:4px"><div style="font-weight:600">'+entry.name+'</div><span style="font-size:12px;color:var(--txt2)">'+_hEndLabel+'</span></div>';
+        html+='<div class="card" style="margin-bottom:8px"><div class="row-between" style="margin-bottom:4px"><div style="font-weight:600">'+wkSessionTitle(entry)+'</div><span style="font-size:12px;color:var(--txt2)">'+_hEndLabel+'</span></div>';
         if(entry.note)html+='<div style="font-size:12px;color:var(--txt2);margin-bottom:4px;font-style:italic">'+entry.note+'</div>';
         html+='<div style="font-size:12px;color:var(--txt2)">';
         (entry.exercises||[]).forEach(function(ex){
-          var sum='';
-          if(ex.type==='lift'&&ex.sets)sum=ex.sets.filter(function(s){return s.done||(parseFloat(s.kg)>0||parseFloat(s.reps)>0);}).length+' sets';
-          else if(ex.type==='bodyweight'&&ex.sets)sum=ex.sets.filter(function(s){return s.done||parseFloat(s.value)>0;}).length+' sets';
-          else if(ex.type==='cardio-distance')sum=(ex.distanceKm||0)+' km';
-          else if(ex.type==='cardio-duration')sum=(ex.timeMinutes||0)+' min';
-          else if(ex.type==='rehab')sum=(ex.rounds||0)+' rounds';
-          else if(ex.type==='timed-hold'&&ex.sets)sum=ex.sets.filter(function(s){return s.done||parseFloat(s.seconds)>0;}).length+' sets';
+          var sum=wkExerciseSummary(ex);
           var nextUpFlag=ex.nextUp?' ↑':'';
           html+='<div>'+ex.name+(sum?' \xb7 '+sum:'')+nextUpFlag+'</div>';
         });
@@ -7370,11 +7356,10 @@ function openTemplateSheet(kind, mode) {
       else{var mc=typeof countTemplateMeals==='function'?countTemplateMeals(t):0;info=mc+' meal'+(mc!==1?'s':'')+(t.savedAt?' \xb7 '+t.savedAt:'');}
       var tid=JSON.stringify(t.id);
       return '<div class="card" style="margin-bottom:8px"><div class="row-between">'+
-        '<div style="cursor:pointer;flex:1;min-width:0" onclick="tmplLoadItem('+tid+')">'+
-        '<div style="font-weight:600">'+(t.name||'')+'</div>'+
+        '<div style="cursor:pointer;flex:1;min-width:0" onclick=\'tmplLoadItem('+tid+')\'>'+
+        '<div style="font-weight:600" onclick=\'tmplLoadItem('+tid+')\'>'+(t.name||'')+'</div>'+
         '<div style="font-size:12px;color:var(--txt2)">'+info+'</div>'+
         '</div>'+
-        '<button class="btn btn-sm btn-outline" style="margin-left:8px;flex-shrink:0" onclick="tmplEditItem('+tid+')">Edit</button>'+
         '</div></div>';
     }).join(''):'<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No templates saved</div>';
     document.getElementById('tmpl-sheet-list').innerHTML=html;
@@ -7421,15 +7406,8 @@ function wkOpenAssignedWorkoutSheet(dayIdx, swId) {
   showActionSheet({
     title: sw.name,
     actions: [
-      {label: 'Replace', action: function() { wkOpenDayPicker(dayIdx); }},
-      {label: 'Remove', danger: true, action: function() {
-        var weekISO = localDateStr(_wkWeekStart || (function(){var d=_wkWeekDates(_wkPlanWeekOff);return d[0];}()));
-        if (state.workoutSchedule && state.workoutSchedule[weekISO] && state.workoutSchedule[weekISO][dayIdx]) {
-          state.workoutSchedule[weekISO][dayIdx] = state.workoutSchedule[weekISO][dayIdx].filter(function(id) { return id !== swId; });
-          saveState();
-          wkRenderPlans();
-        }
-      }}
+      {label: 'Replace', action: function() { _wkReplaceId = swId; wkOpenDayPicker(dayIdx); }},
+      {label: 'Remove', danger: true, action: function() { wkRemoveFromDay(dayIdx, swId); }}
     ]
   });
 }
@@ -7471,6 +7449,138 @@ function wkSessionTitle(session) {
   }
   return 'Quick workout';
 }
+
+function wkExerciseSummary(ex) {
+  if (!ex) return '';
+  if (ex.type === 'lift') {
+    var sets = (ex.sets||[]).filter(function(s){ return parseFloat(s.reps) > 0; });
+    if (!sets.length) return '';
+    var order = [], groups = {};
+    sets.forEach(function(s){
+      var kg = parseFloat(s.kg)||0; var key = String(kg);
+      if (!groups[key]) { groups[key] = []; order.push(key); }
+      groups[key].push(parseFloat(s.reps));
+    });
+    return order.map(function(k){ return k + ' kg \xd7 ' + groups[k].join(', '); }).join(' \xb7 ');
+  } else if (ex.type === 'cardio-distance') {
+    var km = parseFloat(ex.distanceKm)||0, sec = parseFloat(ex.timeSeconds)||0;
+    if (!km && !sec) return '';
+    var parts = [];
+    if (km) parts.push(km + ' km');
+    if (sec) {
+      var s=Math.round(sec),sh=Math.floor(s/3600),sm=Math.floor((s%3600)/60),ss=s%60;
+      parts.push(sh>0?sh+':'+String(sm).padStart(2,'0')+':'+String(ss).padStart(2,'0'):sm+':'+String(ss).padStart(2,'0'));
+      if (km) { var pace=Math.round(sec/km),pm=Math.floor(pace/60),ps=pace%60; parts.push(pm+':'+(ps<10?'0':'')+ps+' /km'); }
+    }
+    return parts.join(' \xb7 ');
+  } else if (ex.type === 'bodyweight') {
+    var sets2 = (ex.sets||[]).filter(function(s){ return parseFloat(s.value) > 0; });
+    if (!sets2.length) return '';
+    return sets2.length + ' sets \xb7 ' + sets2.map(function(s){return s.value;}).join(', ') + ' reps';
+  } else if (ex.type === 'timed-hold') {
+    var sets3 = (ex.sets||[]).filter(function(s){ return parseFloat(s.seconds) > 0; });
+    if (!sets3.length) return '';
+    return sets3.length + ' sets \xb7 ' + sets3.map(function(s){return s.seconds;}).join(', ') + ' sec';
+  } else if (ex.type === 'cardio-duration') {
+    var mins = parseFloat(ex.timeMinutes)||0;
+    return mins ? mins + ' min' : '';
+  } else if (ex.type === 'rehab') {
+    return ex.rounds ? ex.rounds + ' rounds' : '';
+  }
+  return '';
+}
+window.wkExerciseSummary = wkExerciseSummary;
+
+function wkNumericOnly(el) { el.value = el.value.replace(/[^0-9.]/g, ''); }
+window.wkNumericOnly = wkNumericOnly;
+
+function wkExerciseSeries(name, metric) {
+  var log = state.workoutLog || {};
+  var vals = [];
+  Object.keys(log).sort().forEach(function(date) {
+    var dayEntries = Array.isArray(log[date])?log[date]:(log[date]?[log[date]]:[]);
+    dayEntries.forEach(function(entry){
+      var ex = (entry.exercises||[]).find(function(e){ return wkCanonicalExercise(e.name) === name; });
+      if (!ex) return;
+      var v = null;
+      if (ex.type==='lift'&&ex.sets) {
+        var done = ex.sets.filter(function(s){ return parseFloat(s.reps) > 0; });
+        if (!done.length) return;
+        if (metric==='max-kg') v = Math.max.apply(null, done.map(function(s){ return parseFloat(s.kg)||0; }));
+        else if (metric==='volume') v = done.reduce(function(a,s){ return a + (parseFloat(s.kg)||0)*(parseFloat(s.reps)||0); }, 0);
+        else v = done.reduce(function(a,s){ return a + (parseFloat(s.reps)||0); }, 0);
+      } else if (ex.type==='cardio-distance') {
+        var dist=parseFloat(ex.distanceKm)||0, tsec=parseFloat(ex.timeSeconds)||0;
+        if (metric==='pace') { if(!dist||!tsec) return; v=Math.round(tsec/dist); }
+        else { v=dist; if(!v) return; }
+      }
+      if (v!==null && v>0) vals.push({date:date, value:v});
+    });
+  });
+  return vals;
+}
+window.wkExerciseSeries = wkExerciseSeries;
+
+function wkRunStats() {
+  var log = state.workoutLog || {};
+  var now = new Date();
+  var d28 = new Date(now); d28.setDate(now.getDate()-28);
+  var dayIdx = (now.getDay()+6)%7;
+  var mon = new Date(now); mon.setDate(now.getDate()-dayIdx);
+  var thisWeekStr = localDateStr(mon);
+  var kmLast4Weeks=0, kmThisWeek=0, longestKm=0;
+  var bestPaceSec=Infinity, slowestPaceSec=0;
+  Object.keys(log).forEach(function(date){
+    if(date < localDateStr(d28)) return;
+    var dObj = new Date(date+'T12:00:00');
+    var dMon = new Date(dObj); dMon.setDate(dObj.getDate()-((dObj.getDay()+6)%7));
+    var wk = localDateStr(dMon);
+    var dayE = Array.isArray(log[date])?log[date]:(log[date]?[log[date]]:[]);
+    dayE.forEach(function(entry){
+      (entry.exercises||[]).forEach(function(ex){
+        if(ex.type!=='cardio-distance') return;
+        var km = parseFloat(ex.distanceKm)||0;
+        var sec = parseFloat(ex.timeSeconds)||0;
+        if(!km) return;
+        var pace = sec && km ? Math.round(sec/km) : 0;
+        kmLast4Weeks += km;
+        if(km > longestKm) longestKm = km;
+        if(wk===thisWeekStr) kmThisWeek += km;
+        if(pace && pace < bestPaceSec) bestPaceSec = pace;
+        if(pace && pace > slowestPaceSec) slowestPaceSec = pace;
+      });
+    });
+  });
+  if(bestPaceSec===Infinity) bestPaceSec=0;
+  return {bestPaceSec:bestPaceSec, slowestPaceSec:slowestPaceSec, kmThisWeek:kmThisWeek, kmLast4Weeks:kmLast4Weeks, longestKm:longestKm};
+}
+window.wkRunStats = wkRunStats;
+
+function wkAxisTicks(min, max, count) {
+  var range = max - min || 1;
+  var roughStep = range / Math.max(count - 1, 1);
+  var mag = Math.pow(10, Math.floor(Math.log10(roughStep)));
+  var norm = roughStep / mag;
+  var nice = [1, 2, 2.5, 5, 10].filter(function(v){return v >= norm;})[0] || 10;
+  var step = Math.round(nice * mag);
+  if (step < 1) step = 1;
+  var start = Math.floor(min / step) * step;
+  var ticks = [];
+  for (var v = start; v < max + step; v += step) {
+    ticks.push(Math.round(v));
+    if (ticks.length > 10) break;
+  }
+  return ticks;
+}
+window.wkAxisTicks = wkAxisTicks;
+
+function wkFormatPace(sec) {
+  var s = Math.round(sec);
+  var m = Math.floor(s / 60);
+  var r = s % 60;
+  return m + ':' + (r < 10 ? '0' : '') + r;
+}
+window.wkFormatPace = wkFormatPace;
 
 // ============================================================
 // MEAL PLAN
@@ -8057,7 +8167,7 @@ function drawLineChart(container, vals, color, opts = {}) {
   const pad = range * 0.1;
   const lo = minV - pad, hi = maxV + pad, rng = hi - lo;
   const toX = i => PL + (i/Math.max(vals.length-1,1))*cW;
-  const toY = v => PT + cH - ((v-lo)/rng)*cH;
+  const toY = opts.invertY ? (v => PT + ((v-lo)/rng)*cH) : (v => PT + cH - ((v-lo)/rng)*cH);
   const gId = opts.gradientId || ('g'+Math.random().toString(36).slice(2));
   // path
   let pathD = '', area = '';

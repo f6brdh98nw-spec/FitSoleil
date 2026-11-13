@@ -257,6 +257,11 @@
             {kg:lrWeight,       reps:15, done:true},
             {kg:lrWeight+0.5,   reps:12, done:true},
           ]},
+          {name:'Incline Bench Press', type:'lift', sets:[
+            {kg:benchKg-10,     reps:8, done:true},
+            {kg:benchKg-10,     reps:8, done:true},
+            {kg:benchKg-7.5,    reps:7, done:true},
+          ]},
         ],
       };
     }
@@ -305,6 +310,7 @@
     workoutLog[daysAgo(1)] = [
       {
         name: 'Morning Upper Body',
+        planId: swUpperA,
         startTime: new Date(daysAgo(1)+'T07:00:00').getTime(),
         endTime:   new Date(daysAgo(1)+'T07:50:00').getTime(),
         exercises: [
@@ -313,7 +319,7 @@
         ],
       },
       {
-        name: 'Evening Cardio',
+        name: '',
         startTime: new Date(daysAgo(1)+'T18:00:00').getTime(),
         endTime:   new Date(daysAgo(1)+'T18:50:00').getTime(),
         exercises: [
@@ -321,6 +327,14 @@
         ],
       }
     ];
+    // Extra unnamed run session
+    if (!workoutLog[daysAgo(5)]) workoutLog[daysAgo(5)] = [];
+    workoutLog[daysAgo(5)].push({
+      name: '',
+      startTime: new Date(daysAgo(5)+'T07:00:00').getTime(),
+      endTime:   new Date(daysAgo(5)+'T07:45:00').getTime(),
+      exercises: [{name:'Run', type:'cardio-distance', distanceKm:5.0, timeSeconds:1750, paceSecPerKm:350}],
+    });
     workoutLog[daysAgo(3)] = [{
       name: 'Morning Cardio',
       startTime: new Date(daysAgo(3)+'T06:45:00').getTime(),

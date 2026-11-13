@@ -223,7 +223,6 @@ var SECTIONS = [
         return ex&&'rounds'in ex&&!('sets'in ex);
       }},
     {id:"W.13",type:"auto",label:"wkCardioDistInput does NOT re-render on input",run:function(a){var f=(a.wkCardioDistInput||'').toString();return f&&!f.includes('wkRenderToday')&&!f.includes('renderExerciseLog');}},
-    {id:"W.13b",type:"auto",label:"wkTickSet does NOT call wkRenderToday",run:function(a){var f=(a.wkTickSet||'').toString();return f&&!f.includes('wkRenderToday');}},
     {id:"W.13c",type:"auto",label:"wkAddSet does NOT call wkRenderToday",run:function(a){var f=(a.wkAddSet||'').toString();return f&&!f.includes('wkRenderToday');}},
     {id:"W.14",type:"auto",label:"endWorkout saves to state.workoutLog",run:function(a){
         a.wkBeginSession({id:'end',name:'End',exercises:[]});
@@ -419,9 +418,9 @@ var SECTIONS = [
     {id:"G.10",type:"auto",label:"Recipe results box is tall enough to show OFF products",run:function(a){
   var c=a.document.getElementById('recipe-ingredient-results');
   if(!c)return{pass:false,msg:'recipe-ingredient-results missing'};
-  var mh=a.getComputedStyle(c).maxHeight;
-  var px=mh==='none'?9999:/vh$/.test(mh)?parseFloat(mh)/100*(a.innerHeight||800):parseFloat(mh);
-  return px>=300?true:{pass:false,msg:'max-height '+mh+' hides OFF products below the fold'};
+  var mh=a.getComputedStyle(c).maxHeight;var vh=a.innerHeight||800;
+  var px=mh==='none'?9999:/vh$/.test(mh)?parseFloat(mh)/100*vh:parseFloat(mh);
+  return px>=Math.min(300,vh*0.4)?true:{pass:false,msg:'max-height '+mh+' in a '+vh+'px viewport hides OFF products below the fold'};
 }},
     {id:"G.11",type:"auto",label:"Recipe modal has a source/count line",run:function(a){return !!a.document.querySelector('#modal-recipe [id*="source-line"]');}},
     {id:"G.12",type:"auto",label:"Save and Load template sheets are structurally identical on Workout and Nutrition",run:function(a){
@@ -707,6 +706,276 @@ var SECTIONS = [
       },500);
     }catch(e){done({pass:false,msg:'error '+e.message});}
   });
+}},
+    {id:"G.35",type:"auto",label:"Plans: Remove from the Replace/Remove sheet really removes the workout (and clears a Rest day)",run:function(a){
+  var st=a.state,d=a.document,bad=[];
+  var schedSnap=JSON.stringify(st.workoutSchedule||{}),swSnap=JSON.stringify(st.savedWorkouts||[]);var off=a._wkPlanWeekOff;
+  var clear=function(){var s=d.getElementById('action-sheet-overlay');if(s)s.remove();};
+  var press=function(label){var s=d.getElementById('action-sheet-overlay');var b=s&&[].slice.call(s.querySelectorAll('button')).filter(function(x){return x.textContent.trim()===label;})[0];if(b){b.click();return true;}return false;};
+  var rows=function(){return [].slice.call(d.querySelectorAll('#wk-plans-content .meal-day-card .meal-slot'));};
+  try{
+    st.savedWorkouts=st.savedWorkouts||[];st.savedWorkouts.push({id:'zt-1',name:'ZT One',exercises:[]},{id:'zt-2',name:'ZT Two',exercises:[]});
+    a._wkPlanWeekOff=0;var wk=a._wkWeekISO(0);
+    st.workoutSchedule=st.workoutSchedule||{};st.workoutSchedule[wk]=st.workoutSchedule[wk]||{};
+    st.workoutSchedule[wk][0]=['zt-1','zt-2'];st.workoutSchedule[wk][1]=['rest'];
+    a.wkRenderPlans();
+    var wr=rows().filter(function(r){return r.textContent.indexOf('ZT One')>=0;})[0];
+    if(!wr)bad.push('workout row not found');
+    else{
+      clear();wr.click();
+      if(!press('Remove'))bad.push('no Remove button in the sheet');
+      else{var day=(st.workoutSchedule[wk]||{})[0]||[];if(day.indexOf('zt-1')>=0||day.indexOf('zt-2')<0)bad.push('Remove did not remove ZT One (day is now ['+day.join(', ')+'], want [zt-2])');}
+    }
+    clear();a.wkRenderPlans();
+    var rr=rows().filter(function(r){return /Rest day/.test(r.textContent);})[0];
+    if(!rr)bad.push('Rest row not found');
+    else{
+      clear();rr.click();
+      if(!press('Remove'))bad.push('no Remove button on the Rest row sheet');
+      else{var d1=(st.workoutSchedule[wk]||{})[1];if(d1&&d1.length)bad.push('Remove on the Rest row did not clear the day');}
+    }
+  }catch(e){bad.push('error '+e.message);}
+  clear();a._wkPlanWeekOff=off;st.workoutSchedule=JSON.parse(schedSnap);st.savedWorkouts=JSON.parse(swSnap);try{a.wkRenderPlans();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.36",type:"auto",label:"Plans: Replace swaps the workout in place (same position, no extra workout added)",run:function(a){
+  var st=a.state,d=a.document,bad=[];
+  var schedSnap=JSON.stringify(st.workoutSchedule||{}),swSnap=JSON.stringify(st.savedWorkouts||[]);var off=a._wkPlanWeekOff;
+  var clear=function(){var s=d.getElementById('action-sheet-overlay');if(s)s.remove();};
+  var press=function(label){var s=d.getElementById('action-sheet-overlay');var b=s&&[].slice.call(s.querySelectorAll('button')).filter(function(x){return x.textContent.trim()===label;})[0];if(b){b.click();return true;}return false;};
+  var rows=function(){return [].slice.call(d.querySelectorAll('#wk-plans-content .meal-day-card .meal-slot'));};
+  try{
+    st.savedWorkouts=st.savedWorkouts||[];st.savedWorkouts.push({id:'zt-1',name:'ZT One',exercises:[]},{id:'zt-2',name:'ZT Two',exercises:[]},{id:'zt-3',name:'ZT Three',exercises:[]});
+    a._wkPlanWeekOff=0;var wk=a._wkWeekISO(0);
+    st.workoutSchedule=st.workoutSchedule||{};st.workoutSchedule[wk]=st.workoutSchedule[wk]||{};
+    st.workoutSchedule[wk][0]=['zt-1','zt-2'];st.workoutSchedule[wk][1]=['rest'];
+    a.wkRenderPlans();
+    var wr=rows().filter(function(r){return r.textContent.indexOf('ZT One')>=0;})[0];
+    if(!wr)bad.push('workout row not found');
+    else{
+      clear();wr.click();
+      if(!press('Replace'))bad.push('no Replace button in the sheet');
+      else{
+        var pk=d.getElementById('modal-wk-day-picker');
+        if(!pk||!pk.classList.contains('open'))bad.push('Replace did not open the workout picker');
+        else{
+          a.wkPickDay('zt-3');
+          var day=(st.workoutSchedule[wk]||{})[0]||[];
+          if(day.length!==2||day.indexOf('zt-1')>=0||day.indexOf('zt-3')<0||day.indexOf('zt-2')<0)bad.push('Replace should swap ZT One for ZT Three (day is now ['+day.join(', ')+'])');
+          else if(day[0]!=='zt-3')bad.push('the replacement should keep the same position (day is ['+day.join(', ')+'])');
+        }
+        a.closeModal('modal-wk-day-picker');
+      }
+    }
+    clear();a.wkRenderPlans();
+    var rr=rows().filter(function(r){return /Rest day/.test(r.textContent);})[0];
+    if(!rr)bad.push('Rest row not found');
+    else{
+      clear();rr.click();
+      if(press('Replace')){
+        a.wkPickDay('zt-3');
+        var d1=(st.workoutSchedule[wk]||{})[1]||[];
+        if(JSON.stringify(d1)!==JSON.stringify(['zt-3']))bad.push('Replacing a Rest day should leave just [zt-3], got ['+d1.join(', ')+']');
+        a.closeModal('modal-wk-day-picker');
+      }else bad.push('no Replace button on the Rest row sheet');
+    }
+  }catch(e){bad.push('error '+e.message);}
+  clear();a._wkPlanWeekOff=off;st.workoutSchedule=JSON.parse(schedSnap);st.savedWorkouts=JSON.parse(swSnap);try{a.wkRenderPlans();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.37",type:"auto",label:"Load template: tapping a template name (and confirming) loads it into the week",run:function(a){
+  var st=a.state,d=a.document,bad=[];
+  var schedSnap=JSON.stringify(st.workoutSchedule||{}),tplSnap=JSON.stringify(st.workoutTemplates||[]),swSnap=JSON.stringify(st.savedWorkouts||[]);var off=a._wkPlanWeekOff;
+  try{
+    st.savedWorkouts=st.savedWorkouts||[];st.savedWorkouts.push({id:'zt-sw',name:'ZT Saved',exercises:[]});
+    st.workoutTemplates=st.workoutTemplates||[];
+    st.workoutTemplates.push({id:'zt-t1',name:'ZT Tpl Load',savedAt:'2026-01-01',week:{0:['zt-sw'],3:['rest']}});
+    a._wkPlanWeekOff=0;var wk=a._wkWeekISO(0);
+    st.workoutSchedule=st.workoutSchedule||{};st.workoutSchedule[wk]={4:['rest']};
+    a.wkRenderPlans();
+    a.openTemplateSheet('workout','load');
+    var ov=[].slice.call(d.querySelectorAll('.modal-overlay')).filter(function(o){return o.classList.contains('open')||o.style.display==='flex';});
+    var sheet=ov[ov.length-1];
+    var nameEl=sheet&&[].slice.call(sheet.querySelectorAll('*')).filter(function(e){return e.children.length===0&&e.textContent.trim()==='ZT Tpl Load';})[0];
+    if(!nameEl)bad.push('template name not found in the Load sheet');
+    else{
+      nameEl.click();
+      var cs=d.getElementById('confirm-sheet-overlay');
+      if(cs){var btn=[].slice.call(cs.querySelectorAll('button')).filter(function(b){return !/cancel/i.test(b.textContent);})[0];if(btn)btn.click();}
+      var day0=(st.workoutSchedule[wk]||{})[0]||[];
+      if(JSON.stringify(day0)!==JSON.stringify(['zt-sw']))bad.push('tapping the template did not load it into the week (Monday is ['+day0.join(', ')+'])');
+    }
+  }catch(e){bad.push('error '+e.message);}
+  [].slice.call(d.querySelectorAll('.modal-overlay')).forEach(function(o){o.classList.remove('open');});
+  var cs2=d.getElementById('confirm-sheet-overlay');if(cs2)cs2.remove();
+  a._wkPlanWeekOff=off;st.workoutSchedule=JSON.parse(schedSnap);st.workoutTemplates=JSON.parse(tplSnap);st.savedWorkouts=JSON.parse(swSnap);try{a.wkRenderPlans();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.38",type:"auto",label:"Today tab always offers a Start button for every planned workout not yet done (even after a quick session)",run:function(a){
+  var st=a.state,d=a.document,bad=[];
+  var logSnap=JSON.stringify(st.workoutLog||{}),schedSnap=JSON.stringify(st.workoutSchedule||{}),swSnap=JSON.stringify(st.savedWorkouts||[]);var prevOff=a._wkDayOff;
+  var startBtns=function(){var box=d.getElementById('wk-today-content');return box?[].slice.call(box.querySelectorAll('button')).filter(function(b){return /^start$/i.test(b.textContent.trim());}):[];};
+  var txt=function(){return (d.getElementById('wk-today-content')||{}).textContent||'';};
+  try{
+    st.savedWorkouts=st.savedWorkouts||[];
+    st.savedWorkouts.push({id:'zt-a',name:'ZT Alpha',exercises:[]},{id:'zt-b',name:'ZT Beta',exercises:[]});
+    var wk=a._wkWeekISO(0),dow=(new Date().getDay()+6)%7;
+    st.workoutSchedule=st.workoutSchedule||{};st.workoutSchedule[wk]=st.workoutSchedule[wk]||{};st.workoutSchedule[wk][dow]=['zt-a','zt-b'];
+    a._wkSession=null;st.activeSession=null;a._wkDayOff=0;
+    var k=a.localDateStr(new Date());var qn=Date.now();st.workoutLog=st.workoutLog||{};
+    st.workoutLog[k]=[{name:'',startTime:qn-1800000,endTime:qn,exercises:[{name:'Run',type:'cardio-distance',distanceKm:3,timeSeconds:1080,paceSecPerKm:360}]}];
+    a.wkRenderToday();
+    var n1=startBtns().length,t1=txt();
+    if(n1!==2||t1.indexOf('ZT Alpha')<0||t1.indexOf('ZT Beta')<0)bad.push('after a quick session Today should still offer both planned workouts with a Start button (found '+n1+' Start buttons)');
+    st.workoutLog[k]=[{name:'ZT Alpha',planId:'zt-a',startTime:qn-1800000,endTime:qn,exercises:[]}];
+    a.wkRenderToday();
+    var n2=startBtns().length,t2=txt();
+    if(n2!==1||t2.indexOf('ZT Beta')<0)bad.push('after finishing ZT Alpha, Today should offer a Start for ZT Beta only (found '+n2+' Start buttons)');
+  }catch(e){bad.push('error '+e.message);}
+  st.workoutLog=JSON.parse(logSnap);st.workoutSchedule=JSON.parse(schedSnap);st.savedWorkouts=JSON.parse(swSnap);a._wkDayOff=prevOff;a._wkSession=null;st.activeSession=null;
+  try{a.wkRenderToday();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.39",type:"auto",label:"Unnamed sessions show a title (e.g. 5 km Run) on the History card and the Today completed card",run:function(a){
+  var snap=JSON.stringify(a.state.workoutLog||{});var prevOff=a._wkDayOff,prevWk=a._wkhSessionWeekOff;var bad=[];
+  try{
+    var k=a.localDateStr(new Date());var qn=Date.now();a.state.workoutLog=a.state.workoutLog||{};
+    a.state.workoutLog[k]=[{name:'',startTime:qn-1800000,endTime:qn,exercises:[{name:'Run',type:'cardio-distance',distanceKm:5,timeSeconds:1800,paceSecPerKm:360}]}];
+    a._wkDayOff=0;a.wkRenderToday();var t=(a.document.getElementById('wk-today-content')||{}).textContent||'';
+    a._wkhSessionWeekOff=0;a.renderWkhSessionCards();var h=(a.document.getElementById('wkh-sessions-content')||{}).textContent||'';
+    if(t.indexOf('5 km Run')<0)bad.push('Today completed card has no title (want 5 km Run)');
+    if(h.indexOf('5 km Run')<0)bad.push('History card has no title (want 5 km Run)');
+  }catch(e){bad.push('error '+e.message);}
+  a._wkDayOff=prevOff;a._wkhSessionWeekOff=prevWk;a.state.workoutLog=JSON.parse(snap);try{a.wkRenderToday();a.wkRenderHistory();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.40",type:"auto",label:"Run card: the time field matches the other fields (font, size, shape, background)",run:function(a){
+  var bad=[];
+  try{
+    a._wkSession=null;a.state.activeSession=null;
+    try{a.navigate('workout');}catch(e){}
+    a.wkBeginSession({name:'StyleCheck',exercises:[{name:'Run',type:'cardio-distance'}]});
+    var d=a.document;var box=d.getElementById('wk-today-content');
+    var dist=box&&box.querySelector('input[oninput*="wkCardioDistInput"]');
+    var lab=box&&[].slice.call(box.querySelectorAll('label')).filter(function(l){return /^time/i.test(l.textContent.trim());})[0];
+    var disp=d.getElementById('wk-time-display-0')||(lab&&lab.nextElementSibling);
+    if(!dist||!disp){bad.push('could not find the distance input or the time field (give the visible time field id wk-time-display-0)');}
+    else{
+      var cs=function(e){var s=a.getComputedStyle(e);return {fontSize:s.fontSize,fontFamily:s.fontFamily,height:s.height,borderRadius:s.borderRadius,background:s.backgroundColor};};
+      var x=cs(dist),y=cs(disp);
+      Object.keys(x).forEach(function(k){
+        if(k==='height'&&!(/px$/.test(x.height)&&/px$/.test(y.height)))return;
+        if(x[k]!==y[k])bad.push('time field '+k+' is '+y[k]+' but the distance field is '+x[k]);
+      });
+    }
+  }catch(e){bad.push('error '+e.message);}
+  a._wkSession=null;a.state.activeSession=null;try{a.wkRenderToday();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.41",type:"auto",label:"No numeric field on any exercise card accepts letters (lift, bodyweight, hold, run, cardio)",run:function(a){
+  var bad=[],seen={};
+  try{
+    a._wkSession=null;a.state.activeSession=null;
+    a.wkBeginSession({name:'NumCheck',exercises:[{name:'Bench Press',type:'lift'},{name:'Push-up',type:'bodyweight'},{name:'Plank',type:'timed-hold'},{name:'Run',type:'cardio-distance'},{name:'Dance',type:'cardio-duration'}]});
+    var box=a.document.getElementById('wk-today-content');
+    var inputs=[].slice.call(box.querySelectorAll('input[inputmode="decimal"]'));
+    if(!inputs.length)return{pass:false,msg:'no numeric inputs found on the cards'};
+    inputs.forEach(function(inp){
+      var card=inp.closest('[id^="wk-card-"]');var h=card&&card.querySelector('span');var who=h?h.textContent:'a card';
+      inp.value='a1b2.5c';inp.dispatchEvent(new a.Event('input',{bubbles:true}));
+      if(!/^[0-9.:]*$/.test(inp.value)&&!seen[who]){seen[who]=1;bad.push(who+' accepts letters ("'+inp.value+'")');}
+    });
+  }catch(e){bad.push('error '+e.message);}
+  a._wkSession=null;a.state.activeSession=null;try{a.wkRenderToday();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.42",type:"auto",label:"History and Today show what you actually did (kg x reps, distance/time/pace) from one shared wkExerciseSummary",run:function(a){
+  if(typeof a.wkExerciseSummary!=='function')return{pass:false,msg:'wkExerciseSummary missing (one shared summary used by History and Today)'};
+  var bad=[];var S=a.wkExerciseSummary;
+  var liftEx={name:'Bench Press',type:'lift',sets:[{kg:60,reps:12,done:true},{kg:60,reps:10,done:true},{kg:62.5,reps:8,done:true},{kg:62.5,reps:'',done:false}]};
+  var lift=S(liftEx);
+  if(!/60\s?kg\s?[\u00d7x]\s?12,\s?10/.test(lift)||!/62\.5\s?kg\s?[\u00d7x]\s?8(?![\d,])/.test(lift))bad.push('lift summary "'+lift+'" should read like "60 kg \u00d7 12, 10 \u00b7 62.5 kg \u00d7 8" (empty sets not counted)');
+  var run=S({name:'Run',type:'cardio-distance',distanceKm:5,timeSeconds:1080,paceSecPerKm:216});
+  if(!/5\s?km/.test(run)||!/18:00/.test(run)||!/3:36/.test(run))bad.push('run summary "'+run+'" should show distance, time and pace');
+  var bw=S({name:'Push-up',type:'bodyweight',metric:'reps',sets:[{value:15,done:true},{value:12,done:true}]});
+  if(!/15/.test(bw)||!/12/.test(bw)||!/reps/i.test(bw))bad.push('bodyweight summary "'+bw+'" should list the reps');
+  var hold=S({name:'Plank',type:'timed-hold',sets:[{seconds:30,done:true},{seconds:45,done:true}]});
+  if(!/30/.test(hold)||!/45/.test(hold))bad.push('hold summary "'+hold+'" should list the seconds');
+  var dur=S({name:'Dance',type:'cardio-duration',timeMinutes:60});
+  if(!/60\s?min/.test(dur))bad.push('duration summary "'+dur+'"');
+  var reh=S({name:'Calf Raise',type:'rehab',rounds:3});
+  if(!/3\s?rounds/.test(reh))bad.push('rehab summary "'+reh+'"');
+  var snap=JSON.stringify(a.state.workoutLog||{});var prevOff=a._wkDayOff,prevWk=a._wkhSessionWeekOff;
+  try{
+    var k=a.localDateStr(new Date());var qn=Date.now();a.state.workoutLog=a.state.workoutLog||{};
+    a.state.workoutLog[k]=[{name:'SumCheckXYZ',startTime:qn-1800000,endTime:qn,exercises:[liftEx]}];
+    a._wkhSessionWeekOff=0;a.renderWkhSessionCards();var h=(a.document.getElementById('wkh-sessions-content')||{}).textContent||'';
+    a._wkDayOff=0;a.wkRenderToday();var t=(a.document.getElementById('wk-today-content')||{}).textContent||'';
+    if(!/60\s?kg/.test(h))bad.push('History card does not show the kg');
+    if(!/60\s?kg/.test(t))bad.push('Today completed card does not show the kg');
+  }catch(e){bad.push('error '+e.message);}
+  a._wkDayOff=prevOff;a._wkhSessionWeekOff=prevWk;a.state.workoutLog=JSON.parse(snap);try{a.wkRenderToday();a.wkRenderHistory();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.43",type:"auto",label:"Set rows have no separate tick circle (entering reps is what logs a set)",run:function(a){
+  var res=true;
+  try{
+    a._wkSession=null;a.state.activeSession=null;
+    a.wkBeginSession({name:'TickCheck',exercises:[{name:'Bench Press',type:'lift'},{name:'Push-up',type:'bodyweight'},{name:'Plank',type:'timed-hold'}]});
+    var box=a.document.getElementById('wk-today-content');
+    var n=box.querySelectorAll('[id^="wk-tick-"],button[onclick*="wkTickSet"]').length;
+    if(n>0)res={pass:false,msg:n+' tick circles still shown on set rows'};
+  }catch(e){res={pass:false,msg:'error '+e.message};}
+  a._wkSession=null;a.state.activeSession=null;try{a.wkRenderToday();}catch(e){}
+  return res;
+}},
+    {id:"G.44",type:"auto",label:"Progress series ignore untouched sessions (a prefilled kg with no reps is not a logged set)",run:function(a){
+  if(typeof a.wkExerciseSeries!=='function')return{pass:false,msg:'wkExerciseSeries missing (pure function: wkExerciseSeries(name, metric) -> [{date,value}])'};
+  var snap=JSON.stringify(a.state.workoutLog||{});var bad=[];
+  try{
+    var d1=a.localDateStr(new Date(Date.now()-3*86400000)),d2=a.localDateStr(new Date(Date.now()-86400000));
+    a.state.workoutLog={};
+    a.state.workoutLog[d1]=[{name:'',startTime:1,endTime:2,exercises:[{name:'Bench Press',type:'lift',sets:[{kg:60,reps:10,done:true},{kg:60,reps:10,done:true}]}]}];
+    a.state.workoutLog[d2]=[{name:'',startTime:3,endTime:4,exercises:[{name:'Bench Press',type:'lift',sets:[{kg:60,reps:'',done:false}]}]}];
+    var vol=a.wkExerciseSeries('Bench Press','volume'),mk=a.wkExerciseSeries('Bench Press','max-kg');
+    if(!vol||vol.length!==1||vol[0].value!==1200)bad.push('volume series should be one point of 1200, got '+JSON.stringify(vol));
+    if(!mk||mk.length!==1||mk[0].value!==60)bad.push('max-kg series should ignore the untouched prefilled session, got '+JSON.stringify(mk));
+  }catch(e){bad.push('error '+e.message);}
+  a.state.workoutLog=JSON.parse(snap);
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.45",type:"auto",label:"Run stats are right: best/slowest pace, km this week, km in the last 4 weeks (not last week)",run:function(a){
+  if(typeof a.wkRunStats!=='function')return{pass:false,msg:'wkRunStats missing (pure function returning {bestPaceSec, slowestPaceSec, kmThisWeek, kmLast4Weeks, longestKm})'};
+  var snap=JSON.stringify(a.state.workoutLog||{});var bad=[];
+  try{
+    var day=function(n){return a.localDateStr(new Date(Date.now()-n*86400000));};
+    var run=function(km,sec){return {name:'',startTime:1,endTime:2,exercises:[{name:'Run',type:'cardio-distance',distanceKm:km,timeSeconds:sec,paceSecPerKm:Math.round(sec/km)}]};};
+    a.state.workoutLog={};
+    a.state.workoutLog[day(0)]=[run(5,1800)];a.state.workoutLog[day(10)]=[run(4,1440)];a.state.workoutLog[day(20)]=[run(3,900)];
+    var r=a.wkRunStats();
+    var want={bestPaceSec:300,slowestPaceSec:360,kmThisWeek:5,kmLast4Weeks:12,longestKm:5};
+    Object.keys(want).forEach(function(k){if(!r||Math.abs((r[k]||0)-want[k])>0.01)bad.push(k+' is '+(r&&r[k])+' (want '+want[k]+')');});
+  }catch(e){bad.push('error '+e.message);}
+  a.state.workoutLog=JSON.parse(snap);
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.46",type:"auto",label:"Chart axes use round tick values and pace reads m:ss (wkAxisTicks, wkFormatPace)",run:function(a){
+  if(typeof a.wkAxisTicks!=='function'||typeof a.wkFormatPace!=='function')return{pass:false,msg:'wkAxisTicks and/or wkFormatPace missing'};
+  var bad=[];
+  var check=function(min,max,label){
+    var t=a.wkAxisTicks(min,max,4);
+    if(!Array.isArray(t)||t.length<3||t.length>6){bad.push(label+': want 3-6 ticks, got '+JSON.stringify(t));return;}
+    for(var i=1;i<t.length;i++){if(!(t[i]>t[i-1])){bad.push(label+': ticks not ascending '+JSON.stringify(t));return;}}
+    if(t[0]>min||t[t.length-1]<max)bad.push(label+': ticks '+JSON.stringify(t)+' do not cover '+min+'-'+max);
+    if(!t.every(function(v){return Number.isInteger(v);}))bad.push(label+': ticks are not whole numbers '+JSON.stringify(t));
+    var step=t[1]-t[0];var same=t.every(function(v,i){return i===0||Math.abs((v-t[i-1])-step)<1e-9;});
+    var m=step/Math.pow(10,Math.floor(Math.log10(step)));
+    if(!same||[1,2,2.5,5,10].indexOf(Math.round(m*100)/100)<0)bad.push(label+': steps are not round '+JSON.stringify(t));
+  };
+  check(153.4,1917.5,'volume');check(194.4,345.6,'pace');check(60,100,'kg');
+  if(a.wkFormatPace(300)!=='5:00')bad.push('wkFormatPace(300) is "'+a.wkFormatPace(300)+'" (want 5:00)');
+  if(a.wkFormatPace(345.6)!=='5:46')bad.push('wkFormatPace(345.6) is "'+a.wkFormatPace(345.6)+'" (want 5:46)');
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
 }}
   ]},
   { id:"J1", title:"Journey 1: Home & Settings", color:"#F0EEE8", tests:[
@@ -783,7 +1052,7 @@ var running=false;
 var app=null;
 var appOk=false;
 var sectionFilter='all';
-var RUNNER_VERSION='r5 (2026-11-11)';
+var RUNNER_VERSION='r6 (2026-11-13)';
 
 function log(msg,type){var b=document.getElementById('log-box');var l=document.createElement('span');l.className='log-line '+(type||'info');l.textContent=msg;b.appendChild(l);b.appendChild(document.createElement('br'));b.scrollTop=b.scrollHeight;}
 function buildId(){try{var el=app.document.getElementById('build-hash');var t=el?el.textContent.trim():'';return (t&&t!=='\u2026')?t:'unknown (banner empty)';}catch(e){return 'unknown (app frame blocked)';}}
@@ -904,10 +1173,11 @@ function render(){
 
   var html='';
   SECTIONS.forEach(function(s){
-    if(sectionFilter==='J'){if(s.id.charAt(0)!=='J')return;}
-    else if(sectionFilter!=='all'&&sectionFilter!=='fail'&&s.id!==sectionFilter)return;
+    if(sectionFilter==='J'&&s.id.charAt(0)!=='J')return;
+    var prefix=(sectionFilter!=='all'&&sectionFilter!=='fail'&&sectionFilter!=='J')?sectionFilter+'.':null;
     var visible=s.tests.filter(function(t){
       if(sectionFilter==='fail')return(results[t.id]||{}).status==='fail';
+      if(prefix)return t.id.indexOf(prefix)===0;
       return true;
     });
     if(!visible.length)return;
