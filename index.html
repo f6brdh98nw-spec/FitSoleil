@@ -6374,6 +6374,7 @@ function changeWkTodayDay(delta) {
 }
 function wkStartScheduled(swId) { var sw=(state.savedWorkouts||[]).find(function(w){return w.id===swId;}); if(sw) wkBeginSession(sw); }
 function wkBeginSession(sw) {
+  _wkTimeRawDigits = {};
   _wkSession = {
     name: sw ? sw.name : '',
     planId: sw ? sw.id : null,
@@ -6545,7 +6546,7 @@ function wkBuildExerciseCard(ex,i) {
     html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end">';
     html += '<div><label class="input-label" style="font-size:11px">Distance</label><div style="display:flex;align-items:center;gap:4px"><input type="text" inputmode="decimal" value="'+(ex.distanceKm||'')+'" placeholder="3.2" style="background:#22222E" oninput="wkCardioDistInput('+i+',this.value)"/> <span style="font-size:12px;color:var(--txt2)">km</span></div></div>';
     html += '<div><label class="input-label" style="font-size:11px">Time</label>';
-    html += '<input type="tel" id="wk-time-raw-'+i+'" style="position:absolute;opacity:0;width:0;height:0" value="'+(ex.timeSeconds?_wkTimeToDigits(ex.timeSeconds):'')+'" oninput="wkTimeCalcInput('+i+')">';
+    html += '<input type="tel" id="wk-time-raw-'+i+'" style="position:absolute;opacity:0;width:0;height:0" value="'+(ex.timeSeconds?_wkTimeToDigits(ex.timeSeconds):'')+'" oninput="wkCardioTimeInput('+i+',this.value)">';
     html += '<div class="time-calc-display" id="wk-time-disp-'+i+'" onclick="document.getElementById(\'wk-time-raw-'+i+'\').focus()" style="cursor:pointer">';
     html += _wkSecToTimeDisplay(ex.timeSeconds);
     html += '</div></div>';
@@ -6624,11 +6625,31 @@ function wkCardioDistInput(exIdx,val){
   }
   saveState();
 }
+var _wkTimeRawDigits={};
 function wkCardioTimeInput(exIdx,val){
   if(!_wkSession)return;
   var ex=_wkSession.exercises[exIdx];
-  var parts=val.split(':');
-  ex.timeSeconds=parts.length===2?(parseInt(parts[0])||0)*60+(parseInt(parts[1])||0):parseInt(val)||0;
+  var strVal=String(val||'');
+  var stripped=strVal.replace(/\D/g,'');
+  var prev=_wkTimeRawDigits[exIdx]||'';
+  var digits;
+  if(stripped.length<prev.length){
+    // Value was shortened/cleared externally - reset
+    digits=stripped.slice(-6);_wkTimeRawDigits[exIdx]=digits;
+  }else if(prev===''&&stripped===strVal.trim()){
+    // Direct programmatic call with pure digit string
+    digits=stripped.slice(-6);_wkTimeRawDigits[exIdx]=digits;
+  }else{
+    // Character-by-character typing: add only the last new digit
+    var lastDigit=strVal.slice(-1);
+    digits=(prev+(/\d/.test(lastDigit)?lastDigit:'')).slice(-6);
+    _wkTimeRawDigits[exIdx]=digits;
+  }
+  ex.timeSeconds=_wkDigitsToSeconds(digits);
+  var rawEl=document.getElementById('wk-time-raw-'+exIdx);
+  if(rawEl)rawEl.value=digits?_wkSecToMMSS(ex.timeSeconds):'';
+  var dispEl=document.getElementById('wk-time-disp-'+exIdx);
+  if(dispEl)dispEl.innerHTML=_wkSecToTimeDisplay(ex.timeSeconds);
   if(ex.distanceKm&&ex.timeSeconds){
     ex.paceSecPerKm=Math.round(ex.timeSeconds/ex.distanceKm);
     var paceEl=document.getElementById('wk-pace-'+exIdx);
@@ -6697,6 +6718,12 @@ function wkPickLibraryExercise(name) {
   var canonical=wkCanonicalExercise(name);
   var type=wkTypeForExercise(canonical)||'lift';
   _wkAddExerciseWithType(canonical,type,'');
+}
+function wkExSearchPick(name) {
+  var canonical=wkCanonicalExercise(name);
+  var type=wkTypeForExercise(canonical)||'lift';
+  _wkAddExerciseWithType(canonical,type,'');
+  closeModal('modal-wk-add-ex');
 }
 function _wkAddExerciseWithType(name,type,target,metric) {
   var ex={name:name,type:type}; if(target)ex.target=target;
@@ -7265,14 +7292,89 @@ function _actionSheetRun(idx) {
   window._actionSheetOpts = null;
 }
 
+var _tmplKind, _tmplMode;
 function openTemplateSheet(kind, mode) {
-  if (kind === 'workout') {
-    if (mode === 'save') wkSaveTemplate();
-    else wkShowTemplates();
-  } else {
-    if (mode === 'save') showSaveTemplatePrompt();
-    else showTemplatesSheet();
+  if(kind==='workout'&&mode==='save'){
+    var weekISO=_wkWeekISO(_wkPlanWeekOff);
+    var schedule=(state.workoutSchedule||{})[weekISO]||{};
+    if(!Object.keys(schedule).length){showToast('No workouts scheduled this week');return;}
   }
+  var el=document.getElementById('modal-template-sheet');
+  if(!el){
+    el=document.createElement('div');
+    el.className='modal-overlay';el.id='modal-template-sheet';
+    el.innerHTML='<div class="modal"><div class="modal-handle"></div>'+
+      '<div class="modal-title" id="tmpl-sheet-title"></div>'+
+      '<div id="tmpl-save-section">'+
+        '<input type="text" id="tmpl-name-input" class="ob-input" placeholder="Template name" style="margin-bottom:12px"/>'+
+        '<button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="tmplConfirmSave()">Save template</button>'+
+      '</div>'+
+      '<div id="tmpl-load-section"><div id="tmpl-sheet-list"></div></div>'+
+      '<button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="closeModal(\'modal-template-sheet\')">Cancel</button>'+
+      '</div>';
+    document.body.appendChild(el);
+  }
+  _tmplKind=kind;_tmplMode=mode;
+  var titleEl=document.getElementById('tmpl-sheet-title');
+  if(titleEl)titleEl.textContent=(mode==='save'?'Save':'Load')+' template';
+  var saveSection=document.getElementById('tmpl-save-section');
+  var loadSection=document.getElementById('tmpl-load-section');
+  if(mode==='save'){
+    saveSection.style.display='';loadSection.style.display='none';
+    var inp=document.getElementById('tmpl-name-input');
+    if(inp){inp.value=kind==='meal'?'My plan template':'';setTimeout(function(){inp.focus&&inp.focus();},100);}
+  }else{
+    saveSection.style.display='none';loadSection.style.display='';
+    var templates=kind==='workout'?(state.workoutTemplates||[]):(state.planTemplates||[]);
+    var html=templates.length?templates.map(function(t){
+      var info='';
+      if(kind==='workout'){var days=Object.keys(t.week||{}).filter(function(k){return t.week[k]&&t.week[k]!=='rest';}).length;info=t.savedAt+' \xb7 '+days+' training days';}
+      else{var mc=typeof countTemplateMeals==='function'?countTemplateMeals(t):0;info=mc+' meal'+(mc!==1?'s':'')+(t.savedAt?' \xb7 '+t.savedAt:'');}
+      var tid=JSON.stringify(t.id);
+      return '<div class="card" style="margin-bottom:8px"><div class="row-between">'+
+        '<div style="cursor:pointer;flex:1;min-width:0" onclick="tmplLoadItem('+tid+')">'+
+        '<div style="font-weight:600">'+(t.name||'')+'</div>'+
+        '<div style="font-size:12px;color:var(--txt2)">'+info+'</div>'+
+        '</div>'+
+        '<button class="btn btn-sm btn-outline" style="margin-left:8px;flex-shrink:0" onclick="tmplEditItem('+tid+')">Edit</button>'+
+        '</div></div>';
+    }).join(''):'<div style="text-align:center;color:var(--txt3);font-size:13px;padding:24px">No templates saved</div>';
+    document.getElementById('tmpl-sheet-list').innerHTML=html;
+  }
+  el.classList.add('open');
+}
+function tmplConfirmSave(){
+  var inp=document.getElementById('tmpl-name-input');
+  var name=inp?inp.value.trim():'';
+  if(!name){showToast('Enter a template name');return;}
+  if(_tmplKind==='workout'){
+    var weekISO=_wkWeekISO(_wkPlanWeekOff);
+    var schedule=(state.workoutSchedule||{})[weekISO]||{};
+    if(!Array.isArray(state.workoutTemplates))state.workoutTemplates=[];
+    state.workoutTemplates.push({id:'tpl-'+Date.now(),name:name,savedAt:localDateStr(new Date()),week:JSON.parse(JSON.stringify(schedule))});
+    saveState();closeModal('modal-template-sheet');showToast('Template saved ✓');
+  }else{
+    closeModal('modal-template-sheet');
+    if(name)saveCurrentWeekAsTemplate(name);
+  }
+}
+function tmplLoadItem(id){
+  closeModal('modal-template-sheet');
+  if(_tmplKind==='workout'){
+    var tpl=(state.workoutTemplates||[]).find(function(t){return t.id===id;});if(!tpl)return;
+    var weekISO=_wkWeekISO(_wkPlanWeekOff);
+    var existing=(state.workoutSchedule||{})[weekISO]||{};
+    var doLoad=function(){if(!state.workoutSchedule)state.workoutSchedule={};state.workoutSchedule[weekISO]=JSON.parse(JSON.stringify(tpl.week));saveState();wkRenderPlans();showToast('Template loaded ✓');};
+    if(Object.keys(existing).length){showConfirmSheet({title:'Load template?',message:"This will replace the current week's schedule.",confirmText:'Load',onConfirm:doLoad});}else doLoad();
+  }else{
+    var tpl2=(state.planTemplates||[]).find(function(t){return t.id===id;});if(!tpl2)return;
+    showConfirmSheet({message:'Load "'+tpl2.name+'"? This will overwrite this week\'s meal plan.',confirmLabel:'Load',onConfirm:function(){loadTemplate(id);}});
+  }
+}
+function tmplEditItem(id){
+  closeModal('modal-template-sheet');
+  if(_tmplKind==='workout'){setTimeout(function(){wkEditTemplate(id);},100);}
+  else{setTimeout(function(){openTemplateSheet('meal','load');},100);}
 }
 
 function wkOpenAssignedWorkoutSheet(dayIdx, swId) {

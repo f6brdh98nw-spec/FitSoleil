@@ -56,11 +56,12 @@ iframe{width:100%;height:100%;border:none;display:block}
 .section-filter{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
 .sf-btn{background:#1A1A22;border:0.5px solid #2C2C3A;border-radius:6px;color:#5A5860;font-size:9px;padding:3px 7px;cursor:pointer;font-family:system-ui}
 .sf-btn.active{border-color:#F07C3A;color:#F07C3A;background:rgba(240,124,58,0.08)}
+.steps{font-size:9px;color:#6E6C75;margin-top:3px;line-height:1.5;border-left:2px solid #2C2C3A;padding-left:6px}
 </style>
 </head>
 <body>
 <div id="top">
-  <div><h2>FitSoleil Test Runner</h2><p class="subtitle">AUTO = scripted &middot; SEMI = scripted + visual &middot; MANUAL = you verify</p></div>
+  <div><h2>FitSoleil Test Runner <span id="build-chip" style="font-family:monospace;font-size:10px;color:#FFB400;margin-left:6px"></span></h2><p class="subtitle">AUTO = scripted &middot; SEMI/MANUAL = you check, steps shown under each &middot; auto tests overwrite any workout in progress</p></div>
   <div style="display:flex;gap:5px;flex-wrap:wrap">
     <button class="ctrl-btn orange" id="btn-run-all" onclick="runAll()">&#9654; Run auto</button>
     <button class="ctrl-btn blue" onclick="loadTestData()">&#128190; Load test data</button>
@@ -69,6 +70,7 @@ iframe{width:100%;height:100%;border:none;display:block}
     <button class="ctrl-btn" onclick="clearResults()">Clear</button>
   </div>
 </div>
+<div id="origin-banner" style="display:none;background:rgba(248,113,113,0.15);border-bottom:1px solid #F87171;color:#F87171;padding:8px 16px;font-size:11px;line-height:1.5"><b>Runner is blocked from reading the app.</b> Open this page from the same web address as your app (e.g. https://YOURNAME.github.io/REPO/tests.html), not from the Claude chat preview or a downloaded file.</div>
 <div id="main">
   <div id="panel">
     <div class="summary-bar">
@@ -91,6 +93,7 @@ iframe{width:100%;height:100%;border:none;display:block}
       <button class="sf-btn" onclick="setSection('S',this)">Settings</button>
       <button class="sf-btn" onclick="setSection('R',this)">Recent</button>
       <button class="sf-btn" onclick="setSection('G',this)">Global</button>
+      <button class="sf-btn" onclick="setSection('J',this)">Journeys</button>
       <button class="sf-btn" onclick="setSection('fail',this)">Fails</button>
     </div>
     <div id="checklist"></div>
@@ -101,104 +104,54 @@ iframe{width:100%;height:100%;border:none;display:block}
 </div>
 <script>
 var SECTIONS = [
-  { id:'C', title:"Core infrastructure", color:"#9A98A0", tests:[
-    {id:"C.01",type:"auto",label:"state object exists with required keys",
-      run:function(a){var s=a.state;return s&&'logs'in s&&'targets'in s&&'profile'in s;}},
-    {id:"C.02",type:"auto",label:"saveState() persists to localStorage fitsol_v2",
-      run:function(a){a.saveState();var d=a.localStorage.getItem('fitsol_v2');return!!d&&d.length>10;}},
-    {id:"C.03",type:"auto",label:"openModal / closeModal exist",
-      run:function(a){return typeof a.openModal==='function'&&typeof a.closeModal==='function';}},
-    {id:"C.04",type:"auto",label:"navigate() exists",
-      run:function(a){return typeof a.navigate==='function';}},
-    {id:"C.05",type:"auto",label:"navigate('workout') makes screen-workout active",
-      run:function(a){a.navigate('workout');var el=a.document.getElementById('screen-workout');return el&&el.classList.contains('active');}},
-    {id:"C.06",type:"auto",label:"navigate('nutrition') makes screen-nutrition active",
-      run:function(a){a.navigate('nutrition');var el=a.document.getElementById('screen-nutrition');return el&&el.classList.contains('active');}},
-    {id:"C.07",type:"auto",label:"navigate('progress') makes screen-progress active",
-      run:function(a){a.navigate('progress');var el=a.document.getElementById('screen-progress');return el&&el.classList.contains('active');}},
-    {id:"C.08",type:"auto",label:"showToast function exists",
-      run:function(a){return typeof a.showToast==='function';}},
-    {id:"C.09",type:"auto",label:"drawLineChart function exists",
-      run:function(a){return typeof a.drawLineChart==='function';}},
-    {id:"C.10",type:"auto",label:"calcAuto macro function exists and returns object with p/c/f",
-      run:function(a){if(typeof a.calcAuto!=='function')return false;var r=a.calcAuto(2000,'balanced');return r&&('protein'in r||'p'in r)&&typeof(r.protein||r.p)==='number';}},
+  { id:"C", title:"Auto: Core infrastructure", color:"#9A98A0", tests:[
+    {id:"C.01",type:"auto",label:"state object exists with required keys",run:function(a){var s=a.state;return s&&'logs'in s&&'targets'in s&&'profile'in s;}},
+    {id:"C.02",type:"auto",label:"saveState() persists to localStorage fitsol_v2",run:function(a){a.saveState();var d=a.localStorage.getItem('fitsol_v2');return!!d&&d.length>10;}},
+    {id:"C.03",type:"auto",label:"openModal / closeModal exist",run:function(a){return typeof a.openModal==='function'&&typeof a.closeModal==='function';}},
+    {id:"C.04",type:"auto",label:"navigate() exists",run:function(a){return typeof a.navigate==='function';}},
+    {id:"C.05",type:"auto",label:"navigate('workout') makes screen-workout active",run:function(a){a.navigate('workout');var el=a.document.getElementById('screen-workout');return el&&el.classList.contains('active');}},
+    {id:"C.06",type:"auto",label:"navigate('nutrition') makes screen-nutrition active",run:function(a){a.navigate('nutrition');var el=a.document.getElementById('screen-nutrition');return el&&el.classList.contains('active');}},
+    {id:"C.07",type:"auto",label:"navigate('progress') makes screen-progress active",run:function(a){a.navigate('progress');var el=a.document.getElementById('screen-progress');return el&&el.classList.contains('active');}},
+    {id:"C.08",type:"auto",label:"showToast function exists",run:function(a){return typeof a.showToast==='function';}},
+    {id:"C.09",type:"auto",label:"drawLineChart function exists",run:function(a){return typeof a.drawLineChart==='function';}},
+    {id:"C.10",type:"auto",label:"calcAuto macro function exists and returns object with p/c/f",run:function(a){if(typeof a.calcAuto!=='function')return false;var r=a.calcAuto(2000,'balanced');return r&&('protein'in r||'p'in r)&&typeof(r.protein||r.p)==='number';}}
   ]},
-  { id:'H', title:"Home screen", color:"#E8C547", tests:[
-    {id:"H.01",type:"auto",label:"renderDashboard function exists",
-      run:function(a){return typeof a.renderDashboard==='function';}},
-    {id:"H.02",type:"auto",label:"getDayLog returns object with meals array",
-      run:function(a){if(typeof a.getDayLog!=='function')return false;var d=a.getDayLog();return d&&Array.isArray(d.meals);}},
-    {id:"H.03",type:"auto",label:"calcTotals returns object with calories",
-      run:function(a){if(typeof a.calcTotals!=='function')return false;var r=a.calcTotals([{calories:500,protein:30,carbs:50,fat:20}]);return r&&typeof r.calories==='number';}},
-    {id:"H.04",type:"auto",label:"toggleWater function exists",
-      run:function(a){return typeof a.toggleWater==='function';}},
-    {id:"H.05",type:"auto",label:"updateStreak function exists",
-      run:function(a){return typeof a.updateStreak==='function';}},
-    {id:"H.06",type:"semi",label:"Home screen renders macro rings and water grid",run:null},
-    {id:"H.07",type:"semi",label:"Workout tile on home shows today's planned session",run:null},
-    {id:"H.08",type:"manual",label:"Tapping workout tile navigates to workout or opens picker",run:null},
-    {id:"H.09",type:"manual",label:"Date navigator changes the active date and re-renders",run:null},
-    {id:"H.10",type:"manual",label:"Water grid: tapping a cup fills it, tapping again empties it",run:null},
+  { id:"H", title:"Auto: Home", color:"#E8C547", tests:[
+    {id:"H.01",type:"auto",label:"renderDashboard function exists",run:function(a){return typeof a.renderDashboard==='function';}},
+    {id:"H.02",type:"auto",label:"getDayLog returns object with meals array",run:function(a){if(typeof a.getDayLog!=='function')return false;var d=a.getDayLog();return d&&Array.isArray(d.meals);}},
+    {id:"H.03",type:"auto",label:"calcTotals returns object with calories",run:function(a){if(typeof a.calcTotals!=='function')return false;var r=a.calcTotals([{calories:500,protein:30,carbs:50,fat:20}]);return r&&typeof r.calories==='number';}},
+    {id:"H.04",type:"auto",label:"toggleWater function exists",run:function(a){return typeof a.toggleWater==='function';}},
+    {id:"H.05",type:"auto",label:"updateStreak function exists",run:function(a){return typeof a.updateStreak==='function';}}
   ]},
-  { id:'F', title:"Food search", color:"#4ADE80", tests:[
-    {id:"F.01",type:"auto",label:"initFoodSearch exists",
-      run:function(a){return typeof a.initFoodSearch==='function';}},
-    {id:"F.02",type:"auto",label:"executeFoodSearch exists",
-      run:function(a){return typeof a.executeFoodSearch==='function';}},
-    {id:"F.03",type:"auto",label:"searchFoodFiles exists and returns array",
-      run:function(a){return typeof a.searchFoodFiles==='function'&&Array.isArray(a.searchFoodFiles('egg'));}},
-    {id:"F.04",type:"auto",label:"searchFoodFiles('tuna') returns 3+ NZ results",
-      run:function(a){var r=a.searchFoodFiles('tuna');return r&&r.length>=3;}},
-    {id:"F.05",type:"auto",label:"searchFoodFiles('egg') returns results",
-      run:function(a){var r=a.searchFoodFiles('egg');return r&&r.length>0;}},
-    {id:"F.06",type:"auto",label:"_searchGen only increments in executeFoodSearch, not initFoodSearch",
-      run:function(a){var b=a._searchGen||0;a.initFoodSearch&&a.initFoodSearch('food');return(a._searchGen||0)===b;}},
-    {id:"F.07",type:"auto",label:"parseOpenFoodFacts exists and accepts array",
-      run:function(a){return typeof a.parseOpenFoodFacts==='function'&&Array.isArray(a.parseOpenFoodFacts([],false));}},
-    {id:"F.08",type:"semi",label:"Search 'tuna' — FOODfiles NZ results appear first with teal badge",run:null},
-    {id:"F.09",type:"semi",label:"Search 'balsamic vinegar' — OFF results appear",run:null},
-    {id:"F.10",type:"semi",label:"Search 'sealord' — Sealord products appear",run:null},
-    {id:"F.11",type:"manual",label:"Open food modal 5+ times searching 'tuna' each time — OFF results persist every time",run:null},
-    {id:"F.12",type:"manual",label:"Tap a food result — quantity entry opens automatically (no second tap needed)",run:null},
-    {id:"F.13",type:"manual",label:"See more results button is green, loads more OFF results",run:null},
+  { id:"F", title:"Auto: Food search", color:"#60A5FA", tests:[
+    {id:"F.01",type:"auto",label:"initFoodSearch exists",run:function(a){return typeof a.initFoodSearch==='function';}},
+    {id:"F.02",type:"auto",label:"executeFoodSearch exists",run:function(a){return typeof a.executeFoodSearch==='function';}},
+    {id:"F.03",type:"auto",label:"searchFoodFiles exists and returns array",run:function(a){return typeof a.searchFoodFiles==='function'&&Array.isArray(a.searchFoodFiles('egg'));}},
+    {id:"F.04",type:"auto",label:"searchFoodFiles('tuna') returns 3+ NZ results",run:function(a){var r=a.searchFoodFiles('tuna');return r&&r.length>=3;}},
+    {id:"F.05",type:"auto",label:"searchFoodFiles('egg') returns results",run:function(a){var r=a.searchFoodFiles('egg');return r&&r.length>0;}},
+    {id:"F.06",type:"auto",label:"_searchGen only increments in executeFoodSearch, not initFoodSearch",run:function(a){var b=a._searchGen||0;a.initFoodSearch&&a.initFoodSearch('food');return(a._searchGen||0)===b;}},
+    {id:"F.07",type:"auto",label:"parseOpenFoodFacts exists and accepts array",run:function(a){return typeof a.parseOpenFoodFacts==='function'&&Array.isArray(a.parseOpenFoodFacts([],false));}},
+    {id:"F.20",type:"auto",label:"See more results works in the recipe builder (mocked OFF, full pages)",run:function(a){return offMockRun(a,50,'recipe');}},
+    {id:"F.21",type:"auto",label:"See more results still offered when only 20 of 50 raw products pass the filter",run:function(a){return offMockRun(a,20,'recipe');}},
+    {id:"F.22",type:"auto",label:"See more results works in Log Food (mocked OFF)",run:function(a){return offMockRun(a,50,'modal');}}
   ]},
-  { id:'N', title:"Nutrition screen", color:"#4ADE80", tests:[
-    {id:"N.01",type:"auto",label:"renderDashboard function exists (used by nutrition)",
-      run:function(a){return typeof a.renderDashboard==='function';}},
-    {id:"N.02",type:"auto",label:"getDayLog with date param returns log object",
-      run:function(a){if(typeof a.getDayLog!=='function')return false;var r=a.getDayLog('2026-10-01');return r&&'meals'in r;}},
-    {id:"N.03",type:"auto",label:"generateShoppingList function exists",
-      run:function(a){return typeof a.generateShoppingList==='function';}},
-    {id:"N.04",type:"auto",label:"openMealPlanSlot function exists",
-      run:function(a){return typeof a.openMealPlanSlot==='function';}},
-    {id:"N.05",type:"auto",label:"state.recipes is an array",
-      run:function(a){return Array.isArray(a.state.recipes);}},
-    {id:"N.06",type:"auto",label:"state.mealPlan exists (object or undefined, not null)",
-      run:function(a){return a.state.mealPlan!==null;}},
-    {id:"N.07",type:"semi",label:"Nutrition diary shows food entries from test data",run:null},
-    {id:"N.08",type:"semi",label:"Macro totals update when food is logged",run:null},
-    {id:"N.09",type:"semi",label:"Meal plan tab shows current week plan",run:null},
-    {id:"N.10",type:"semi",label:"Recipe builder: add ingredients, macros update live",run:null},
-    {id:"N.11",type:"manual",label:"Log a food: search, select, enter grams, confirm — appears in diary",run:null},
-    {id:"N.12",type:"manual",label:"Remove a food from diary — disappears and macros update",run:null},
-    {id:"N.13",type:"manual",label:"Save recipe — appears in Meals/Recipes tab",run:null},
-    {id:"N.14",type:"manual",label:"Meal plan: assign a recipe to a slot, save, navigate away and back — persists",run:null},
-    {id:"N.15",type:"manual",label:"Save meal plan as template, load on different week — fills correctly",run:null},
+  { id:"N", title:"Auto: Nutrition", color:"#4ADE80", tests:[
+    {id:"N.01",type:"auto",label:"renderDashboard function exists (used by nutrition)",run:function(a){return typeof a.renderDashboard==='function';}},
+    {id:"N.02",type:"auto",label:"getDayLog with date param returns log object",run:function(a){if(typeof a.getDayLog!=='function')return false;var r=a.getDayLog('2026-10-01');return r&&'meals'in r;}},
+    {id:"N.03",type:"auto",label:"generateShoppingList function exists",run:function(a){return typeof a.generateShoppingList==='function';}},
+    {id:"N.04",type:"auto",label:"openMealPlanSlot function exists",run:function(a){return typeof a.openMealPlanSlot==='function';}},
+    {id:"N.05",type:"auto",label:"state.recipes is an array",run:function(a){return Array.isArray(a.state.recipes);}},
+    {id:"N.06",type:"auto",label:"state.mealPlan exists (object or undefined, not null)",run:function(a){return a.state.mealPlan!==null;}}
   ]},
-  { id:'W', title:"Workout screen", color:"#F07C3A", tests:[
+  { id:"W", title:"Auto: Workout", color:"#F07C3A", tests:[
     {id:"W.01",type:"auto",label:"wkBeginSession exists",run:function(a){return typeof a.wkBeginSession==='function';}},
     {id:"W.02",type:"auto",label:"wkSelectExType exists",run:function(a){return typeof a.wkSelectExType==='function';}},
-    {id:"W.03",type:"auto",label:"renderExerciseList is not empty stub",
-      run:function(a){var f=a.renderExerciseList;return typeof f==='function'&&f.toString().length>50;}},
-    {id:"W.04",type:"auto",label:"startPlan is not empty stub",
-      run:function(a){var f=a.startPlan;return typeof f==='function'&&f.toString().length>50;}},
+    {id:"W.03",type:"auto",label:"renderExerciseList is not empty stub",run:function(a){var f=a.renderExerciseList;return typeof f==='function'&&f.toString().length>50;}},
+    {id:"W.04",type:"auto",label:"startPlan is not empty stub",run:function(a){var f=a.startPlan;return typeof f==='function'&&f.toString().length>50;}},
     {id:"W.05",type:"auto",label:"wkRenderPlans exists",run:function(a){return typeof a.wkRenderPlans==='function';}},
-    {id:"W.06",type:"auto",label:"wkRenderHistory exists and not empty stub",
-      run:function(a){var f=a.wkRenderHistory;return typeof f==='function'&&f.toString().length>50;}},
-    {id:"W.07",type:"auto",label:"wkBeginSession creates _wkSession with exercises array",
-      run:function(a){a.wkBeginSession({id:'t',name:'T',exercises:[]});return a._wkSession&&Array.isArray(a._wkSession.exercises);}},
-    {id:"W.08",type:"auto",label:"Submit Lift exercise — session gains one exercise",
-      run:function(a){
+    {id:"W.06",type:"auto",label:"wkRenderHistory exists and not empty stub",run:function(a){var f=a.wkRenderHistory;return typeof f==='function'&&f.toString().length>50;}},
+    {id:"W.07",type:"auto",label:"wkBeginSession creates _wkSession with exercises array",run:function(a){a.wkBeginSession({id:'t',name:'T',exercises:[]});return a._wkSession&&Array.isArray(a._wkSession.exercises);}},
+    {id:"W.08",type:"auto",label:"Submit Lift exercise — session gains one exercise",run:function(a){
         a.wkBeginSession({id:'t2',name:'T',exercises:[]});
         var n=a.document.getElementById('wk-add-ex-name');if(n)n.value='Bench Press';
         a.document.querySelectorAll('#wk-add-ex-types .exercise-tag').forEach(function(t){t.classList.remove('selected');if(t.dataset.type==='lift')t.classList.add('selected');});
@@ -206,10 +159,8 @@ var SECTIONS = [
         else if(typeof a.wkConfirmAddEx==='function')a.wkConfirmAddEx();
         return a._wkSession&&a._wkSession.exercises.length===1;
       }},
-    {id:"W.09",type:"auto",label:"Lift card renders kg and reps in wk-today-content",
-      run:function(a){var l=a.document.getElementById('wk-today-content');if(!l)return{pass:false,msg:'wk-today-content not found'};var h=l.innerHTML.toLowerCase();return h.includes('kg')&&h.includes('rep');}},
-    {id:"W.10",type:"auto",label:"Bodyweight exercise type sets correctly",
-      run:function(a){
+    {id:"W.09",type:"auto",label:"Lift card renders kg and reps in wk-today-content",run:function(a){var l=a.document.getElementById('wk-today-content');if(!l)return{pass:false,msg:'wk-today-content not found'};var h=l.innerHTML.toLowerCase();return h.includes('kg')&&h.includes('rep');}},
+    {id:"W.10",type:"auto",label:"Bodyweight exercise type sets correctly",run:function(a){
         if(!a._wkSession)a.wkBeginSession({id:'bw',name:'BW',exercises:[]});
         var n=a.document.getElementById('wk-add-ex-name');if(n)n.value='Sit Ups';
         a.document.querySelectorAll('#wk-add-ex-types .exercise-tag').forEach(function(t){t.classList.remove('selected');if(t.dataset.type==='bodyweight')t.classList.add('selected');});
@@ -218,8 +169,7 @@ var SECTIONS = [
         var ex=a._wkSession&&a._wkSession.exercises[a._wkSession.exercises.length-1];
         return ex&&ex.type==='bodyweight';
       }},
-    {id:"W.11",type:"auto",label:"Cardio-distance exercise has distanceKm property",
-      run:function(a){
+    {id:"W.11",type:"auto",label:"Cardio-distance exercise has distanceKm property",run:function(a){
         if(!a._wkSession)a.wkBeginSession({id:'run',name:'R',exercises:[]});
         var n=a.document.getElementById('wk-add-ex-name');if(n)n.value='Morning Run';
         a.document.querySelectorAll('#wk-add-ex-types .exercise-tag').forEach(function(t){t.classList.remove('selected');if(t.dataset.type==='cardio-distance')t.classList.add('selected');});
@@ -228,8 +178,7 @@ var SECTIONS = [
         var ex=a._wkSession&&a._wkSession.exercises[a._wkSession.exercises.length-1];
         return ex&&'distanceKm'in ex;
       }},
-    {id:"W.12",type:"auto",label:"Rehab exercise has rounds not sets",
-      run:function(a){
+    {id:"W.12",type:"auto",label:"Rehab exercise has rounds not sets",run:function(a){
         if(!a._wkSession)a.wkBeginSession({id:'rh',name:'R',exercises:[]});
         var n=a.document.getElementById('wk-add-ex-name');if(n)n.value='Calf Raise';
         a.document.querySelectorAll('#wk-add-ex-types .exercise-tag').forEach(function(t){t.classList.remove('selected');if(t.dataset.type==='rehab')t.classList.add('selected');});
@@ -238,14 +187,10 @@ var SECTIONS = [
         var ex=a._wkSession&&a._wkSession.exercises[a._wkSession.exercises.length-1];
         return ex&&'rounds'in ex&&!('sets'in ex);
       }},
-    {id:"W.13",type:"auto",label:"wkCardioDistInput does NOT re-render on input",
-      run:function(a){var f=(a.wkCardioDistInput||'').toString();return f&&!f.includes('wkRenderToday')&&!f.includes('renderExerciseLog');}},
-    {id:"W.13b",type:"auto",label:"wkTickSet does NOT call wkRenderToday",
-      run:function(a){var f=(a.wkTickSet||'').toString();return f&&!f.includes('wkRenderToday');}},
-    {id:"W.13c",type:"auto",label:"wkAddSet does NOT call wkRenderToday",
-      run:function(a){var f=(a.wkAddSet||'').toString();return f&&!f.includes('wkRenderToday');}},
-    {id:"W.14",type:"auto",label:"endWorkout saves to state.workoutLog",
-      run:function(a){
+    {id:"W.13",type:"auto",label:"wkCardioDistInput does NOT re-render on input",run:function(a){var f=(a.wkCardioDistInput||'').toString();return f&&!f.includes('wkRenderToday')&&!f.includes('renderExerciseLog');}},
+    {id:"W.13b",type:"auto",label:"wkTickSet does NOT call wkRenderToday",run:function(a){var f=(a.wkTickSet||'').toString();return f&&!f.includes('wkRenderToday');}},
+    {id:"W.13c",type:"auto",label:"wkAddSet does NOT call wkRenderToday",run:function(a){var f=(a.wkAddSet||'').toString();return f&&!f.includes('wkRenderToday');}},
+    {id:"W.14",type:"auto",label:"endWorkout saves to state.workoutLog",run:function(a){
         a.wkBeginSession({id:'end',name:'End',exercises:[]});
         var dk=new Date().toISOString().slice(0,10);
         if(typeof a.wkEndSession==='function')a.wkEndSession(true);
@@ -255,46 +200,20 @@ var SECTIONS = [
         if(Array.isArray(log))return log.length>0;
         return!!log[dk];
       }},
-    {id:"W.15",type:"auto",label:"workoutSchedule persists via saveState",
-      run:function(a){
+    {id:"W.15",type:"auto",label:"workoutSchedule persists via saveState",run:function(a){
         if(!a.state.workoutSchedule)a.state.workoutSchedule={};
         a.state.workoutSchedule['2026-10-19']={0:'test-id'};
         a.saveState();
         var s=JSON.parse(a.localStorage.getItem('fitsol_v2')||'{}');
         return s.workoutSchedule&&s.workoutSchedule['2026-10-19']&&s.workoutSchedule['2026-10-19'][0]==='test-id';
       }},
-    {id:"W.16",type:"semi",label:"Today tab shows today's date (not 'week of')",run:null},
-    {id:"W.17",type:"semi",label:"Plans tab renders week grid and day schedule rows",run:null},
-    {id:"W.18",type:"semi",label:"History tab — Exercise Progress shows chart",run:null},
-    {id:"W.19",type:"manual",label:"Add exercise via UI — appears as card in Today tab (test each type)",run:null},
-    {id:"W.20",type:"manual",label:"Run card: can type more than one digit in km field",run:null},
-    {id:"W.21",type:"manual",label:"Pace calculates correctly (3km / 18:00 = 6:00/km)",run:null},
-    {id:"W.22",type:"manual",label:"Session timer ticks up every second",run:null},
-    {id:"W.23",type:"manual",label:"End session — confirm sheet appears, session saved to History",run:null},
-    {id:"W.24",type:"manual",label:"Navigate away from workout mid-session, return — session still active",run:null},
-    {id:"W.25",type:"manual",label:"Plans: tap a day — picker opens with saved workouts + Rest + Clear",run:null},
-    {id:"W.26",type:"manual",label:"Plans: save as template, load on different week — fills correctly",run:null},
-    {id:"W.27",type:"manual",label:"Use Plan — loads saved workout exercises into session",run:null},
-    {id:"W.28",type:"manual",label:"Active session card has a Notes textarea",run:null},
-    {id:"W.29",type:"manual",label:"Session note is shown in History after ending session",run:null},
-    {id:"W.30",type:"auto",label:"Lift card prefills kg from the most recent logged session",run:function(a){var snap=JSON.stringify(a.state.workoutLog||{});var k=a.localDateStr(new Date(Date.now()-86400000));a.state.workoutLog=a.state.workoutLog||{};var cur=a.state.workoutLog[k];var entry={name:'PrefillSrc',startTime:Date.now()-90000000,endTime:Date.now()-86000000,exercises:[{name:'Prefill Press XYZ',type:'lift',sets:[{kg:42.5,reps:8,done:true}]}]};a.state.workoutLog[k]=(Array.isArray(cur)?cur:(cur?[cur]:[])).concat([entry]);a.wkBeginSession({id:'pf',name:'PF',exercises:[{name:'Prefill Press XYZ',type:'lift'}]});var kg=a._wkSession&&a._wkSession.exercises[0]&&a._wkSession.exercises[0].sets&&a._wkSession.exercises[0].sets[0]?a._wkSession.exercises[0].sets[0].kg:null;a._wkSession=null;a.state.activeSession=null;a.state.workoutLog=JSON.parse(snap);return parseFloat(kg)===42.5?true:{pass:false,msg:'first set kg is '+kg};}},
-    {id:"W.31",type:"manual",label:"'↑ Heavier next time' chip toggles highlight on tap",run:null},
-    {id:"W.32",type:"manual",label:"After toggling '↑ Heavier', next session shows '· try heavier' instead of 'Last: X kg × Y'",run:null},
-    {id:"W.33",type:"manual",label:"Home tile always shows ▶, lists all workouts for today (completed ones muted with finish time), and clicking ▶ lands on Workout › Today",run:null},
-    {id:"W.34",type:"manual",label:"Tapping the name of an assigned workout in Plans day list opens a Replace/Remove sheet",run:null},
-    {id:"W.35",type:"manual",label:"Tapping the week label in History opens a month and year picker with a 'This week' shortcut",run:null},
-    {id:"W.36",type:"manual",label:"Use Plan and Add Exercise buttons are hidden when viewing any day other than today in the Today tab",run:null},
-    {id:"W.37",type:"manual",label:"Adding Lateral Raise to a session gives a kg/reps card (classified as lift, not bodyweight)",run:null},
-    {id:"W.38",type:"manual",label:"Adding a Run gives a distance + time card and the session title in History reads e.g. '5 km Run'",run:null},
-    {id:"W.39",type:"manual",label:"Run, Running, Morning Run all appear as a single 'Run' entry in the Exercise progress dropdown",run:null},
-    {id:"W.40",type:"manual",label:"The '↑ Heavier next time' chip is orange (#F07C3A), not blue",run:null},
+    {id:"W.30",type:"auto",label:"Lift card prefills kg from the most recent logged session",run:function(a){var snap=JSON.stringify(a.state.workoutLog||{});var k=a.localDateStr(new Date(Date.now()-86400000));a.state.workoutLog=a.state.workoutLog||{};var cur=a.state.workoutLog[k];var entry={name:'PrefillSrc',startTime:Date.now()-90000000,endTime:Date.now()-86000000,exercises:[{name:'Prefill Press XYZ',type:'lift',sets:[{kg:42.5,reps:8,done:true}]}]};a.state.workoutLog[k]=(Array.isArray(cur)?cur:(cur?[cur]:[])).concat([entry]);a.wkBeginSession({id:'pf',name:'PF',exercises:[{name:'Prefill Press XYZ',type:'lift'}]});var kg=a._wkSession&&a._wkSession.exercises[0]&&a._wkSession.exercises[0].sets&&a._wkSession.exercises[0].sets[0]?a._wkSession.exercises[0].sets[0].kg:null;a._wkSession=null;a.state.activeSession=null;a.state.workoutLog=JSON.parse(snap);return parseFloat(kg)===42.5?true:{pass:false,msg:'first set kg is '+kg};}}
   ]},
-  { id:'P', title:"Progress screen", color:"#C084FC", tests:[
+  { id:"P", title:"Auto: Progress", color:"#C084FC", tests:[
     {id:"P.01",type:"auto",label:"renderTrends function exists",run:function(a){return typeof a.renderTrends==='function';}},
     {id:"P.02",type:"auto",label:"renderGoals function exists",run:function(a){return typeof a.renderGoals==='function';}},
     {id:"P.03",type:"auto",label:"state.weightLog is an array",run:function(a){return Array.isArray(a.state.weightLog);}},
-    {id:"P.04",type:"auto",label:"drawLineChart renders SVG into a container",
-      run:function(a){
+    {id:"P.04",type:"auto",label:"drawLineChart renders SVG into a container",run:function(a){
         if(typeof a.drawLineChart!=='function')return false;
         var el=a.document.createElement('div');
         a.document.body.appendChild(el);
@@ -303,17 +222,10 @@ var SECTIONS = [
         return true;
       }},
     {id:"P.05",type:"auto",label:"saveGoal function exists",run:function(a){return typeof a.saveGoal==='function';}},
-    {id:"P.06",type:"auto",label:"toggleMilestone function exists",run:function(a){return typeof a.toggleMilestone==='function';}},
-    {id:"P.07",type:"semi",label:"Weight trend chart renders with data from test data",run:null},
-    {id:"P.08",type:"semi",label:"Goals list renders from test data",run:null},
-    {id:"P.09",type:"manual",label:"Log weight — appears in chart and updates current weight",run:null},
-    {id:"P.10",type:"manual",label:"Add goal with milestone — appears in goals list",run:null},
-    {id:"P.11",type:"manual",label:"Tick a milestone — marks as done",run:null},
-    {id:"P.12",type:"manual",label:"Trend period toggle (1W / 1M / 3M) — chart updates",run:null},
+    {id:"P.06",type:"auto",label:"toggleMilestone function exists",run:function(a){return typeof a.toggleMilestone==='function';}}
   ]},
-  { id:'R', title:"Recent features (v7)", color:"#60A5FA", tests:[
-    {id:"R.01",type:"auto",label:"migrateOldWorkoutData converts object entries to arrays",
-      run:function(a){
+  { id:"R", title:"Auto: Recent features", color:"#9A98A0", tests:[
+    {id:"R.01",type:"auto",label:"migrateOldWorkoutData converts object entries to arrays",run:function(a){
         var origLog=a.state.workoutLog;
         a.state.workoutLog={'2026-01-01':{name:'OldSession',exercises:[]}};
         if(typeof a.migrateOldWorkoutData==='function')a.migrateOldWorkoutData();
@@ -321,8 +233,7 @@ var SECTIONS = [
         a.state.workoutLog=origLog;
         return ok;
       }},
-    {id:"R.02",type:"auto",label:"wkEndSession pushes session into array in workoutLog",
-      run:function(a){
+    {id:"R.02",type:"auto",label:"wkEndSession pushes session into array in workoutLog",run:function(a){
         a.wkBeginSession({id:'arr-test',name:'ArrayTest',exercises:[]});
         var dk=a.localDateStr?a.localDateStr(new Date()):new Date().toISOString().slice(0,10);
         delete a.state.workoutLog[dk];
@@ -330,99 +241,77 @@ var SECTIONS = [
         var entry=a.state.workoutLog[dk];
         return Array.isArray(entry)&&entry.length>=1;
       }},
-    {id:"R.03",type:"auto",label:"workoutLog after testdata has 2 sessions on daysAgo(1)",
-      run:function(a){
+    {id:"R.03",type:"auto",label:"workoutLog after testdata has 2 sessions on daysAgo(1)",run:function(a){
         var log=a.state.workoutLog||{};
         var d=new Date();d.setDate(d.getDate()-1);
         var dk=a.localDateStr?a.localDateStr(d):d.toISOString().slice(0,10);
         var e=log[dk];
         return Array.isArray(e)&&e.length>=2;
       }},
-    {id:"R.04",type:"auto",label:"changeWkTodayDay function exists",
-      run:function(a){return typeof a.changeWkTodayDay==='function';}},
-    {id:"R.05",type:"auto",label:"_wkDayOff variable exists (day-based nav, not week-based)",
-      run:function(a){return typeof a._wkDayOff!=='undefined';}},
-    {id:"R.06",type:"auto",label:"wkExSearch function exists",
-      run:function(a){return typeof a.wkExSearch==='function';}},
-    {id:"R.07",type:"auto",label:"wkExSearchPick function exists",
-      run:function(a){return typeof a.wkExSearchPick==='function';}},
-    {id:"R.08",type:"auto",label:"wkEditTemplate function exists",
-      run:function(a){return typeof a.wkEditTemplate==='function';}},
-    {id:"R.09",type:"auto",label:"wkSaveEditTemplate function exists",
-      run:function(a){return typeof a.wkSaveEditTemplate==='function';}},
-    {id:"R.10",type:"auto",label:"modal-wk-edit-tpl element exists in DOM",
-      run:function(a){return!!a.document.getElementById('modal-wk-edit-tpl');}},
-    {id:"R.11",type:"auto",label:".plan-daystrip exists inside #meal-plan-container",
-      run:function(a){var c=a.document.getElementById('meal-plan-container');if(!c)return{pass:false,msg:'meal-plan-container not found'};return!!c.querySelector('.plan-daystrip');}},
-    {id:"R.12",type:"auto",label:"_wkWeekLabel returns range format with en-dash",
-      run:function(a){
+    {id:"R.04",type:"auto",label:"changeWkTodayDay function exists",run:function(a){return typeof a.changeWkTodayDay==='function';}},
+    {id:"R.05",type:"auto",label:"_wkDayOff variable exists (day-based nav, not week-based)",run:function(a){return typeof a._wkDayOff!=='undefined';}},
+    {id:"R.06",type:"auto",label:"wkExSearch function exists",run:function(a){return typeof a.wkExSearch==='function';}},
+    {id:"R.07",type:"auto",label:"wkExSearchPick function exists",run:function(a){return typeof a.wkExSearchPick==='function';}},
+    {id:"R.08",type:"auto",label:"wkEditTemplate function exists",run:function(a){return typeof a.wkEditTemplate==='function';}},
+    {id:"R.09",type:"auto",label:"wkSaveEditTemplate function exists",run:function(a){return typeof a.wkSaveEditTemplate==='function';}},
+    {id:"R.10",type:"auto",label:"modal-wk-edit-tpl element exists in DOM",run:function(a){return!!a.document.getElementById('modal-wk-edit-tpl');}},
+    {id:"R.11",type:"auto",label:".plan-daystrip exists inside #meal-plan-container",run:function(a){var c=a.document.getElementById('meal-plan-container');if(!c)return{pass:false,msg:'meal-plan-container not found'};return!!c.querySelector('.plan-daystrip');}},
+    {id:"R.12",type:"auto",label:"_wkWeekLabel returns range format with en-dash",run:function(a){
         if(typeof a._wkWeekLabel!=='function')return{pass:false,msg:'_wkWeekLabel not found'};
         var mon=new Date(2026,9,26);
         var dates=[];for(var i=0;i<7;i++){var d=new Date(mon);d.setDate(mon.getDate()+i);dates.push(d);}
         var lbl=a._wkWeekLabel(dates);
         return typeof lbl==='string'&&lbl.includes('–')&&lbl.includes('Week of');
       }},
-    {id:"R.13",type:"auto",label:"wkRenderDaySchedule returns meal-day-card rows",
-      run:function(a){
+    {id:"R.13",type:"auto",label:"wkRenderDaySchedule returns meal-day-card rows",run:function(a){
         if(typeof a.wkRenderDaySchedule!=='function')return{pass:false,msg:'wkRenderDaySchedule not found'};
         var mon=new Date(2026,9,26);
         var dates=[];for(var i=0;i<7;i++){var d=new Date(mon);d.setDate(mon.getDate()+i);dates.push(d);}
         var html=a.wkRenderDaySchedule(dates,{},'2026-10-26');
         return typeof html==='string'&&html.includes('meal-day-card');
       }},
-    {id:"R.14",type:"auto",label:"wkBuildExerciseCard numeric input stripping present",
-      run:function(a){
+    {id:"R.14",type:"auto",label:"wkBuildExerciseCard numeric input stripping present",run:function(a){
         if(typeof a.wkBuildExerciseCard!=='function')return{pass:false,msg:'wkBuildExerciseCard not found'};
         var src=a.wkBuildExerciseCard.toString();
         return src.includes('[^0-9.]');
       }},
-    {id:"R.15",type:"auto",label:"wk-ex-search input cleared when add-exercise modal opens",
-      run:function(a){
+    {id:"R.15",type:"auto",label:"wk-ex-search input cleared when add-exercise modal opens",run:function(a){
         if(!a._wkSession)a.wkBeginSession({id:'search-test',name:'SearchTest',exercises:[]});
         var searchEl=a.document.getElementById('wk-ex-search');
         if(!searchEl)return{pass:false,msg:'wk-ex-search not found'};
         searchEl.value='bench';
         a.wkOpenAddExercise('today');
         return searchEl.value==='';
-      }},
+      }}
   ]},
-  { id:'S', title:"Settings & onboarding", color:"#F87171", tests:[
+  { id:"S", title:"Auto: Settings", color:"#F87171", tests:[
     {id:"S.01",type:"auto",label:"saveSettings function exists",run:function(a){return typeof a.saveSettings==='function';}},
-    {id:"S.02",type:"auto",label:"calcAuto macros sum to ~2000 kcal",
-      run:function(a){
+    {id:"S.02",type:"auto",label:"calcAuto macros sum to ~2000 kcal",run:function(a){
         if(typeof a.calcAuto!=='function')return false;
         var r=a.calcAuto(2000,'balanced');
         var p=r.protein||r.p||0;var c=r.carbs||r.c||0;var f=r.fat||r.f||0;
         var total=p*4+c*4+f*9;
         return Math.abs(total-2000)<15;
       }},
-    {id:"S.03",type:"auto",label:"calcFixProtein returns object with carbs/fat",
-      run:function(a){if(typeof a.calcFixProtein!=='function')return false;var r=a.calcFixProtein(2000,150,'balanced');return r&&('carbs'in r||'c'in r)&&('fat'in r||'f'in r);}},
+    {id:"S.03",type:"auto",label:"calcFixProtein returns object with carbs/fat",run:function(a){if(typeof a.calcFixProtein!=='function')return false;var r=a.calcFixProtein(2000,150,'balanced');return r&&('carbs'in r||'c'in r)&&('fat'in r||'f'in r);}},
     {id:"S.04",type:"auto",label:"exportData function exists",run:function(a){return typeof a.exportData==='function';}},
-    {id:"S.05",type:"auto",label:"clearData / doFullReset functions exist",
-      run:function(a){return typeof a.clearData==='function'||typeof a.doFullReset==='function';}},
-    {id:"S.06",type:"semi",label:"Settings screen shows correct current macro targets",run:null},
-    {id:"S.07",type:"manual",label:"Change macro mode (Auto/Custom) — targets update and save",run:null},
-    {id:"S.08",type:"manual",label:"Change name/weight in settings — reflects on Home screen",run:null},
+    {id:"S.05",type:"auto",label:"clearData / doFullReset functions exist",run:function(a){return typeof a.clearData==='function'||typeof a.doFullReset==='function';}}
   ]},
-  {id:"G",title:"Global / Regression",color:"#4ADE80",tests:[
-    {id:"G.01",type:"auto",label:"Every .btn element is a real <button> or <a>",
-      run:function(a){
+  { id:"G", title:"Auto: Global / regression", color:"#F0EEE8", tests:[
+    {id:"G.01",type:"auto",label:"Every .btn element is a real <button> or <a>",run:function(a){
         var bad=[].filter.call(a.document.querySelectorAll('.btn,[class*="btn-"]'),function(el){
           return el.tagName!=='BUTTON'&&el.tagName!=='A';
         });
         if(bad.length)return{pass:false,msg:bad.map(function(el){return el.tagName+'.'+el.className;}).join(', ')};
         return true;
       }},
-    {id:"G.02",type:"auto",label:"Children of every button ignore pointer events",
-      run:function(a){
+    {id:"G.02",type:"auto",label:"Children of every button ignore pointer events",run:function(a){
         var bad=[].filter.call(a.document.querySelectorAll('button *'),function(el){
           var s=a.getComputedStyle(el);return s.pointerEvents!=='none';
         });
         return bad.length===0||{pass:false,msg:bad.length+' elements with pointer-events!=none'};
       }},
-    {id:"G.03",type:"auto",label:"Both plan pages contain .plan-weeknav, .plan-daystrip, .plan-toolbar, .meal-day-card",
-      run:function(a){
+    {id:"G.03",type:"auto",label:"Both plan pages contain .plan-weeknav, .plan-daystrip, .plan-toolbar, .meal-day-card",run:function(a){
         a.wkRenderPlans&&a.wkRenderPlans();
         a.renderMealPlanGrid&&a.renderMealPlanGrid();
         var wp=a.document.getElementById('wk-plans-content');
@@ -435,8 +324,7 @@ var SECTIONS = [
         });
         return missing.length?{pass:false,msg:missing.join(', ')}:true;
       }},
-    {id:"G.04",type:"auto",label:"Typed kg/reps are logged even when the set circle is NOT ticked",
-      run:function(a){
+    {id:"G.04",type:"auto",label:"Typed kg/reps are logged even when the set circle is NOT ticked",run:function(a){
         a.wkBeginSession({id:'g4',name:'G4',exercises:[]});
         a.document.getElementById('wk-add-ex-name').value='Squat';
         a.document.querySelectorAll('#wk-add-ex-types .exercise-tag').forEach(function(t){t.classList.remove('selected');if(t.dataset.type==='lift')t.classList.add('selected');});
@@ -451,8 +339,7 @@ var SECTIONS = [
         var ex2=(last&&last.exercises||[]).find(function(e){return e.name==='Squat';});
         return ex2&&ex2.sets&&(parseFloat(ex2.sets[0].kg)>0);
       }},
-    {id:"G.05",type:"auto",label:"History lists sessions newest first by completion time",
-      run:function(a){
+    {id:"G.05",type:"auto",label:"History lists sessions newest first by completion time",run:function(a){
         if(typeof a.wkSortSessions!=='function')return{pass:false,msg:'wkSortSessions not found'};
         var d=new Date();d.setDate(d.getDate()-1);
         var dk=a.localDateStr?a.localDateStr(d):d.toISOString().slice(0,10);
@@ -461,8 +348,7 @@ var SECTIONS = [
         var sorted=a.wkSortSessions(entries);
         return sorted[0].endTime>=sorted[1].endTime;
       }},
-    {id:"G.06",type:"auto",label:"Nutrition day strip uses square .plan-day-tile elements (not pill spans)",
-      run:function(a){
+    {id:"G.06",type:"auto",label:"Nutrition day strip uses square .plan-day-tile elements (not pill spans)",run:function(a){
         a.renderMealPlanGrid&&a.renderMealPlanGrid();
         var mp=a.document.getElementById('meal-plan-container');
         if(!mp)return{pass:false,msg:'meal-plan-container not found'};
@@ -471,8 +357,7 @@ var SECTIONS = [
         var pills=mp.querySelectorAll('.plan-daystrip span[style*="border-radius:99px"]');
         return pills.length===0||{pass:false,msg:'old pill spans still present: '+pills.length};
       }},
-    {id:"G.07",type:"auto",label:"Nutrition toolbar has Copy/Save/Load buttons, no Shopping list",
-      run:function(a){
+    {id:"G.07",type:"auto",label:"Nutrition toolbar has Copy/Save/Load buttons, no Shopping list",run:function(a){
         a.renderMealPlanGrid&&a.renderMealPlanGrid();
         var mp=a.document.getElementById('meal-plan-container');
         if(!mp)return{pass:false,msg:'meal-plan-container not found'};
@@ -487,17 +372,7 @@ var SECTIONS = [
         if(hasShopping)return{pass:false,msg:'Shopping list button should not be in toolbar'};
         return true;
       }},
-    {id:"G.08",type:"auto",label:"Workout day card rows: workout name is bold (not .meal-slot-name grey)",
-      run:function(a){
-        a.wkRenderPlans&&a.wkRenderPlans();
-        var wp=a.document.getElementById('wk-plans-content');
-        if(!wp)return{pass:false,msg:'wk-plans-content not found'};
-        var greyNames=wp.querySelectorAll('.meal-day-card .meal-slot .meal-slot-name');
-        var boldNames=wp.querySelectorAll('.meal-day-card .meal-slot span[style*="font-weight:600"]');
-        return greyNames.length===0||{pass:false,msg:greyNames.length+' elements still using .meal-slot-name (grey)'};
-      }},
-    {id:"G.09",type:"auto",label:"History session label shows dd-mm-yyyy time, not NNmin duration",
-      run:function(a){
+    {id:"G.09",type:"auto",label:"History session label shows dd-mm-yyyy time, not NNmin duration",run:function(a){
         a.renderWkhSessionCards&&a.renderWkhSessionCards();
         var sc=a.document.getElementById('wkh-sessions-content');
         if(!sc)return{pass:false,msg:'wkh-sessions-content not found'};
@@ -506,9 +381,41 @@ var SECTIONS = [
         if(hasMin)return{pass:false,msg:'Found NNmin pattern in session cards'};
         return true;
       }},
-    {id:"G.10",type:"auto",label:"Recipe results box is tall enough to show OFF products",run:function(a){var c=a.document.getElementById('recipe-ingredient-results');if(!c)return{pass:false,msg:'recipe-ingredient-results missing'};var mh=a.getComputedStyle(c).maxHeight;var px=mh==='none'?9999:parseFloat(mh);return px>=300?true:{pass:false,msg:'max-height '+mh+' hides OFF products below the fold'};}},
+    {id:"G.10",type:"auto",label:"Recipe results box is tall enough to show OFF products",run:function(a){
+  var c=a.document.getElementById('recipe-ingredient-results');
+  if(!c)return{pass:false,msg:'recipe-ingredient-results missing'};
+  var mh=a.getComputedStyle(c).maxHeight;
+  var px=mh==='none'?9999:/vh$/.test(mh)?parseFloat(mh)/100*(a.innerHeight||800):parseFloat(mh);
+  return px>=300?true:{pass:false,msg:'max-height '+mh+' hides OFF products below the fold'};
+}},
     {id:"G.11",type:"auto",label:"Recipe modal has a source/count line",run:function(a){return !!a.document.querySelector('#modal-recipe [id*="source-line"]');}},
-    {id:"G.12",type:"auto",label:"Nutrition template sheet uses modal-overlay style (not bottom sheet)",run:function(a){if(typeof a.showTemplatesSheet!=='function')return{pass:false,msg:'showTemplatesSheet not found'};a.showTemplatesSheet();var el=a.document.getElementById('modal-nt-template-list');var ok=el&&el.classList.contains('modal-overlay');if(el)a.closeModal&&a.closeModal('modal-nt-template-list');return ok?true:{pass:false,msg:el?'element found but missing modal-overlay class':'modal-nt-template-list not in DOM'};}},
+    {id:"G.12",type:"auto",label:"Save and Load template sheets are structurally identical on Workout and Nutrition",run:function(a){
+  var d=a.document;
+  if(typeof a.openTemplateSheet!=='function')return{pass:false,msg:'openTemplateSheet missing'};
+  var shown=function(){return [].slice.call(d.querySelectorAll('.modal-overlay')).filter(function(o){return o.classList.contains('open')||o.style.display==='flex';});};
+  var sheetEl=function(){var ov=shown();return ov.length?ov[ov.length-1]:null;};
+  var sig=function(root){var seen={};[].slice.call(root.querySelectorAll('*')).forEach(function(e){var c=(typeof e.className==='string'?e.className:'').replace(/\b(open|active|selected)\b/g,'').trim().replace(/\s+/g,'.');seen[e.tagName+'.'+c]=1;});return Object.keys(seen).sort().join(' ');};
+  var closeAll=function(){[].slice.call(d.querySelectorAll('.modal-overlay')).forEach(function(o){o.classList.remove('open');if(o.style.display==='flex')o.style.display='none';});var x=d.getElementById('action-sheet-overlay');if(x)x.remove();};
+  var st=a.state;st.workoutTemplates=st.workoutTemplates||[];st.planTemplates=st.planTemplates||[];st.workoutSchedule=st.workoutSchedule||{};
+  var wk=a._wkWeekISO(a._wkPlanWeekOff||0);var hadWk=!!st.workoutSchedule[wk];if(!hadWk)st.workoutSchedule[wk]={0:['rest']};
+  st.workoutTemplates.push({id:'zt-w',name:'ZT Workout tpl',savedAt:'2026-01-01',week:{}});
+  st.planTemplates.push({id:'zt-n',name:'ZT Meal tpl',savedAt:'2026-01-01',week:{}});
+  var out=[];
+  try{
+    ['save','load'].forEach(function(mode){
+      closeAll();a.openTemplateSheet('workout',mode);var w=sheetEl();var ws=w?sig(w):'';
+      closeAll();a.openTemplateSheet('meal',mode);var n=sheetEl();var ns=n?sig(n):'';
+      closeAll();
+      if(!w||!n)out.push(mode+': '+(!w?'Workout':'Nutrition')+' sheet did not open');
+      else if(ws!==ns)out.push(mode+': markup differs (Workout #'+w.id+' vs Nutrition #'+n.id+') - should be one shared component');
+    });
+  }catch(e){out.push('error '+e.message);}
+  closeAll();
+  if(!hadWk)delete st.workoutSchedule[wk];
+  st.workoutTemplates=st.workoutTemplates.filter(function(t){return t.id!=='zt-w';});
+  st.planTemplates=st.planTemplates.filter(function(t){return t.id!=='zt-n';});
+  return out.length===0?true:{pass:false,msg:out.join(' | ')};
+}},
     {id:"G.13",type:"auto",label:"Show snacks button is present in Nutrition plan toolbar",run:function(a){
       if(typeof a.renderMealPlanGrid!=='function')return{pass:false,msg:'renderMealPlanGrid not found'};
       a.renderMealPlanGrid();
@@ -529,40 +436,42 @@ var SECTIONS = [
       a.state.planShowSnacks=false;a.renderMealPlanGrid();
       return after>before?true:{pass:false,msg:'slots before='+before+' after='+after+'; snacks not adding rows'};
     }},
-    {id:"G.15",type:"auto",label:"Plan day tiles show dots not text abbreviations",run:function(a){
-      if(typeof a.renderMealPlanGrid!=='function')return{pass:false,msg:'renderMealPlanGrid not found'};
-      a.renderMealPlanGrid();
-      var el=a.document.getElementById('meal-plan-container');
-      if(!el)return{pass:false,msg:'meal-plan-container not found'};
-      var strip=el.querySelector('.plan-daystrip');
-      if(!strip)return{pass:false,msg:'plan-daystrip not found in meal-plan-container'};
-      var dots=strip.querySelectorAll('.dots');
-      if(!dots.length)return{pass:false,msg:'No .dots containers found in day strip tiles'};
-      return true;
-    }},
-    {id:"G.16",type:"auto",label:"Workout day card names use .slot-name class (same style as meal slot labels)",run:function(a){
-      if(typeof a.wkRenderPlans!=='function')return{pass:false,msg:'wkRenderPlans not found'};
-      a.wkRenderPlans();
-      var el=a.document.getElementById('wk-plans-content');
-      if(!el)return{pass:false,msg:'wk-plans-content not found'};
-      var mealSlot=el.querySelector('.meal-slot .slot-name');
-      if(mealSlot)return true;
-      // If no schedule assigned, check that .meal-slot-name is not in workout rows
-      var badSpan=el.querySelector('.meal-slot .meal-slot-name');
-      if(badSpan)return{pass:false,msg:'Workout row uses .meal-slot-name instead of .slot-name'};
-      return true;
-    }},
-    {id:"G.17",type:"auto",label:"Workout history session cards show date and time",run:function(a){
-      if(typeof a.wkRenderHistory!=='function')return{pass:false,msg:'wkRenderHistory not found'};
-      a.wkRenderHistory();
-      var el=a.document.getElementById('wk-history');
-      if(!el)return{pass:false,msg:'wk-history not found'};
-      var text=el.textContent||el.innerText||'';
-      var hasDate=/\d{2}-\d{2}-\d{4}/.test(text);
-      if(!hasDate)return{pass:false,msg:'No dd-mm-yyyy date found in wk-history (load test data first)'};
-      return true;
-    }},
-    {id:"G.18",type:"auto",label:"Macro CSS variables --macro-p/c/f are defined in :root",run:function(a){
+    {id:"G.15",type:"auto",label:"Workout and Nutrition day tiles share markup and use dots",run:function(a){
+  a.renderMealPlanGrid();a.wkRenderPlans();var d=a.document;
+  var tiles=function(sc){var s=d.querySelector(sc+' .plan-daystrip');return s?[].slice.call(s.children):[];};
+  var nt=tiles('#screen-nutrition'),wt=tiles('#screen-workout');
+  if(nt.length!==7||wt.length!==7)return{pass:false,msg:'expected 7 tiles each, got nutrition='+nt.length+' workout='+wt.length};
+  var noDots=nt.concat(wt).filter(function(t){return !t.querySelector('.dots');}).length;
+  if(noDots>0)return{pass:false,msg:noDots+' tiles have no .dots container'};
+  var norm=function(c){return c.replace(/\b(active|today|selected|has)\b/g,'').replace(/\s+/g,' ').trim();};
+  if(norm(nt[0].className)!==norm(wt[0].className))return{pass:false,msg:'tile classes differ: "'+nt[0].className+'" vs "'+wt[0].className+'"'};
+  var nr=a.getComputedStyle(nt[0]).borderRadius,wr=a.getComputedStyle(wt[0]).borderRadius;
+  return nr===wr?true:{pass:false,msg:'border radius differs: '+nr+' vs '+wr};
+}},
+    {id:"G.17",type:"auto",label:"Today completed card shows the time only; History card shows date and time",run:function(a){
+  var snap=JSON.stringify(a.state.workoutLog||{});var prevOff=a._wkDayOff;var prevWk=a._wkhSessionWeekOff;
+  var k=a.localDateStr(new Date());var e=new Date();e.setHours(18,35,0,0);
+  a.state.workoutLog=a.state.workoutLog||{};
+  a.state.workoutLog[k]=[{name:'DateFmtXYZ',startTime:e.getTime()-3600000,endTime:e.getTime(),exercises:[]}];
+  var t='',h='',err=null;
+  try{
+    a._wkDayOff=0;a.wkRenderToday();t=(a.document.getElementById('wk-today-content')||{}).textContent||'';
+    a._wkhSessionWeekOff=0;if(typeof a.renderWkhSessionCards==='function')a.renderWkhSessionCards();else a.wkRenderHistory();
+    h=(a.document.getElementById('wkh-sessions-content')||a.document.getElementById('wk-history')||{}).textContent||'';
+  }catch(x){err=x.message;}
+  a._wkDayOff=prevOff;a._wkhSessionWeekOff=prevWk;a.state.workoutLog=JSON.parse(snap);
+  try{a.wkRenderToday();a.wkRenderHistory();}catch(x){}
+  if(err)return{pass:false,msg:'error '+err};
+  var re=/(?<!\d)\d{2}-\d{2}-\d{4}(?!\d)/,tm=/6:35[\s\u202f\u00a0]?pm/i;
+  var i=t.indexOf('DateFmtXYZ'),tt=i>=0?t.slice(Math.max(0,i-5),i+80):t;
+  var bad=[];
+  if(!tm.test(t))bad.push('Today card has no finish time (6:35pm)');
+  if(re.test(tt))bad.push('Today card still shows a dd-mm-yyyy date');
+  if(!tm.test(h))bad.push('History card has no finish time (6:35pm)');
+  if(!re.test(h))bad.push('History card has no dd-mm-yyyy date');
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.18",type:"auto",label:"Macro CSS variables --macro-p/c/f are defined in :root (definition only - check the colours by eye in N.10)",run:function(a){
       var style=a.getComputedStyle(a.document.documentElement);
       var mp=style.getPropertyValue('--macro-p').trim();
       var mc=style.getPropertyValue('--macro-c').trim();
@@ -572,98 +481,300 @@ var SECTIONS = [
       if(!mf)return{pass:false,msg:'--macro-f not defined in :root'};
       return true;
     }},
-    {id:"G.19",type:"auto",label:"Today completed card shows time only (no dd-mm-yyyy date)",run:function(a){
-      if(typeof a.wkRenderToday!=='function')return{pass:false,msg:'wkRenderToday not found'};
-      a._wkDayOff=0;
-      a.wkRenderToday();
-      var el=a.document.getElementById('wk-today-content');
-      if(!el)return{pass:false,msg:'wk-today-content not found'};
-      var text=el.textContent||el.innerText||'';
-      var dateMatches=(text.match(/\d{2}-\d{2}-\d{4}/g)||[]);
-      return dateMatches.length===0?true:{pass:false,msg:'Today card shows date(s): '+dateMatches.join(', ')};
-    }},
-    {id:"F.20",type:"auto",label:"See more results works in the recipe builder (mocked OFF, full pages)",run:function(a){return offMockRun(a,50,'recipe');}},
-    {id:"F.21",type:"auto",label:"See more results still offered when only 20 of 50 raw products pass the filter",run:function(a){return offMockRun(a,20,'recipe');}},
-    {id:"F.22",type:"auto",label:"See more results works in Log Food (mocked OFF)",run:function(a){return offMockRun(a,50,'modal');}},
     {id:"G.20",type:"auto",label:"Workout row names and Rest text look identical to Nutrition meal names (size, weight, font, colour)",run:function(a){a.renderMealPlanGrid();a.wkRenderPlans();var d=a.document;var leaves=function(sc,pred){var out=[];[].slice.call(d.querySelectorAll(sc+' .meal-day-card *')).forEach(function(e){if(e.children.length===0&&pred(e.textContent.trim()))out.push(e);});return out;};var wNames=(a.state.savedWorkouts||[]).map(function(w){return w.name;});var nNames=(a.state.recipes||[]).map(function(r){return r.name||r.title;}).filter(Boolean);var w=leaves('#screen-workout',function(t){return wNames.indexOf(t)>=0;});var n=leaves('#screen-nutrition',function(t){return nNames.indexOf(t)>=0;});var rest=leaves('#screen-workout',function(t){return /^rest( day)?$/i.test(t);});if(!w.length)return{pass:false,msg:'no workout names found in Workout day cards'};if(!n.length)return{pass:false,msg:'no recipe names found in Nutrition day cards (is a meal planned this week in the test data?)'};var sig=function(e){var s=a.getComputedStyle(e);return s.color+'|'+s.fontSize+'|'+s.fontWeight+'|'+s.fontFamily;};var ref=sig(n[0]);var bad=w.filter(function(e){return sig(e)!==ref;}).map(sig);if(bad.length)return{pass:false,msg:'nutrition='+ref+' | workout='+bad[0]};var rs=rest.filter(function(e){var s=a.getComputedStyle(e),r=a.getComputedStyle(n[0]);return s.fontSize!==r.fontSize||s.fontFamily!==r.fontFamily;});return rs.length===0?true:{pass:false,msg:'Rest text differs in size/font from meal names: '+a.getComputedStyle(rs[0]).fontSize+' '+a.getComputedStyle(rs[0]).fontFamily};}},
     {id:"G.22",type:"auto",label:"Library gives the right card type per exercise",run:function(a){if(typeof a.wkTypeForExercise!=='function')return{pass:false,msg:'wkTypeForExercise missing'};var want={'Lateral Raise':'lift','Overhead Press':'lift','Face Pull':'lift','Bench Press':'lift','Running':'cardio-distance','Walking':'cardio-distance','Cycling':'cardio-distance','Swimming':'cardio-duration','Dance':'cardio-duration','Plank':'timed-hold','Push Up':'bodyweight'};var bad=[];Object.keys(want).forEach(function(k){var t=a.wkTypeForExercise(k);if(t!==want[k])bad.push(k+'='+t+' (want '+want[k]+')');});return bad.length===0?true:{pass:false,msg:bad.join(' | ')};}},
     {id:"G.23",type:"auto",label:"No saved workout or logged exercise contradicts the library type",run:function(a){if(typeof a.wkTypeForExercise!=='function')return{pass:false,msg:'wkTypeForExercise missing'};var bad=[];var chk=function(x,where){if(!x||!x.name)return;var t=a.wkTypeForExercise(x.name);if(t&&x.type!==t&&!(t==='bodyweight'&&x.type==='timed-hold'))bad.push(where+': '+x.name+' is '+x.type+', library says '+t);};(a.state.savedWorkouts||[]).forEach(function(w){(w.exercises||[]).forEach(function(x){chk(x,'plan '+w.name);});});Object.keys(a.state.workoutLog||{}).forEach(function(k){var e=a.state.workoutLog[k];(Array.isArray(e)?e:[e]).forEach(function(s){((s&&s.exercises)||[]).forEach(function(x){chk(x,'log '+k);});});});return bad.length===0?true:{pass:false,msg:bad.slice(0,4).join(' | ')};}},
     {id:"G.24",type:"auto",label:"Run names collapse to one canonical exercise",run:function(a){if(typeof a.wkCanonicalExercise!=='function')return{pass:false,msg:'wkCanonicalExercise missing'};var bad=['Running','Morning Run','Evening Run','Run'].filter(function(n){return a.wkCanonicalExercise(n)!=='Run';});return bad.length===0?true:{pass:false,msg:'not mapped to Run: '+bad.join(', ')};}},
-    {id:"G.25",type:"auto",label:"Unnamed sessions get a derived title (5 km Run, 60 min Groove)",run:function(a){if(typeof a.wkSessionTitle!=='function')return{pass:false,msg:'wkSessionTitle missing'};var r1=a.wkSessionTitle({name:'',exercises:[{name:'Run',type:'cardio-distance',distanceKm:5.2,timeSeconds:1800}]});var r2=a.wkSessionTitle({name:'',exercises:[{name:'Run',type:'cardio-distance',distanceKm:5,timeSeconds:1700}]});var r3=a.wkSessionTitle({name:'',exercises:[{name:'Groove',type:'cardio-duration',timeSeconds:3600}]});var r4=a.wkSessionTitle({name:'Upper A',exercises:[]});var ok=r1==='5.2 km Run'&&r2==='5 km Run'&&r3==='60 min Groove'&&r4==='Upper A';return ok?true:{pass:false,msg:JSON.stringify([r1,r2,r3,r4])};}}
+    {id:"G.25",type:"auto",label:"Unnamed sessions get a derived title (5 km Run, 60 min Groove)",run:function(a){if(typeof a.wkSessionTitle!=='function')return{pass:false,msg:'wkSessionTitle missing'};var r1=a.wkSessionTitle({name:'',exercises:[{name:'Run',type:'cardio-distance',distanceKm:5.2,timeSeconds:1800}]});var r2=a.wkSessionTitle({name:'',exercises:[{name:'Run',type:'cardio-distance',distanceKm:5,timeSeconds:1700}]});var r3=a.wkSessionTitle({name:'',exercises:[{name:'Groove',type:'cardio-duration',timeSeconds:3600}]});var r4=a.wkSessionTitle({name:'Upper A',exercises:[]});var ok=r1==='5.2 km Run'&&r2==='5 km Run'&&r3==='60 min Groove'&&r4==='Upper A';return ok?true:{pass:false,msg:JSON.stringify([r1,r2,r3,r4])};}},
+    {id:"G.26",type:"auto",label:"Picking a library exercise gives the right card type (Lateral Raise = lift, Running = distance...)",run:function(a){
+  if(typeof a.wkOpenAddExercise!=='function'||typeof a.wkExSearchPick!=='function'||typeof a.wkConfirmAddExercise!=='function')return{pass:false,msg:'add-exercise functions missing'};
+  var want=[['Lateral Raise','lift'],['Running','cardio-distance'],['Plank','timed-hold'],['Dance','cardio-duration'],['Push-up','bodyweight']];
+  var bad=[];a._wkSession=null;a.state.activeSession=null;
+  try{
+    want.forEach(function(w){
+      a.wkOpenAddExercise('today');
+      var before=a._wkSession?a._wkSession.exercises.length:0;
+      a.wkExSearchPick(w[0]);
+      var after=a._wkSession?a._wkSession.exercises.length:0;
+      if(after===before){try{a.wkConfirmAddExercise();}catch(e){}after=a._wkSession?a._wkSession.exercises.length:0;}
+      var ex=a._wkSession&&a._wkSession.exercises[a._wkSession.exercises.length-1];
+      if(!ex||after===before)bad.push(w[0]+': not added');
+      else if(ex.type!==w[1])bad.push(w[0]+' added as '+ex.type+' (want '+w[1]+')');
+      if(a.closeModal)a.closeModal('modal-wk-add-ex');
+    });
+  }catch(e){bad.push('error '+e.message);}
+  a._wkSession=null;a.state.activeSession=null;if(typeof a.wkRenderToday==='function')a.wkRenderToday();
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.27",type:"auto",label:"Quick session with a Run: name stays empty, exercise is 'Run', History title reads '5 km Run'",run:function(a){
+  var snap=JSON.stringify(a.state.workoutLog||{});var bad=[];
+  try{
+    a._wkSession=null;a.state.activeSession=null;
+    a.wkOpenAddExercise('today');a.wkExSearchPick('Running');
+    if(!(a._wkSession&&a._wkSession.exercises.length)){try{a.wkConfirmAddExercise();}catch(e){}}
+    var s=a._wkSession;
+    if(!s||!s.exercises.length){bad.push('Run was not added to a quick session');}
+    else{
+      if(s.name!=='')bad.push('quick session name is "'+s.name+'" (want empty so the title can be derived)');
+      if(s.exercises[0].name!=='Run')bad.push('exercise name is "'+s.exercises[0].name+'" (want Run)');
+      a.wkCardioDistInput(0,'5');a.wkCardioTimeInput(0,'1800');
+      a.wkEndSession(true);
+      var k=a.localDateStr(new Date());var list=a.state.workoutLog[k]||[];var e=list[list.length-1];
+      if(!e)bad.push('session was not saved');
+      else{
+        if(e.name!=='')bad.push('saved session name is "'+e.name+'" (want empty)');
+        var t=a.wkSessionTitle(e);if(t!=='5 km Run')bad.push('derived title is "'+t+'" (want 5 km Run)');
+      }
+    }
+  }catch(err){bad.push('error '+err.message);}
+  a._wkSession=null;a.state.activeSession=null;a.state.workoutLog=JSON.parse(snap);
+  try{a.wkRenderToday();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.28",type:"auto",label:"Run time is entered as digits only: typing 1800 gives 18:00, stored as 1080 s, pace updates",run:function(a){
+  var bad=[];var d=a.document;
+  try{
+    a._wkSession=null;a.state.activeSession=null;
+    a.wkBeginSession({name:'TimeEntry',exercises:[{name:'Run',type:'cardio-distance'}]});
+    var find=function(){var box=d.getElementById('wk-today-content');return box&&box.querySelector('input[oninput*="wkCardioTimeInput"]');};
+    var dist=function(){var box=d.getElementById('wk-today-content');return box&&box.querySelector('input[oninput*="wkCardioDistInput"]');};
+    var inp=find();
+    if(!inp)return{pass:false,msg:'no time input (oninput=wkCardioTimeInput) found on the Run card'};
+    var type=function(str){inp=find()||inp;inp.value='';str.split('').forEach(function(ch){inp=find()||inp;inp.value=inp.value+ch;inp.dispatchEvent(new a.Event('input',{bubbles:true}));});};
+    type('1800');
+    var ex=a._wkSession.exercises[0];var shown=find()?find().value:'';
+    if(ex.timeSeconds!==1080)bad.push('typing 1800 stored '+ex.timeSeconds+' seconds (want 1080 = 18:00)');
+    if(!/^0?18:00$/.test(shown))bad.push('field shows "'+shown+'" (want 18:00)');
+    var di=dist();if(di){di.value='5';di.dispatchEvent(new a.Event('input',{bubbles:true}));}
+    var pace=d.getElementById('wk-pace-0');var pt=pace?pace.textContent:'';
+    if(!/0?3:36/.test(pt))bad.push('pace shows "'+pt.trim()+'" (want 3:36 /km for 5 km in 18:00)');
+    type('45');
+    if(a._wkSession.exercises[0].timeSeconds!==45)bad.push('typing 45 stored '+a._wkSession.exercises[0].timeSeconds+' seconds (want 45)');
+  }catch(e){bad.push('error '+e.message);}
+  a._wkSession=null;a.state.activeSession=null;try{a.wkRenderToday();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.29",type:"auto",label:"Exercise progress dropdown lists Run once (Running, Morning Run and Run are merged)",run:function(a){
+  var snap=JSON.stringify(a.state.workoutLog||{});var d=a.document;var bad=[];
+  try{
+    var base=Date.now()-5*86400000;
+    var mk=function(daysAgo,nm,km){var k=a.localDateStr(new Date(Date.now()-daysAgo*86400000));var e={name:'',startTime:base,endTime:base+1800000,exercises:[{name:nm,type:'cardio-distance',distanceKm:km,timeSeconds:1800,paceSecPerKm:Math.round(1800/km)}]};a.state.workoutLog=a.state.workoutLog||{};var cur=a.state.workoutLog[k];a.state.workoutLog[k]=(Array.isArray(cur)?cur:(cur?[cur]:[])).concat([e]);};
+    mk(21,'Running',5);mk(14,'Morning Run',4);mk(7,'Run',6);
+    a.wkRenderHistory();
+    var sel=d.getElementById('wkh-ex-select');
+    if(!sel){bad.push('wkh-ex-select not found');}
+    else{
+      var opts=[].slice.call(sel.options).map(function(o){return o.textContent.trim();});
+      var runish=opts.filter(function(t){return /run/i.test(t);});
+      if(runish.length!==1||runish[0]!=='Run')bad.push('run entries in the dropdown: ['+runish.join(', ')+'] (want exactly: Run)');
+    }
+  }catch(e){bad.push('error '+e.message);}
+  a.state.workoutLog=JSON.parse(snap);try{a.wkRenderHistory();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.30",type:"auto",label:"Home Today tile lists completed AND still-to-do workouts, with finish time and a play button; sessions remember their plan",run:function(a){
+  var st=a.state;var bad=[];
+  var snap=JSON.stringify(st.workoutLog||{}),schedSnap=JSON.stringify(st.workoutSchedule||{}),swSnap=JSON.stringify(st.savedWorkouts||[]);
+  try{
+    st.savedWorkouts=st.savedWorkouts||[];
+    var A={id:'zt-a',name:'ZT Alpha',exercises:[]},B={id:'zt-b',name:'ZT Beta',exercises:[]};
+    st.savedWorkouts.push(A,B);
+    var wk=a._wkWeekISO(0);var dow=(new Date().getDay()+6)%7;
+    st.workoutSchedule=st.workoutSchedule||{};st.workoutSchedule[wk]=st.workoutSchedule[wk]||{};st.workoutSchedule[wk][dow]=['zt-a','zt-b'];
+    a._wkSession=null;st.activeSession=null;
+    a.wkBeginSession(A);
+    if(!a._wkSession||a._wkSession.planId!=='zt-a')bad.push('session started from a plan does not store planId (got '+(a._wkSession&&a._wkSession.planId)+')');
+    a.wkEndSession(true);
+    var k=a.localDateStr(new Date());var list=st.workoutLog[k]||[];var last=list[list.length-1];
+    if(!last||last.planId!=='zt-a')bad.push('saved session does not keep planId');
+    var qn=Date.now();st.workoutLog[k].push({name:'',startTime:qn-2400000,endTime:qn,exercises:[{name:'Run',type:'cardio-distance',distanceKm:7,timeSeconds:2400,paceSecPerKm:343}]});
+    a.renderDashboard();
+    var rows=a.document.getElementById('plan-workout-rows');var txt=rows?rows.textContent:'';
+    if(txt.indexOf('ZT Alpha')<0)bad.push('Home tile is missing the COMPLETED workout (ZT Alpha)');
+    if(txt.indexOf('ZT Beta')<0)bad.push('Home tile is missing the still-to-do workout (ZT Beta)');
+    if(!/\d{1,2}:\d{2}[\s\u202f\u00a0]?(am|pm)/i.test(txt))bad.push('Home tile shows no finish time (e.g. 6:35pm)');
+    if(txt.indexOf('7 km Run')<0)bad.push('Home tile is missing the completed QUICK session (should read 7 km Run)');
+    var play=a.document.getElementById('plan-workout-play');
+    if(!play||a.getComputedStyle(play).display==='none')bad.push('play button is hidden');
+    else if(!/player-play|\u25B6/.test(play.innerHTML+play.textContent))bad.push('button is not a play triangle: '+play.innerHTML.slice(0,60));
+  }catch(e){bad.push('error '+e.message);}
+  st.workoutLog=JSON.parse(snap);st.workoutSchedule=JSON.parse(schedSnap);st.savedWorkouts=JSON.parse(swSnap);
+  a._wkSession=null;st.activeSession=null;try{a.renderDashboard();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.31",type:"auto",label:"Tapping anywhere on a workout row or a Rest row in Plans opens Replace / Remove",run:function(a){
+  var st=a.state,d=a.document,bad=[];
+  var schedSnap=JSON.stringify(st.workoutSchedule||{}),swSnap=JSON.stringify(st.savedWorkouts||[]);var off=a._wkPlanWeekOff;
+  var clear=function(){var s=d.getElementById('action-sheet-overlay');if(s)s.remove();};
+  var open=function(){var s=d.getElementById('action-sheet-overlay');return s?s.textContent:'';};
+  try{
+    st.savedWorkouts=st.savedWorkouts||[];st.savedWorkouts.push({id:'zt-r',name:'ZT RowTap',exercises:[]});
+    a._wkPlanWeekOff=0;var wk=a._wkWeekISO(0);
+    st.workoutSchedule=st.workoutSchedule||{};st.workoutSchedule[wk]=st.workoutSchedule[wk]||{};
+    st.workoutSchedule[wk][0]=['zt-r'];st.workoutSchedule[wk][1]=['rest'];
+    a.wkRenderPlans();
+    var rows=[].slice.call(d.querySelectorAll('#wk-plans-content .meal-day-card .meal-slot'));
+    var wr=rows.filter(function(r){return r.textContent.indexOf('ZT RowTap')>=0;})[0];
+    var rr=rows.filter(function(r){return /Rest day/.test(r.textContent);})[0];
+    if(!wr)bad.push('workout row not found');
+    else{clear();wr.click();var t=open();if(!/Replace/.test(t)||!/Remove/.test(t))bad.push('tapping the workout ROW (not just its name) does not open Replace/Remove');clear();}
+    if(!rr)bad.push('Rest day row not found');
+    else{clear();rr.click();var t2=open();if(!/Remove/.test(t2))bad.push('tapping the Rest day row does not open a Replace/Remove sheet');clear();}
+  }catch(e){bad.push('error '+e.message);}
+  clear();a._wkPlanWeekOff=off;st.workoutSchedule=JSON.parse(schedSnap);st.savedWorkouts=JSON.parse(swSnap);
+  try{a.wkRenderPlans();}catch(e){}
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.32",type:"auto",label:"History week picker is a month calendar (28+ day cells, This week, Cancel at the bottom, no white X)",run:function(a){
+  var d=a.document,bad=[];
+  if(typeof a.wkOpenWeekPicker!=='function')return{pass:false,msg:'wkOpenWeekPicker missing'};
+  a.wkOpenWeekPicker();
+  var m=d.getElementById('modal-week-picker');
+  if(!m||!m.classList.contains('open'))return{pass:false,msg:'week picker did not open'};
+  var leaves=[].slice.call(m.querySelectorAll('*')).filter(function(e){return e.children.length===0;});
+  var days=leaves.filter(function(e){return /^(?:[1-9]|[12]\d|3[01])$/.test(e.textContent.trim());});
+  if(days.length<28)bad.push('only '+days.length+' day cells found - expected a month calendar (28+)');
+  if(!/This week/i.test(m.textContent))bad.push('no This week shortcut');
+  var cancel=[].slice.call(m.querySelectorAll('button')).filter(function(b){return /^cancel$/i.test(b.textContent.trim());})[0];
+  if(!cancel)bad.push('no Cancel button at the bottom');
+  if(m.querySelector('.modal-close'))bad.push('still has the white X close button under the title');
+  m.classList.remove('open');
+  return bad.length===0?true:{pass:false,msg:bad.join(' | ')};
+}},
+    {id:"G.33",type:"auto",label:"'Heavier next time' chip uses the same pill class as the Add Exercise type pills",run:function(a){
+  var res=true;
+  try{
+    a._wkSession=null;a.state.activeSession=null;
+    a.wkBeginSession({name:'ChipCheck',exercises:[{name:'Bench Press',type:'lift'}]});
+    var box=a.document.getElementById('wk-today-content');
+    var chip=box&&box.querySelector('[onclick*="wkToggleNextUp"]');
+    if(!chip)res={pass:false,msg:'Heavier chip not found on the Lift card'};
+    else if(!chip.classList.contains('exercise-tag'))res={pass:false,msg:'chip classes are "'+chip.className+'" - must use the same pill class as the Add Exercise type pills (exercise-tag)'};
+  }catch(e){res={pass:false,msg:'error '+e.message};}
+  a._wkSession=null;a.state.activeSession=null;try{a.wkRenderToday();}catch(e){}
+  return res;
+}},
+    {id:"G.34",type:"auto",label:"Use Plan starts a session straight away with none active, and offers Replace / Add / Cancel when one is",run:function(a){
+  return new Promise(function(resolve){
+    var st=a.state,d=a.document;var swSnap=JSON.stringify(st.savedWorkouts||[]);
+    var done=function(r){var s=d.getElementById('action-sheet-overlay');if(s)s.remove();a._wkSession=null;st.activeSession=null;st.savedWorkouts=JSON.parse(swSnap);try{a.wkRenderToday();}catch(e){}resolve(r);};
+    try{
+      st.savedWorkouts=st.savedWorkouts||[];st.savedWorkouts.push({id:'zt-up',name:'ZT UsePlan',exercises:[{name:'Bench Press',type:'lift'}]});
+      a._wkSession=null;st.activeSession=null;
+      a.wkLoadPlan('zt-up');
+      setTimeout(function(){
+        var s1=a._wkSession;
+        if(!s1||s1.exercises.length!==1)return done({pass:false,msg:'with no active session, Use Plan did not start the session'});
+        a.wkLoadPlan('zt-up');
+        var sheet=d.getElementById('action-sheet-overlay');var t=sheet?sheet.textContent:'';
+        if(!/Replace/.test(t)||!/Add to/.test(t)||!/Cancel/.test(t))return done({pass:false,msg:'with an active session, no Replace / Add to session / Cancel sheet appeared'});
+        done(true);
+      },500);
+    }catch(e){done({pass:false,msg:'error '+e.message});}
+  });
+}}
   ]},
-  { id:'J1', title:"Journey: Home & Settings", color:"#F0EEE8", tests:[
-    {id:"H.06",type:"semi",  label:"Home screen renders macro rings and water grid",run:null},
-    {id:"H.09",type:"manual",label:"Date navigator changes the active date and re-renders",run:null},
-    {id:"H.10",type:"manual",label:"Water grid: tapping a cup fills it, tapping again empties it",run:null},
-    {id:"S.06",type:"semi",  label:"Settings screen shows correct current macro targets",run:null},
-    {id:"S.07",type:"manual",label:"Change macro mode (Auto/Custom) — targets update and save",run:null},
-    {id:"S.08",type:"manual",label:"Change name/weight in settings — reflects on Home screen",run:null},
+  { id:"J1", title:"Journey 1: Home & Settings", color:"#F0EEE8", tests:[
+    {id:"H.06",type:"semi",label:"Home screen renders macro rings and water grid",steps:"Open Home. Macro rings show calories, protein, carbs and fat; the water grid shows cups.",run:null},
+    {id:"H.09",type:"manual",label:"Date navigator changes the active date and re-renders",steps:"On Home tap < on the date bar. The date changes and the rings and water re-render for that day. Tap > to come back to today.",run:null},
+    {id:"H.10",type:"manual",label:"Water grid: tapping a cup fills it, tapping again empties it",steps:"Tap a water cup: it fills. Tap the same cup again: it empties. The ml total follows.",run:null},
+    {id:"S.06",type:"semi",label:"Settings screen shows correct current macro targets",steps:"More > Settings. The calorie, protein, carb and fat targets match what you set at sign-up.",run:null},
+    {id:"S.07",type:"manual",label:"Change macro mode (Auto/Custom) — targets update and save",steps:"Settings: switch macro mode Auto to Custom, change one value, save. Go Home: targets updated. Reload the page: still saved.",run:null},
+    {id:"S.08",type:"manual",label:"Change name/weight in settings — reflects on Home screen",steps:"Settings: change your name and weight, save. Home shows the new values.",run:null}
   ]},
-  { id:'J2', title:"Journey: Food day", color:"#60A5FA", tests:[
-    {id:"N.07",type:"semi",  label:"Nutrition diary shows food entries from test data",run:null},
-    {id:"F.08",type:"semi",  label:"Search 'tuna' — FOODfiles NZ results appear first with teal badge",run:null},
-    {id:"F.09",type:"semi",  label:"Search 'balsamic vinegar' — OFF results appear",run:null},
-    {id:"F.10",type:"semi",  label:"Search 'sealord' — Sealord products appear",run:null},
-    {id:"F.13",type:"manual",label:"See more results button is green, loads more OFF results",run:null},
-    {id:"F.11",type:"manual",label:"Open food modal 5+ times searching 'tuna' each time — OFF results persist every time",run:null},
-    {id:"F.12",type:"manual",label:"Tap a food result — quantity entry opens automatically (no second tap needed)",run:null},
-    {id:"N.11",type:"manual",label:"Log a food: search, select, enter grams, confirm — appears in diary",run:null},
-    {id:"N.08",type:"semi",  label:"Macro totals update when food is logged",run:null},
-    {id:"N.12",type:"manual",label:"Remove a food from diary — disappears and macros update",run:null},
+  { id:"J2", title:"Journey 2: Food day", color:"#60A5FA", tests:[
+    {id:"N.07",type:"semi",label:"Nutrition diary shows food entries from test data",steps:"Nutrition > Diary. The test-data foods are listed under their meals for today.",run:null},
+    {id:"F.08",type:"semi",label:"Search 'tuna' — FOODfiles NZ results appear first with teal badge",steps:"Log Food > Search, type tuna. FOODfiles NZ entries (teal badge) first, then USDA, then Open Food Facts products.",run:null},
+    {id:"F.09",type:"semi",label:"Search 'balsamic vinegar' — OFF results appear",steps:"Search balsamic vinegar. Open Food Facts products appear (blue badge) and the count line shows something like OFF (25).",run:null},
+    {id:"F.10",type:"semi",label:"Search 'sealord' — Sealord products appear",steps:"Search sealord. Sealord products appear. Scroll to the bottom to find See more results.",run:null},
+    {id:"F.13",type:"manual",label:"See more results button is green, loads more OFF results",steps:"In a results list tap See more results (green, at the bottom). More products load. The button comes back, or says No more results at the end.",run:null},
+    {id:"F.11",type:"manual",label:"Open food modal 5+ times searching 'tuna' each time — OFF results persist every time",steps:"Close and reopen Log Food 5 times, searching tuna each time. Open Food Facts results appear every time and See more is tappable each time.",run:null},
+    {id:"F.12",type:"manual",label:"Tap a food result — quantity entry opens automatically (no second tap needed)",steps:"Tap a food result. The quantity panel opens straight away, with no second tap.",run:null},
+    {id:"N.11",type:"manual",label:"Log a food: search, select, enter grams, confirm — appears in diary",steps:"Pick a food, enter grams, confirm. It appears in the diary under the chosen meal.",run:null},
+    {id:"N.08",type:"semi",label:"Macro totals update when food is logged",steps:"After N.11, the calorie and P/C/F totals have gone up by that food's amounts.",run:null},
+    {id:"N.12",type:"manual",label:"Remove a food from diary — disappears and macros update",steps:"Remove the food you just logged. It disappears and the totals drop back.",run:null}
   ]},
-  { id:'J3', title:"Journey: Recipes & meal plan", color:"#4ADE80", tests:[
-    {id:"N.10",type:"semi",  label:"Recipe builder: add ingredients, macros update live",run:null},
-    {id:"N.13",type:"manual",label:"Save recipe — appears in Meals/Recipes tab",run:null},
-    {id:"N.09",type:"semi",  label:"Meal plan tab shows current week plan",run:null},
-    {id:"N.14",type:"manual",label:"Meal plan: assign a recipe to a slot, save, navigate away and back — persists",run:null},
-    {id:"N.15",type:"manual",label:"Save meal plan as template, load on different week — fills correctly",run:null},
+  { id:"J3", title:"Journey 3: Recipes & meal plan", color:"#4ADE80", tests:[
+    {id:"N.10",type:"semi",label:"Recipe builder: add ingredients, macros update live",steps:"Meals/Recipes > new recipe. Search balsamic vinegar in the ingredient box: Open Food Facts products show, with a count line and See more. Add two ingredients and type grams: Per serve and Total update live in the same protein/carb/fat colours as Home. Clear the search box: the old results must NOT pop back.",run:null},
+    {id:"N.13",type:"manual",label:"Save recipe — appears in Meals/Recipes tab",steps:"Name the recipe and Save. It appears in Meals/Recipes.",run:null},
+    {id:"N.09",type:"semi",label:"Meal plan tab shows current week plan",steps:"Nutrition > Plan. Order: week bar, day tiles (3 dots per day, more with Show snacks), toolbar (Copy last week, Save template, Load template, Show snacks), then the day cards.",run:null},
+    {id:"N.14",type:"manual",label:"Meal plan: assign a recipe to a slot, save, navigate away and back — persists",steps:"Tap + Add on a slot and pick your recipe. The row shows the recipe name straight away. Leave the page and come back: still there.",run:null},
+    {id:"N.15",type:"manual",label:"Save meal plan as template, load on different week — fills correctly",steps:"Plan > Save template (give it a name), change week, Load template. The meals fill in. Open the Save and Load sheets here and on Workout Plans: they must look identical.",run:null}
   ]},
-  { id:'J4', title:"Journey: Workout planning", color:"#F07C3A", tests:[
-    {id:"W.17",type:"semi",  label:"Plans tab renders week grid and day schedule rows",run:null},
-    {id:"W.25",type:"manual",label:"Plans: tap a day — picker opens with saved workouts + Rest + Clear",run:null},
-    {id:"W.34",type:"manual",label:"Tapping the name of an assigned workout in Plans day list opens a Replace/Remove sheet",run:null},
-    {id:"W.26",type:"manual",label:"Plans: save as template, load on different week — fills correctly",run:null},
-    {id:"H.07",type:"semi",  label:"Workout tile on home shows today's planned session",run:null},
-    {id:"H.08",type:"manual",label:"Tapping workout tile navigates to workout or opens picker",run:null},
-    {id:"W.33",type:"manual",label:"Home tile always shows ▶, lists all workouts for today (completed ones muted with finish time), and clicking ▶ lands on Workout › Today",run:null},
-    {id:"W.16",type:"semi",  label:"Today tab shows today's date (not 'week of')",run:null},
-    {id:"W.36",type:"manual",label:"Use Plan and Add Exercise buttons are hidden when viewing any day other than today in the Today tab",run:null},
+  { id:"J4", title:"Journey 4: Workout planning", color:"#F07C3A", tests:[
+    {id:"W.17",type:"semi",label:"Plans tab renders week grid and day schedule rows",steps:"Workout > Plans. Order: week bar, day tiles (dots), toolbar buttons, day list. Workout names are bold white at the same size as Nutrition meal names. Rest day text matches.",run:null},
+    {id:"W.25",type:"manual",label:"Plans: tap a day — picker opens with saved workouts + Rest + Clear",steps:"Tap + Add workout on a day and choose one. Add a second to the same day: both are listed.",run:null},
+    {id:"W.34",type:"manual",label:"Tapping the name of an assigned workout in Plans day list opens a Replace/Remove sheet",steps:"Tap anywhere on an assigned workout row (not only the name): a Replace / Remove sheet opens. Do the same on a Rest day row.",run:null},
+    {id:"W.26",type:"manual",label:"Plans: save as template, load on different week — fills correctly",steps:"Plans > Save as template, then Load template on another week: the week fills. Edit a template from the Load list.",run:null},
+    {id:"H.07",type:"semi",label:"Workout tile on home shows today's planned session",steps:"Home Today card lists every workout planned for today, one per line.",run:null},
+    {id:"H.08",type:"manual",label:"Tapping workout tile navigates to workout or opens picker",steps:"Tap the play triangle on the Home workout row: you land on Workout > Today.",run:null},
+    {id:"W.33",type:"manual",label:"Home tile always shows ▶, lists all workouts for today (completed ones muted with finish time), and clicking ▶ lands on Workout › Today",steps:"Finish one planned workout, then go Home. The finished workout shows muted with its finish time and any unfinished one is still listed. The play triangle is always there and opens Workout > Today.",run:null},
+    {id:"W.16",type:"semi",label:"Today tab shows today's date (not 'week of')",steps:"Workout > Today shows today's date. < moves to earlier days and shows what was logged. There is no forward arrow.",run:null},
+    {id:"W.36",type:"manual",label:"Use Plan and Add Exercise buttons are hidden when viewing any day other than today in the Today tab",steps:"Go to a previous day with <. Use Plan and Add Exercise are not shown.",run:null}
   ]},
-  { id:'J5', title:"Journey: Workout session", color:"#E8C547", tests:[
-    {id:"W.27",type:"manual",label:"Use Plan — loads saved workout exercises into session",run:null},
-    {id:"W.19",type:"manual",label:"Add exercise via UI — appears as card in Today tab (test each type)",run:null},
-    {id:"W.37",type:"manual",label:"Adding Lateral Raise to a session gives a kg/reps card (classified as lift, not bodyweight)",run:null},
-    {id:"W.38",type:"manual",label:"Adding a Run gives a distance + time card and the session title in History reads e.g. '5 km Run'",run:null},
-    {id:"W.20",type:"manual",label:"Run card: can type more than one digit in km field",run:null},
-    {id:"W.21",type:"manual",label:"Pace calculates correctly (3km / 18:00 = 6:00/km)",run:null},
-    {id:"W.22",type:"manual",label:"Session timer ticks up every second",run:null},
-    {id:"W.40",type:"manual",label:"The '↑ Heavier next time' chip is orange (#F07C3A), not blue",run:null},
-    {id:"W.24",type:"manual",label:"Navigate away from workout mid-session, return — session still active",run:null},
-    {id:"W.23",type:"manual",label:"End session — confirm sheet appears, session saved to History",run:null},
-    {id:"W.35",type:"manual",label:"Tapping the week label in History opens a month and year picker with a 'This week' shortcut",run:null},
-    {id:"W.18",type:"semi",  label:"History tab — Exercise Progress shows chart",run:null},
-    {id:"W.39",type:"manual",label:"Run, Running, Morning Run all appear as a single 'Run' entry in the Exercise progress dropdown",run:null},
+  { id:"J5", title:"Journey 5: Workout session", color:"#E8C547", tests:[
+    {id:"W.27",type:"manual",label:"Use Plan — loads saved workout exercises into session",steps:"Today > Use Plan > pick a plan. With no active session it starts straight away. With one active it offers Replace / Add to session / Cancel.",run:null},
+    {id:"W.19",type:"manual",label:"Add exercise via UI — appears as card in Today tab (test each type)",steps:"Today > + Add Exercise. Add one of each: Bench Press (lift), Push-up (bodyweight), Plank (hold), Running, Dance, and a custom rehab exercise. Each gets the right card.",run:null},
+    {id:"W.37",type:"manual",label:"Adding Lateral Raise to a session gives a kg/reps card (classified as lift, not bodyweight)",steps:"+ Add Exercise, search lateral, tap Lateral Raise. It is added at once as a Lift card with kg and reps. No type pills and no name field appear for library exercises.",run:null},
+    {id:"W.41",type:"manual",label:"Custom exercise path shows name, type pills and target; library exercises don't",steps:"+ Add Exercise > + Custom exercise. Name, type pills and target are shown here, and only here. Add a custom exercise: the card matches the type you chose.",run:null},
+    {id:"W.38",type:"manual",label:"Adding a Run gives a distance + time card and the session title in History reads e.g. '5 km Run'",steps:"+ Add Exercise, search run, tap Running: it is added as Run with distance and time (no name field). Type 1800 in time: it shows 18:00 (no colon typed). Distance 5: pace shows 3:36 /km. End the session as a quick session: History reads 5 km Run.",run:null},
+    {id:"W.20",type:"manual",label:"Run card: can type more than one digit in km field",steps:"On the Run card type 12.5 in Distance. All digits are accepted and letters are not.",run:null},
+    {id:"W.21",type:"manual",label:"Pace calculates correctly (3km / 18:00 = 6:00/km)",steps:"Distance 3 and time digits 1800 (18:00): pace shows 6:00 /km.",run:null},
+    {id:"W.22",type:"manual",label:"Session timer ticks up every second",steps:"The timer at the top counts up every second.",run:null},
+    {id:"W.28",type:"manual",label:"Active session card has a Notes textarea",steps:"During a session find the Notes box and type a note.",run:null},
+    {id:"W.31",type:"manual",label:"'↑ Heavier next time' chip toggles highlight on tap",steps:"On a Lift card tap Heavier next time: it highlights. Tap again: it clears.",run:null},
+    {id:"W.40",type:"manual",label:"The '↑ Heavier next time' chip is orange (#F07C3A), not blue",steps:"The Heavier chip looks like the Add Exercise type pills (same size, shape and font), and is orange when on.",run:null},
+    {id:"W.24",type:"manual",label:"Navigate away from workout mid-session, return — session still active",steps:"Mid-session go to Home and back to Workout > Today. The session and everything entered are still there.",run:null},
+    {id:"W.23",type:"manual",label:"End session — confirm sheet appears, session saved to History",steps:"End the session and confirm. Today shows it with the time only (e.g. 6:35pm). History shows Mon 09-11-2026 · 6:35pm once, on the title row. The kg and reps you entered are shown.",run:null},
+    {id:"W.29",type:"manual",label:"Session note is shown in History after ending session",steps:"Open that session in History: the note you typed is shown.",run:null},
+    {id:"W.32",type:"manual",label:"After toggling '↑ Heavier', next session shows '· try heavier' instead of 'Last: X kg × Y'",steps:"Start the same lift again. It shows Last: X kg x Y, or try heavier if you ticked the chip.",run:null},
+    {id:"W.35",type:"manual",label:"Tapping the week label in History opens a month and year picker with a 'This week' shortcut",steps:"History > Past sessions > tap the week label. A month calendar opens: month chevrons, dots on days that have sessions, tap a day to jump there, a This week shortcut, and a full-width Cancel at the bottom. No white X under the title.",run:null},
+    {id:"W.18",type:"semi",label:"History tab — Exercise Progress shows chart",steps:"History > Exercise progress: pick Bench Press, then Run. The chart fills the tile and the dates do not overlap. Run offers Pace / Distance / Weekly km.",run:null},
+    {id:"W.39",type:"manual",label:"Run, Running, Morning Run all appear as a single 'Run' entry in the Exercise progress dropdown",steps:"The exercise dropdown lists Run once (not Running or Morning Run), including a run you logged as a quick session.",run:null}
   ]},
-  { id:'J6', title:"Journey: Progress", color:"#C084FC", tests:[
-    {id:"P.07",type:"semi",  label:"Weight trend chart renders with data from test data",run:null},
-    {id:"P.09",type:"manual",label:"Log weight — appears in chart and updates current weight",run:null},
-    {id:"P.12",type:"manual",label:"Trend period toggle (1W / 1M / 3M) — chart updates",run:null},
-    {id:"P.08",type:"semi",  label:"Goals list renders from test data",run:null},
-    {id:"P.10",type:"manual",label:"Add goal with milestone — appears in goals list",run:null},
-    {id:"P.11",type:"manual",label:"Tick a milestone — marks as done",run:null},
-  ]},
+  { id:"J6", title:"Journey 6: Progress", color:"#C084FC", tests:[
+    {id:"P.07",type:"semi",label:"Weight trend chart renders with data from test data",steps:"Progress: the weight trend chart shows the test-data weights.",run:null},
+    {id:"P.09",type:"manual",label:"Log weight — appears in chart and updates current weight",steps:"Log a weight. The chart and current weight update.",run:null},
+    {id:"P.12",type:"manual",label:"Trend period toggle (1W / 1M / 3M) — chart updates",steps:"Toggle 1W / 1M / 3M. The chart updates.",run:null},
+    {id:"P.08",type:"semi",label:"Goals list renders from test data",steps:"The goals list shows the test-data goals.",run:null},
+    {id:"P.10",type:"manual",label:"Add goal with milestone — appears in goals list",steps:"Add a goal with a milestone. It appears in the list.",run:null},
+    {id:"P.11",type:"manual",label:"Tick a milestone — marks as done",steps:"Tick a milestone. It is marked done.",run:null}
+  ]}
 ];
 
 var results={};
 var comments={};
 var running=false;
 var app=null;
+var appOk=false;
 var sectionFilter='all';
+var RUNNER_VERSION='r5 (2026-11-11)';
 
 function log(msg,type){var b=document.getElementById('log-box');var l=document.createElement('span');l.className='log-line '+(type||'info');l.textContent=msg;b.appendChild(l);b.appendChild(document.createElement('br'));b.scrollTop=b.scrollHeight;}
-function onFrameLoad(){try{app=document.getElementById('app-frame').contentWindow;log('App loaded','ok');}catch(e){log('Frame error: '+e.message,'err');}}
+function buildId(){try{var el=app.document.getElementById('build-hash');var t=el?el.textContent.trim():'';return (t&&t!=='\u2026')?t:'unknown (banner empty)';}catch(e){return 'unknown (app frame blocked)';}}
+function showBuild(){var c=document.getElementById('build-chip');if(c)c.textContent='app build '+buildId();}
+function onFrameLoad(){
+  var b=document.getElementById('origin-banner');
+  try{
+    app=document.getElementById('app-frame').contentWindow;
+    void app.document.title;
+    appOk=true;b.style.display='none';
+    log('App loaded - same origin OK','ok');
+    setTimeout(showBuild,1500);
+  }catch(e){
+    appOk=false;b.style.display='block';
+    log('BLOCKED: runner and app are on different origins (see red banner)','err');
+  }
+}
 function resetApp(){try{document.getElementById('app-frame').contentWindow.localStorage.removeItem('fitsol_v2');}catch(e){}document.getElementById('app-frame').src='index.html';log('App reset','info');}
-function loadTestData(){if(!app){log('App not loaded yet','err');return;}try{if(typeof app.loadTestData==='function'){app.loadTestData();app.location.reload();log('Test data loaded — reloading app','ok');}else if(typeof app.loadTestDataAndReload==='function'){app.loadTestDataAndReload();log('Test data loaded','ok');}else{log('loadTestData not found in app','err');}}catch(e){log('Error: '+e.message,'err');}}
+function loadTestData(){
+  if(!app||!appOk){log('Cannot load test data: app frame is blocked or not loaded','err');return;}
+  try{
+    if(typeof app.loadTestData==='function'){app.loadTestData();app.location.reload();log('Test data loaded - reloading app','ok');}
+    else if(typeof app.loadTestDataAndReload==='function'){app.loadTestDataAndReload();log('Test data loaded','ok');}
+    else{log('loadTestData not found in app','err');}
+  }catch(e){log('Error: '+e.message,'err');}
+}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
 function setResult(id,status,msg){results[id]={status:status,msg:msg||null};}
 
@@ -687,6 +798,7 @@ function offMockRun(a,validOnPage1,ctx){
     }catch(e){finish({pass:false,msg:'error: '+e.message});}
   });
 }
+
 function clearResults(){results={};var b=document.getElementById('log-box');b.innerHTML='<span class="log-line info">Cleared.</span>';render();}
 function setSection(s,el){sectionFilter=s;document.querySelectorAll('.sf-btn').forEach(function(b){b.classList.remove('active');});el.classList.add('active');render();}
 function setComment(id,val){if(val.trim())comments[id]=val.trim();else delete comments[id];}
@@ -694,23 +806,24 @@ function toggleManual(id,event){if(event&&event.target&&event.target.tagName==='
 
 async function runAll(){
   if(running)return;
+  if(!appOk){log('Cannot run auto tests: app frame is blocked (see red banner)','err');return;}
   running=true;
   document.getElementById('btn-run-all').disabled=true;
-  log('--- Running auto tests ---','info');
+  showBuild();
+  log('--- Running auto tests on build '+buildId()+' ---','info');
   var auto=SECTIONS.flatMap(function(s){return s.tests;}).filter(function(t){return t.type==='auto';});
   for(var i=0;i<auto.length;i++){
     var t=auto[i];
     setResult(t.id,'running');render();
     await sleep(60);
     try{
-      if(!app)throw new Error('App not loaded');
       var r=t.run(app);
       if(r&&typeof r.then==='function'){r=await Promise.race([r,new Promise(function(res){setTimeout(function(){res({pass:false,msg:'timed out after 10s'});},10000);})]);}
       var pass,msg;
-      if(r&&typeof r==='object'&&'pass'in r){pass=r.pass;msg=r.msg;}else{pass=!!r;msg=null;}
+      if(r&&typeof r==='object'&&'pass' in r){pass=r.pass;msg=r.msg;}else{pass=!!r;msg=null;}
       setResult(t.id,pass?'pass':'fail',msg||(pass?null:'returned falsy'));
-      log((pass?'✓':'✗')+' '+t.id,pass?'ok':'err');
-    }catch(e){setResult(t.id,'fail',e.message);log('✗ '+t.id+' ERROR: '+e.message,'err');}
+      log((pass?'\u2713':'\u2717')+' '+t.id,pass?'ok':'err');
+    }catch(e){setResult(t.id,'fail',e.message);log('\u2717 '+t.id+' ERROR: '+e.message,'err');}
     await sleep(40);
   }
   log('--- Done ---','info');
@@ -720,14 +833,13 @@ async function runAll(){
 }
 
 function exportResults(){
-  var all=SECTIONS.flatMap(function(s){return s.tests;});
-  var lines=['FitSoleil Test Report — '+new Date().toLocaleString(),''];
+  var lines=['Build: '+buildId(),'Runner: '+RUNNER_VERSION,'FitSoleil Test Report - '+new Date().toLocaleString(),''];
   var pass=0,fail=0,pending=0;
   SECTIONS.forEach(function(s){
     lines.push('## '+s.title);
     s.tests.forEach(function(t){
       var r=results[t.id]||{};var st=r.status||'pending';
-      var icon=st==='pass'?'✓':st==='fail'?'✗':'○';
+      var icon=st==='pass'?'\u2713':st==='fail'?'\u2717':'\u25CB';
       var cmt=comments[t.id]?' // '+comments[t.id]:'';
       lines.push('  '+icon+' '+t.id+' ['+t.type.toUpperCase()+'] '+t.label+cmt);
       if(r.msg)lines.push('    ERROR: '+r.msg);
@@ -737,7 +849,7 @@ function exportResults(){
   });
   lines.push('SUMMARY: '+pass+' pass, '+fail+' fail, '+pending+' pending');
   var text=lines.join('\n');
-  navigator.clipboard.writeText(text).then(function(){log('Report copied — paste into Claude','ok');}).catch(function(){log('Clipboard failed','err');});
+  navigator.clipboard.writeText(text).then(function(){log('Report copied (build '+buildId()+') - paste into Claude','ok');}).catch(function(){log('Clipboard failed','err');});
 }
 
 function render(){
@@ -757,7 +869,8 @@ function render(){
 
   var html='';
   SECTIONS.forEach(function(s){
-    if(sectionFilter!=='all'&&sectionFilter!=='fail'&&s.id!==sectionFilter)return;
+    if(sectionFilter==='J'){if(s.id.charAt(0)!=='J')return;}
+    else if(sectionFilter!=='all'&&sectionFilter!=='fail'&&s.id!==sectionFilter)return;
     var visible=s.tests.filter(function(t){
       if(sectionFilter==='fail')return(results[t.id]||{}).status==='fail';
       return true;
@@ -781,13 +894,14 @@ function render(){
       var badge=t.type==='auto'?'<span class="badge b-auto">AUTO</span>':t.type==='semi'?'<span class="badge b-semi">SEMI</span>':'<span class="badge b-manual">MANUAL</span>';
       var onclick=t.type!=='auto'?'onclick="toggleManual(\''+t.id+'\',event)"':'';
       var errHtml=r.msg?'<div class="err-msg">'+r.msg+'</div>':'';
+      var stepsHtml=t.steps?'<div class="steps">'+t.steps+'</div>':'';
       var commentHtml='';
       if(t.type!=='auto'){
         commentHtml='<textarea class="comment-input" rows="1" placeholder="Add note..." onclick="event.stopPropagation()" oninput="setComment(\''+t.id+'\',this.value)">'+(comments[t.id]||'')+'</textarea>';
       }else if(comments[t.id]){
         commentHtml='<div style="font-size:9px;color:#5A5860;margin-top:2px">&#128203; '+comments[t.id]+'</div>';
       }
-      html+='<div class="test '+st+'" '+onclick+'>'+cb+'<span class="id">'+t.id+'</span><div class="label">'+t.label+badge+errHtml+commentHtml+'</div></div>';
+      html+='<div class="test '+st+'" '+onclick+'>'+cb+'<span class="id">'+t.id+'</span><div class="label">'+t.label+badge+stepsHtml+errHtml+commentHtml+'</div></div>';
     });
     html+='</div>';
   });
